@@ -1,0 +1,13 @@
+{
+  "include": ["src", "tests", "scripts"],
+  "extraPaths": ["src"],
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.12",
+  "typeCheckingMode": "standard",
+  "reportMissingImports": "warning",
+  "reportUnusedParameter": "none",
+  "//": "vllm, llmcompressor, math_verify and bitsandbytes are GPU-box-only deps and are never importable on this Apple Silicon machine (vLLM's CPU backend is x86-only). They are imported lazily inside functions and are expected to be unresolved here.",
+  "ignore": [],
+  "reportMissingModuleSource": "none"
+}

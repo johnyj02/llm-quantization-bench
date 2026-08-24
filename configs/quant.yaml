@@ -1,0 +1,149 @@
+# Quantization configuration — QuantArtifact
+#
+# 🚨 THE SINGLE MOST LIKELY REVIEWER OBJECTION, so get it exactly right.
+#
+# llmcompressor's OWN official examples differ by 8x in calibration token
+# budget between the two methods:
+#     GPTQ: 512 samples x 2048 seqlen, symmetric  W4A16
+#     AWQ:  256 samples x  512 seqlen, asymmetric W4A16_ASYM
+# ACCEPTING THOSE DEFAULTS MAKES THE GPTQ-vs-AWQ DELTA UNINTERPRETABLE.
+#
+# We normalise BOTH arms to ONE budget, ONE calibration set, ONE seed, and
+# state it in the paper (EXECUTOR-TASKS.md 2.5, EXECUTOR-PLAN.md 5).
+# Every parameter here is hashed into `quant_config_hash` on every generation
+# record so a reviewer can verify no arm drifted.
+
+toolchain:
+  # ONE tool for BOTH GPTQ and AWQ -> one calibration code path -> one less
+  # confound. llmcompressor pins compressed-tensors EXACTLY.
+  package: llmcompressor
+  version: "0.12.0.1"
+  pins:
+    compressed-tensors: "0.17.1"   # exact pin, not a range
+    transformers: "<=5.10.1"
+  # NEVER install these:
+  #   autoawq   -> downgrades transformers to 4.47.1 and wrecks the env
+  #   auto-gptq -> GitHub-archived; its own README redirects to llmcompressor
+  # Both are archived and their READMEs point at llmcompressor/gptqmodel.
+  forbidden: [autoawq, auto-gptq]
+
+# ---------------------------------------------------------------------------
+# NORMALISED CALIBRATION — identical for GPTQ and AWQ, all bit widths,
+# all three models. This is the whole point.
+# ---------------------------------------------------------------------------
+calibration:
+  dataset: HuggingFaceH4/ultrachat_200k
+  dataset_split: train_sft
+  num_samples: 512            # NOT AWQ's example default of 256
+  max_seq_length: 2048        # NOT AWQ's example default of 512
+  seed: 20260823              # pinned; same shuffle for every arm
+  shuffle: true
+  # Recorded so the paper can state the exact token budget rather than a
+  # sample count: 512 x 2048 = 1,048,576 calibration tokens per arm, both methods.
+  total_calibration_tokens: 1048576
+
+# ---------------------------------------------------------------------------
+# Precision arms. 5 in the reference condition, 3 in the expensive arms.
+# bf16 -> 8-bit -> 4-bit is a DOSE-RESPONSE (override O7), which is a far
+# stronger internal-validity argument than a two-point comparison.
+# ---------------------------------------------------------------------------
+precisions:
+
+  bf16:
+    method: none
+    bits: 16
+    in_reference: true
+    in_sweep: true
+    in_zeroshot: true
+    note: "baseline; also run TWICE with different seeds for the noise floor (A14)"
+
+  gptq-8bit:
+    method: gptq
+    scheme: W8A16
+    bits: 8
+    symmetric: true
+    group_size: 128
+    desc_act: false            # matches Qwen official; NOT hugging-quants' true
+    in_reference: true
+    in_sweep: false            # excluded deliberately: it is here for DOSE-RESPONSE
+    in_zeroshot: false
+
+  gptq-4bit:
+    method: gptq
+    scheme: W4A16
+    bits: 4
+    symmetric: true
+    group_size: 128
+    desc_act: false
+    in_reference: true
+    in_sweep: true
+    in_zeroshot: true
+    # H8 lands here: auto_gptq.py and choose_mp_linear_kernel() have NO
+    # batch-invariance handling, so GPTQ keeps using Marlin, which vLLM's own
+    # source comment says is not batch invariant. A7 measures it.
+    bi_guard_in_vllm: false
+
+  awq-4bit:
+    method: awq
+    # NORMALISED to symmetric W4A16 to match GPTQ. llmcompressor's AWQ example
+    # uses W4A16_ASYM; using it here would confound the GPTQ-vs-AWQ contrast
+    # with a symmetry difference on top of the algorithm difference.
+    scheme: W4A16
+    bits: 4
+    symmetric: true
+    group_size: 128
+    in_reference: true
+    in_sweep: true
+    in_zeroshot: true
+    # auto_awq.py DOES have a batch-invariance guard (source comment: "Marlin
+    # kernels are not batch invariant"), so under BI mode AWQ silently falls
+    # back to slower non-Marlin kernels. That asymmetry vs GPTQ is exactly
+    # what A7 measures and why H8 exists.
+    bi_guard_in_vllm: true
+    normalisation_note: "asym->sym is a DEVIATION from llmcompressor's example; state it in the paper"
+
+  bnb-nf4:
+    method: bitsandbytes
+    scheme: NF4
+    bits: 4
+    in_flight: true            # quantized by vLLM at load, not a pre-made checkpoint
+    in_reference: true
+    in_sweep: false
+    in_zeroshot: false
+    # Excluded from the expensive arms deliberately, and the paper must say so
+    # WITH the reason: NF4 has no CUDA kernels in vLLM (its own RFC #39583
+    # proposes moving it out-of-tree). It earns a place in the
+    # method-generality ladder but not in a token-budget sweep.
+    exclusion_reason: "no CUDA kernels in vLLM; RFC #39583 proposes moving NF4 out-of-tree"
+    # ⚠️ CONFOUND TO STATE: bnb is quantized IN-FLIGHT while GPTQ/AWQ load
+    # pre-quantized checkpoints. That is a backend difference layered on the
+    # bit-width difference. Hold the engine fixed and name this explicitly.
+    backend_confound: true
+
+# STRETCH ONLY, gated on G5 passing by Sep 10 (EXECUTOR-TASKS.md 2.4).
+# Adds the measured throughput winner (1.38x per Kurtic Table 6) and a fourth
+# dose-response point. Do not build before the gate.
+stretch:
+  w8a8-int8:
+    method: gptq
+    scheme: W8A8
+    bits: 8
+    gated_on: "G5 passed by 2026-09-10"
+
+# ---------------------------------------------------------------------------
+# Self-quantize ALL THREE models with identical settings as the PRIMARY arms.
+# Vendor checkpoints are a documented cross-check only (A9 / models.yaml).
+# This is the detail that determines whether a quantization result replicates.
+# ---------------------------------------------------------------------------
+policy:
+  self_quantize_all: true
+  mix_vendor_checkpoints_into_main_matrix: false
+  # Quantization is cheap: ~10-15 min for a 3B, ~30 min for an 8B, and needs
+  # only ~1GB VRAM (sequential layer onloading is the default). The ~16GB
+  # requirement is HOST RAM -- which is why the instance has 64 GiB.
+  expected_minutes_3b: 15
+  expected_minutes_8b: 30
+  vram_gb_required: 1
+  host_ram_gb_required: 16
+  # Quantize on the same box that serves, in venv-quant (NOT venv-serve).
+  venv: venv-quant

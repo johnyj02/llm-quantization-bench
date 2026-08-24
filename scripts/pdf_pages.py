@@ -16,7 +16,8 @@ import zlib
 
 
 def count_pages(path: str) -> int:
-    data = open(path, "rb").read()
+    with open(path, "rb") as handle:
+        data = handle.read()
 
     # Fast path: uncompressed page objects.
     direct = len(re.findall(rb"/Type\s*/Page[^sC]", data))

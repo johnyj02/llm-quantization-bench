@@ -1,0 +1,78 @@
+[project]
+name = "quantartifact"
+version = "0.1.0"
+description = "Decomposing reported quantization degradation into competence, compliance, and truncation"
+requires-python = ">=3.11"
+
+# Deliberately minimal. The heavy, mutually-incompatible dependencies live in
+# TWO SEPARATE environments on the GPU box, never here and never together:
+#
+#   venv-quant : llmcompressor==0.12.0.1 (pins compressed-tensors==0.17.1
+#                exactly, transformers<=5.10.1) -- used for GPTQ *and* AWQ so
+#                there is one calibration code path and one less confound.
+#   venv-serve : vllm==0.26.0, bitsandbytes==0.50.0, math-verify==0.9.0,
+#                lm-eval==0.4.12
+#
+# See requirements/ for the pinned, platform-targeted lockfiles. NEVER install
+# autoawq (downgrades transformers to 4.47.1 and wrecks the env) or auto-gptq
+# (archived; its own README redirects to llmcompressor).
+#
+# Nothing below requires a GPU: this is the analysis/scoring surface, which by
+# design runs over stored generations with no GPU at all. That is the same
+# property that makes the artifact release useful.
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+# Local analysis + writing box (Apple Silicon). No torch, no vllm -- neither
+# runs usefully here (vLLM's CPU backend is x86-only; macOS is FP32/FP16 only).
+analysis = [
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "statsmodels>=0.14",
+    "scipy>=1.13",
+    "pyarrow>=16.0",
+    "matplotlib>=3.8",
+]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+
+[project.scripts]
+qa = "quantartifact.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/quantartifact"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+# Scorer unit tests are the highest-value tests in this repo -- they are the
+# instrument, and gate G3 is defined by them.
+addopts = "-q --strict-markers"
+markers = [
+    "gpu: requires a CUDA device (never runs locally)",
+    "network: requires network access (dataset or hub fetch)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "PLC0415"]
+ignore = [
+    "E501",  # line length is handled by the formatter
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests deliberately poke private helpers to pin down harness-faithful
+# behaviour, and use long literal fixtures.
+"tests/*" = ["E402"]

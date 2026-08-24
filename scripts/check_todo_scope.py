@@ -34,7 +34,10 @@ def main(path: str) -> int:
     violations: list[tuple[int, str, str]] = []
     allowed_count = 0
 
-    for lineno, raw in enumerate(open(path, encoding="utf-8"), start=1):
+    with open(path, encoding="utf-8") as handle:
+        lines = handle.readlines()
+
+    for lineno, raw in enumerate(lines, start=1):
         line = raw.rstrip("\n")
 
         stripped = line.lstrip()

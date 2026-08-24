@@ -192,10 +192,37 @@ pure functions over stored artifacts (`scoring/extract.py`, no I/O).
   logged and counted; the count is a reported finding, not a discarded error.
 - `arc_challenge_chat`: `remove_whitespace` then `take_first`, with metric
   `ignore_case: true, ignore_punctuation: true`.
-- ⚠️ The GSM8K task-variant question (which of `gsm8k` / `gsm8k_cot` is the **primary**
-  reference) is an **open scientific decision** as of this draft — see
-  `notes/harness-configs.md` §3. Both are pre-registered above; the primary must be named
-  in this file before the freeze.
+**GSM8K task variants — RESOLVED 2026-08-23, both in scope.**
+
+`notes/harness-configs.md` §3 establishes that "few-shot CoT", "harness-verbatim" and the
+`####` strict regex cannot all hold at once in v0.4.12. Both variants are therefore run,
+with pre-designated roles:
+
+- **`gsm8k_cot` (8-shot CoT) is the PRIMARY reference.** `EXECUTOR-TASKS.md` §2.2 locks the
+  reference prompt format as few-shot CoT, and **H1 — the paper's lead hypothesis — requires
+  chains of thought to truncate.** A non-CoT prompt cannot test it. Its rung-1 regex is
+  `The answer is (\-?[0-9\.\,]+).`
+- **`gsm8k` (5-shot, non-CoT) is a PRE-REGISTERED SECONDARY variant**, not a substitute
+  reference. Its rung-1 regex is `#### (\-?[0-9\.\,]+)`, which instruction-tuned models
+  essentially never emit. It is included for two stated reasons: it is the pairing
+  arXiv:2601.14277 measured (so **Anchor C** is reproducible), and it is the harness's
+  own high-artifact configuration.
+- **The comparison between the two is itself a pre-registered result**, not a robustness
+  check: the same models and items scored under two harness-sanctioned prompt/regex
+  pairings, one of which chat models can satisfy and one of which they cannot. It
+  demonstrates directly that **the measured artifact's magnitude is a property of the
+  harness configuration rather than of the model.**
+- **Pre-committed expectation, recorded before any data exists:** the rung-1-vs-rung-2 gap
+  should be **large on `gsm8k`** and **small or absent on `gsm8k_cot`**. If instead the gap
+  is large on `gsm8k_cot`, that is a surprise and will be reported as one.
+- The headline H3 omnibus contrast is computed on the **primary** reference (`gsm8k_cot`)
+  plus BBH and ARC; `gsm8k` enters as its own pre-specified contrast within the same
+  Holm–Bonferroni family. This is **not** a licence to report whichever variant gives the
+  larger effect — the primary is named here, before results.
+
+Scope cost, recorded for honesty: +1,319 items × 15 cells ≈ **19,785 additional
+generations**, ~20% above the `EXECUTOR-TASKS.md` §2.2 locked matrix. Approved by the user
+2026-08-23.
 
 **Rung 2 — `permissive`.** Deterministic, documented, ordered. Applied in this order; the
 first rule that yields a candidate wins:
@@ -282,9 +309,35 @@ only. The cascade rule is reported in the paper.
 
 Per `EXECUTOR-PLAN.md` §2.3. Assigned to every generation:
 
-- `COMPLIANT` — answer present in the canonical expected format (rung-1 extraction succeeds).
-- `RECOVERABLE` — no canonical format, but rung 2 finds a committed final answer.
+- `COMPLIANT` — answer present in the canonical expected format.
+- `RECOVERABLE` — no canonical format, but rung 2 finds a **committed** final answer.
 - `ABSENT` — no identifiable answer (degeneration, refusal, or truncation).
+
+**⚠️ Extraction *succeeding* is not the same as the model *committing*, and the compliance
+label uses the latter.** Two cases forced this distinction, both found while building the
+scorers and both pre-registered here before any generations exist:
+
+1. **Positional fallbacks are not commitment evidence.** Rung 2's last-rules
+   (`last_number`, `last_option_letter`) are faithful to the harness's own
+   `flexible-extract` and are kept for **scoring**. But a generation truncated
+   mid-reasoning — *"Ann has 3 apples and buys"* — yields `3` under `last_number` while the
+   model plainly never committed to anything. Only `boxed`, `commitment_phrase` and
+   `hash_marker` count as commitment.
+2. **`arc_challenge_chat`'s rung-1 filter has no regex.** It is `remove_whitespace` +
+   `take_first`, so it accepts *any* non-empty text. Taken literally every ARC-chat
+   generation would be `COMPLIANT`, the compliance column would be vacuous, and the H4
+   decomposition would be meaningless on the task that is our **structural control (H6)**.
+   The task ships `gen_prefix: "The best answer is"`, so a canonical continuation is the
+   option letter alone; anything else is not canonical format. Rung-1 **scoring** stays
+   harness-verbatim regardless.
+
+**Why this is load-bearing rather than tidy-minded:** the §1.1 always-compliant stratum is
+defined as *items where every arm produced a committed answer*. Under the looser reading,
+truncated generations carrying an incidental mid-reasoning number would be admitted to the
+stratum — which would corrupt precisely the contrast the identification fix exists to make
+identifiable, and would do so **in the direction of our own hypothesis**. Both the
+`found` and `committed` flags, and the rule that fired, are recorded on every score record
+so the choice is auditable rather than buried.
 
 **Truncation is recorded separately and is orthogonal** — a generation can be both
 truncated and `ABSENT`, and the two must not be conflated. See §4 for the three

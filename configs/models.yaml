@@ -1,0 +1,169 @@
+# Model configuration — QuantArtifact
+#
+# Every model pinned by COMMIT SHA, not tag (EXECUTOR-TASKS.md A3). SHAs and
+# licenses resolved from the HF API on 2026-08-23 and verified against the
+# repo cards. Re-confirm before the main runs (A13).
+#
+# Serving config is FROZEN across every arm -- backend choice alone moves
+# benchmark scores up to 16.6pp (arXiv:2605.19537) and explains ~39% of
+# out-of-the-box variance (arXiv:2608.04714). A floating serving config makes
+# the precision effects unidentifiable. See analysis/preregistration.md 9.
+
+engine:
+  name: vllm
+  version: "0.26.0"
+  # NEVER mix vLLM and HF transformers generation anywhere in this study.
+  # lm-eval is a validation instrument only (EXECUTOR-TASKS.md O9).
+
+serving:
+  tensor_parallel_size: 1        # REQUIRED. BI is broken under TP>1 (vLLM #51290).
+  enable_prefix_caching: false   # breaks greedy determinism (vLLM #39389)
+  batch_invariant: true          # env VLLM_BATCH_INVARIANT=1
+  enable_v1_multiprocessing: false
+  attention_backend: FLASH_ATTN  # pinned
+  enforce_eager: false           # do NOT set true -- CUDA graphs are BI-compatible since PR #27660
+  async_scheduling: false
+  seed: 0
+  temperature: 0.0
+  dtype: bfloat16
+  add_bos_token: true            # Red Hat: quantized models are BOS-sensitive
+  gpu_memory_utilization: 0.90
+  # Capped from the models' full trained context (131072 for Llama-3.1-8B),
+  # which needs ~16GiB of KV cache. Worst arm is BBH 3-shot CoT at 4x
+  # (~1.5k prompt + 4096 gen = ~5.6k). See notes/reuse.md 2.
+  max_model_len: 8192
+  # SET BY MEASUREMENT, NOT ASSUMPTION: the largest value shown bitwise
+  # reproducible across repeats by the A7 audit on THIS hardware, swept over
+  # {8, 16, 32, 64}. The value 8 below is the pre-audit default from vLLM
+  # #51187 (44 co-resident seqs -> 3 distinct outputs in 5 repeats;
+  # max_num_seqs=8 -> 5/5 identical) on OTHER hardware. A7 overwrites it,
+  # then it is frozen and identical across all arms. REPORTED IN THE PAPER.
+  max_num_seqs: 8
+  max_num_seqs_resolved_by_audit: false   # A7 flips this to true
+  disabled_kernels: null         # VLLM_DISABLED_KERNELS, set only if A7 requires it
+
+hardware:
+  # Reproducibility holds ONLY within identical hardware and versions
+  # (EXECUTOR-PLAN.md 4.6). All of these are reported in the paper.
+  instance_type: g6e.2xlarge
+  gpu: "NVIDIA L40S 48GB"
+  compute_capability: "8.9"      # SM89 Ada Lovelace -- NOT SM80 Ampere
+  gpu_count: 1
+  vcpu: 8
+  host_ram_gib: 64
+  cuda: null                     # filled in at provision time
+  driver: null                   # filled in at provision time
+  torch: null                    # filled in at provision time
+  # A7 must VERIFY batch invariance is supported on SM89 rather than assume
+  # it. The 1.2-2x BI overhead figure in EXECUTOR-TASKS.md 3.3 is an Ampere
+  # number and does not transfer.
+  bi_supported_on_sm89: null     # A7 finding
+
+# ---------------------------------------------------------------------------
+# The three models under test. Size gradient 3B -> 3.8B -> 8B.
+# ---------------------------------------------------------------------------
+models:
+
+  qwen2.5-3b:
+    repo: Qwen/Qwen2.5-3B-Instruct
+    revision: aa8e72537993ba99e69dfaafa59ed015b17504d1
+    params_b: 3.09
+    # NOT Apache-2.0 -- qwen-research. Note in the artifact release (A24).
+    license: other
+    license_note: "qwen-research; unlike Qwen2.5-7B/14B which ARE Apache-2.0"
+    bf16_size_gb: 6.17
+    has_official_quantized_checkpoints: true    # -> Anchor A
+
+  phi-3.5-mini:
+    repo: microsoft/Phi-3.5-mini-instruct
+    revision: 2fe192450127e6a83f7441aef6e3ca586c338b77
+    params_b: 3.82
+    license: mit
+    bf16_size_gb: 7.64
+    # No credible pre-quantized checkpoints exist (best GPTQ candidate has 83
+    # downloads; two repos return 401). Self-quantize all Phi arms.
+    has_official_quantized_checkpoints: false
+
+  llama-3.1-8b:
+    repo: meta-llama/Llama-3.1-8B-Instruct
+    revision: 0e9e39f249a16976918f6564b8830bc894c89659
+    params_b: 8.03
+    license: llama3.1
+    gated: manual
+    access_verified: "2026-08-23"    # config.json downloaded OK -> notes/access.md
+    bf16_size_gb: 15.07
+    # THE REPO TRAP: it totals 32GB, not 15, because it ships a duplicate
+    # original/consolidated.00.pth. ALWAYS exclude it.
+    ignore_patterns: ["original/*"]
+    has_official_quantized_checkpoints: false   # RedHatAI is third-party -> Anchor B
+
+# The Sep 1 substitution to Qwen/Qwen2.5-7B-Instruct is VOID -- Llama access
+# was confirmed 2026-08-23. Kept here only so the decision trail is legible.
+substitution_armed: false
+
+# ---------------------------------------------------------------------------
+# Vendor checkpoints -- CROSS-CHECK ONLY (A9). Never mixed into the main
+# matrix: hugging-quants/...-GPTQ-INT4 uses desc_act:true against Qwen's
+# desc_act:false, which is a silent confound (EXECUTOR-TASKS.md 2.5).
+# ---------------------------------------------------------------------------
+anchor_checkpoints:
+
+  anchor_a:                      # MANDATORY, ungated, BLOCKING gate G5a
+    blocking: true
+    pass_criterion: "our self-quantized GSM8K accuracy within +/-2.0 pp of official at same precision"
+    matched_settings: {group_size: 128, desc_act: false}
+    checkpoints:
+      gptq-4bit:
+        repo: Qwen/Qwen2.5-3B-Instruct-GPTQ-Int4
+        revision: 68c4276063d1496cdf13d0b8e8221f899bfa77f7
+      gptq-8bit:
+        repo: Qwen/Qwen2.5-3B-Instruct-GPTQ-Int8
+        revision: 1fed15cb34975bc0bd699e62b95a539bb06eed42
+      awq-4bit:
+        repo: Qwen/Qwen2.5-3B-Instruct-AWQ
+        revision: 3559b226e8ce77211e2c1bd7ddfb7686fec4d6dd
+
+  anchor_b:                      # mandatory now that Llama access exists; NON-blocking
+    blocking: false
+    repo: RedHatAI/Meta-Llama-3.1-8B-Instruct-quantized.w4a16
+    revision: 6a426ef8adc0b4b96408001a9628d71f01c9ceca
+    published_accuracies:        # our deltas should land near these
+      gsm8k: {bf16: 82.8, w4a16: 82.9}
+      arc_challenge: {bf16: 81.4, w4a16: 80.2}
+      bbh: {bf16: 30.1, w4a16: 28.9}
+
+  anchor_c:                      # secondary, MOST rhetorically useful
+    blocking: false
+    source: "arXiv:2601.14277 Appendix B"
+    model: meta-llama/Llama-3.1-8B-Instruct
+    # Reproducing this validates our pipeline on EXACTLY the phenomenon the
+    # paper is about. Requires the gsm8k (non-CoT, ####) variant -- which is
+    # why decision D6 keeps it in scope.
+    published: {f16_flexible: 77.63, f16_strict: 24.64}
+    task_variant: gsm8k
+    note: "they report gaps of 41-64 points across 14 llama.cpp quantizations"
+
+  anchor_d:                      # STRETCH ONLY
+    blocking: false
+    source: "Kurtic et al., ACL 2025, arXiv:2411.02355"
+
+# ---------------------------------------------------------------------------
+# Judges (A10). 3-way label space with explicit INVALID (CompassVerifier).
+# ---------------------------------------------------------------------------
+judges:
+  primary:
+    key: xverify
+    repo: IAAR-Shanghai/xVerify-9B-I
+    revision: fdfe1e6d0993172217c993e00c7ea2e2419bbe63
+    license: cc-by-nc-nd-4.0
+    # RUN AND REPORT NUMBERS ONLY. Never redistribute the weights or any
+    # derivative in the artifact release (A24). Approved by the user 2026-08-23.
+    redistributable: false
+    reported_f1: 97.19           # vs GPT-4o at 96.25
+    family_clean: true           # w.r.t. Qwen / Phi / Llama under test
+  secondary:
+    key: granite
+    repo: ibm-granite/granite-4.1-8b
+    revision: 1504002f650e656a0a3789d99574df12e3e94ed0
+    license: apache-2.0
+    redistributable: true        # cleanest license for the artifact release
