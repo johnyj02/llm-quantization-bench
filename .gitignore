@@ -1,8 +1,44 @@
 .claude/settings.local.json
 __pycache__/
 .venv/
+venv-quant/
+venv-serve/
 *.pyc
 .DS_Store
 outputs/
 results/
+
+# ---- secrets: never commit ----
+.env
+.env.*
+*.token
+*.pem
+hf_token*
+
+# ---- large generated artifacts ----
+# Generations are THE reusable artifact (EXECUTOR-TASKS.md A24) but are far too
+# large for git. They live on the GPU box + S3
+# (s3://sagemaker-us-east-1-670060057797/quantartifact/) and are published in the
+# artifact release. Tables and figures ARE committed — they are the paper's inputs.
+artifacts/generations/
+artifacts/scores/
+*.jsonl.gz
+!artifacts/tables/
+!artifacts/figures/
+
+# Ignore bulk .jsonl but keep the small, load-bearing ones under version control:
+# annotation labels are a citable standalone artifact, and test fixtures are the
+# instrument's spec (gate G3).
 *.jsonl
+!annotation/*.jsonl
+!tests/fixtures/*.jsonl
+
+# ---- paper build products (Overleaf git remote holds the source) ----
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.synctex.gz
+paper/*.fdb_latexmk
+paper/*.fls

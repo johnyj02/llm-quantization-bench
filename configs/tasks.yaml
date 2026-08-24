@@ -1,0 +1,194 @@
+# Task configuration — QuantArtifact
+#
+# All values VERIFIED against lm-evaluation-harness v0.4.12 on 2026-08-23.
+# Vendored source configs: vendor/lm-eval-configs/.  Derivation: notes/harness-configs.md.
+# Do NOT edit token budgets after the pre-registration freeze (2026-09-02).
+
+harness:
+  package: lm-eval
+  version: "0.4.12"
+  git_tag: v0.4.12
+  # Prompts must be BYTE-FOR-BYTE identical to this version's rendering (gate G2).
+  # lm-eval is a VALIDATION INSTRUMENT ONLY (EXECUTOR-TASKS.md O9 / §3.4).
+  # All experimental generation goes through our generate.py.
+
+defaults:
+  # Framework default from lm_eval/models/vllm_causallms.py: max_gen_toks: int = 256.
+  # Set explicitly here because it is a BACKEND default, not a benchmark property.
+  max_gen_toks_framework_default: 256
+  add_bos_token: true          # Red Hat: quantized models are BOS-sensitive
+  temperature: 0.0
+  do_sample: false
+  seed: 0
+  decoding: greedy
+
+# ---------------------------------------------------------------------------
+# Token-budget levels (H1). FROZEN as absolute integers before any results.
+# 1x = the harness default for that task. Sweep arms run 2x and 4x only;
+# 1x comes free from the reference run (prefix-nested subsample, O8).
+# ---------------------------------------------------------------------------
+budget_levels: ["1x", "2x", "4x"]
+
+tasks:
+
+  gsm8k:
+    # 5-shot, NON-CoT. strict-match regex is `#### (...)`, which chat models
+    # essentially never emit. Required for Anchor C (arXiv:2601.14277).
+    # PRIMARY-vs-secondary status is an OPEN decision: notes/harness-configs.md §3.
+    lm_eval_task: gsm8k
+    dataset_path: openai/gsm8k
+    dataset_name: main
+    split: test
+    output_type: generate_until
+    num_fewshot: 5
+    fewshot_source: sampled_from_train      # NOT hardcoded in the YAML
+    doc_to_text: "Question: {{question}}\nAnswer:"
+    n_items_reference: 1319                  # full test set (O8)
+    n_items_sweep: 500                       # prefix-nested subset of the 1319
+    subsample_seed: 20260823
+    subsample_mode: prefix_nested            # 500 MUST be a prefix of the 1319 ordering
+    max_gen_toks:
+      1x: 256                                # framework default, set explicitly
+      2x: 512
+      4x: 1024
+    until: ["Question:", "</s>", "<|im_end|>"]
+    strict_regex: '#### (\-?[0-9\.\,]+)'
+    flexible_regex: '(-?[$0-9.,]{2,})|(-?[0-9]+)'
+    flexible_group_select: -1
+    answer_type: numeric
+
+  gsm8k_cot:
+    # 8-shot CoT, exemplars HARDCODED in the YAML (sampler: first_n) so the
+    # prompt is fully determined with no sampling seed. strict-match regex is
+    # `The answer is (...)`, which the exemplars explicitly demonstrate.
+    lm_eval_task: gsm8k_cot
+    dataset_path: openai/gsm8k
+    dataset_name: main
+    split: test
+    output_type: generate_until
+    num_fewshot: 8
+    fewshot_source: hardcoded_in_yaml
+    doc_to_text: "Q: {{question}}\nA:"
+    n_items_reference: 1319
+    n_items_sweep: 500
+    subsample_seed: 20260823
+    subsample_mode: prefix_nested
+    max_gen_toks:
+      1x: 256
+      2x: 512
+      4x: 1024
+    until: ["Q:", "</s>", "<|im_end|>"]
+    strict_regex: 'The answer is (\-?[0-9\.\,]+).'
+    flexible_regex: '(-?[$0-9.,]{2,})|(-?[0-9]+)'
+    flexible_group_select: -1
+    answer_type: numeric
+
+  # -------------------------------------------------------------------------
+  # BBH x 6 — the FORMAT GRADIENT (free-form -> boolean -> multiple-choice).
+  # This is a prediction of the hypothesis, not six arbitrary tasks (§2.2).
+  # All six share vendor/lm-eval-configs/bbh/_cot_fewshot_template_yaml:
+  #   max_gen_toks: 1024, num_fewshot: 3 (hardcoded), target_delimiter: ""
+  #   until: ["</s>", "Q", "\n\n"]     <-- bare capital Q; see PROBLEM 2
+  #   filter: (?<=the answer is )(.*)(?=.)   <-- case-sensitive, lowercase
+  # -------------------------------------------------------------------------
+  bbh:
+    lm_eval_task_prefix: bbh_cot_fewshot_
+    dataset_path: SaylorTwift/bbh
+    split: test
+    output_type: generate_until
+    num_fewshot: 3
+    fewshot_source: hardcoded_in_yaml
+    doc_to_text: "Q: {{input}}\nA: Let's think step by step.\n"
+    n_items_per_subtask: 150
+    subsample_seed: 20260823
+    max_gen_toks:
+      1x: 1024
+      2x: 2048
+      4x: 4096
+    until: ["</s>", "Q", "\n\n"]
+    strict_regex: '(?<=the answer is )(.*)(?=.)'
+    strict_regex_case_sensitive: true        # log every capitalization-variant failure
+    subtasks:
+      - name: word_sorting
+        format_class: free_form
+      - name: dyck_languages
+        format_class: free_form
+      - name: multistep_arithmetic_two
+        format_class: free_form
+        answer_type: numeric
+      - name: object_counting
+        format_class: free_form
+        answer_type: numeric
+      - name: boolean_expressions
+        format_class: boolean
+      - name: logical_deduction_five_objects
+        format_class: multiple_choice
+
+  arc_challenge:
+    # H6 NEGATIVE CONTROL, mode 1 of 2: log-likelihood scoring.
+    # Same 500 item IDs as arc_challenge_chat. G3 cross-validation target.
+    lm_eval_task: arc_challenge
+    dataset_path: allenai/ai2_arc
+    dataset_name: ARC-Challenge
+    split: test
+    output_type: multiple_choice
+    scoring_mode: loglikelihood
+    doc_to_text: "Question: {{question}}\nAnswer:"
+    doc_to_choice: answer_texts               # choice TEXTS, not letters
+    metrics: [acc, acc_norm]
+    n_items: 500
+    subsample_seed: 20260823
+    max_gen_toks: null                        # not a generative task
+
+  arc_challenge_chat:
+    # H6 NEGATIVE CONTROL, mode 2 of 2: generative scoring, SAME 500 items.
+    # The gap between the two modes IS the extraction cost, measured directly.
+    # NOTE: num_fewshot is 0 BY DESIGN in the harness (llama-tagged task).
+    lm_eval_task: arc_challenge_chat
+    dataset_path: allenai/ai2_arc
+    dataset_name: ARC-Challenge
+    split: test
+    output_type: generate_until
+    scoring_mode: generate
+    num_fewshot: 0
+    gen_prefix: "The best answer is"
+    n_items: 500
+    subsample_seed: 20260823
+    item_ids_shared_with: arc_challenge       # MUST be the identical 500 IDs
+    max_gen_toks:
+      1x: 100
+      2x: 200
+      4x: 400
+    until: ["\n\n", "."]                      # a single period; see PROBLEM 2
+    strict_filter: remove_whitespace
+    metric_ignore_case: true
+    metric_ignore_punctuation: true
+    answer_type: multiple_choice_letter
+
+# ---------------------------------------------------------------------------
+# Cross-variant scoring rule — see notes/harness-configs.md §5 (PROBLEM 3).
+# The harness scores BBH few-shot STRICTLY HARSHER than BBH zero-shot
+# (cot_fewshot has ignore_case off and no regexes_to_ignore; cot_zeroshot has
+# both). Inheriting each variant's own metric config would confound H5.
+# DECISION: our four rungs are applied IDENTICALLY across prompt variants.
+# Reported as a documented deviation from harness-verbatim scoring for the
+# zero-shot arm only. Does not affect G2, which tests prompts not metrics.
+# ---------------------------------------------------------------------------
+scoring_held_fixed_across_prompt_variants: true
+
+prompt_variants:
+  fewshot_cot:
+    reference: true
+  zeroshot:
+    reference: false
+    applies_to: [gsm8k_cot, bbh]              # H5 arm, 9 cells x 1400 items
+
+# ---------------------------------------------------------------------------
+# Item counts per cell (EXECUTOR-TASKS.md §2.2)
+#   Reference:  gsm8k 1319 + bbh 900 + arc 500(x2 modes) = 2719 generative
+#   Sweep/0shot: gsm8k 500 + bbh 900                     = 1400
+# ---------------------------------------------------------------------------
+item_counts:
+  reference_generative_per_cell: 2719
+  sweep_per_cell: 1400
+  zeroshot_per_cell: 1400
