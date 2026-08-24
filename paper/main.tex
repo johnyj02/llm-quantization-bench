@@ -1,0 +1,203 @@
+% QuantArtifact — ACL long paper (8 pages + unlimited refs/appendices)
+%
+% Compile locally:  tectonic -X compile main.tex --outdir .
+% Or:               make -C paper
+%
+% GATE G6 (Sep 20): this file must compile, be <= 8 pages, have EVERY section
+% written, and carry \todo{} markers ONLY inside Results. See EXECUTOR-TASKS.md
+% 0.1 "Rule of the always-submittable artifact".
+%
+% Style files are the official ACL ones from github.com/acl-org/acl-style-files.
+% LaTeX ACL template ONLY -- Word submissions have been desk-rejected since
+% March 2026.
+
+\documentclass[11pt]{article}
+\usepackage[review]{acl}          % <-- switch to [final] for the camera-ready
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{inconsolata}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{xcolor}
+
+% \todo{} is PERMITTED ONLY IN RESULTS after Sep 20 (gate G6).
+\newcommand{\todo}[1]{\textcolor{red}{[\textbf{TODO:} #1]}}
+
+\title{How Much of Reported Quantization Degradation Is Measurement?\\
+Decomposing Accuracy Loss into Competence, Compliance, and Truncation}
+
+\author{Anonymous ARR submission}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\todo{Abstract --- written in W5 (C7), after results freeze.}
+\end{abstract}
+
+%---------------------------------------------------------------------------
+\section{Introduction}
+\label{sec:intro}
+% C4, W4. Must contain, per EXECUTOR-PLAN.md 7:
+%  - The reframe: an artifact in a LEVEL is not an artifact in a DIFFERENCE.
+%    Everyone knows lenient extraction raises absolute scores; nobody has
+%    established whether it changes the quantization DELTA.
+%  - measured_strict_delta = competence_delta + compliance_delta + truncation_delta
+%  - The field's centre of gravity runs AGAINST us and that belongs HERE, not in
+%    Limitations: the dominant finding is that benchmarks UNDERSTATE quantization
+%    damage (Marchisio et al., Findings EMNLP 2024: a 1.7% automatic drop in
+%    Japanese was 16.0% to human raters). Both directions are true at once, and
+%    saying so plainly is a strength.
+%  - Frame as CALIBRATING extraction, not loosening it (Ren et al. 2608.02442:
+%    8.2-44.1% of correct-graded answers are shortcut-hacked, so leniency
+%    over-credits too).
+%  - Kurtic et al. (ACL 2025) cited EARLY. Do not let a reviewer discover it.
+
+%---------------------------------------------------------------------------
+\section{Related Work}
+\label{sec:related}
+% C1, W1-W2. THE HIGHEST-VALUE WRITING TASK IN THE PROJECT.
+% EXECUTOR-PLAN.md 11 names the related-work squeeze as *the* elevated
+% rejection risk, and calls it "a writing problem, which is the most
+% controllable kind." Full differentiation list: EXECUTOR-TASKS.md C1.
+% Open with the LIVE CONTRADICTION (2606.25519 vs Liu et al. COLM 2025
+% 2504.04823 on whether quantization lengthens CoT; neither swept the
+% generation cap). Three claims we must NOT make: see EXECUTOR-TASKS.md C1.
+
+%---------------------------------------------------------------------------
+\section{Method}
+\label{sec:method}
+% C3, W2.
+
+\subsection{Experimental design}
+\label{sec:design}
+% 3 models x 5 precisions x tasks; one-factor-at-a-time from a fixed
+% reference condition. State the Llama-3.1-8B access status and any
+% substitution EITHER WAY.
+
+\subsection{Quantization and calibration}
+\label{sec:quant}
+% THE most likely reviewer attack surface. State that GPTQ and AWQ are
+% normalised to ONE calibration budget (512 samples @ 2048 seqlen, one pinned
+% set, one pinned seed) because llmcompressor's own examples differ by 8x
+% between the two methods, which would make the GPTQ-vs-AWQ delta
+% uninterpretable. Self-quantized primary; vendor checkpoints are a
+% documented cross-check only (desc_act confound).
+
+\subsection{The scoring ladder}
+\label{sec:ladder}
+% strict -> permissive -> math-verify -> judge, all applied to every stored
+% generation, zero extra generation. THE HEADLINE IS RUNG 1 VS RUNG 2 --
+% deterministic, auditable, judge-independent. That is what makes judge
+% validation non-blocking.
+
+\subsection{Compliance, competence, and truncation}
+\label{sec:decomp}
+% The 2x2. Compliance is a DEPENDENT VARIABLE IN ITS OWN RIGHT.
+
+\subsection{Serving configuration and determinism}
+\label{sec:determinism}
+% One engine, one version, across every arm -- backend choice alone moves
+% scores up to 16.6pp (2605.19537) and explains ~39% of variance (2608.04714).
+% REPORT max_num_seqs (issue #51187), VLLM_BATCH_INVARIANT, TP=1,
+% enable_prefix_caching=False, GPU model, CUDA and driver versions.
+
+%---------------------------------------------------------------------------
+\section{Results}
+\label{sec:results}
+% A19-A21, W4-W5. \todo{} IS PERMITTED HERE and nowhere else after Sep 20.
+
+\subsection{Truncation (H1)}
+\label{sec:h1}
+\todo{H1 --- degradation vs generation budget; mean/median n\_gen\_tokens by
+precision with CIs, settling 2606.25519 vs 2504.04823.}
+
+\subsection{Recoverable failures (H2)}
+\label{sec:h2}
+\todo{H2 --- gold-in-trace rate, permissive and conservative variants, always
+reported net of the incidental-match false-positive floor.}
+
+\subsection{Precision $\times$ scoring interaction (H3)}
+\label{sec:h3}
+\todo{H3 --- GLMM interaction as an odds ratio and as a marginal effect in
+accuracy points with 95\% CI, plus paired McNemar. A NULL IS PUBLISHABLE and
+must not read as failure.}
+
+\subsection{Decomposition (H4)}
+\label{sec:h4}
+\todo{H4 --- THE CENTREPIECE TABLE. Design it first and let it drive what gets
+logged. Always-compliant stratum size as a first-class number;
+compliance-transition matrix; Manski bounds.}
+
+\subsection{Prompt format (H5) and the structural control (H6)}
+\label{sec:h5h6}
+\todo{H5 zero-shot arm; H6 ARC-Challenge under log-likelihood vs generative
+scoring on the same 500 items --- the gap between modes IS the extraction cost.}
+
+\subsection{Statistical resolution of published deltas (H7)}
+\label{sec:h7}
+\todo{H7 --- scrupulously neutral: "many papers report aggregate deltas without
+a paired test", NEVER "the deltas are noise".}
+
+\subsection{Bitwise reproducibility of quantized serving (H8)}
+\label{sec:h8}
+\todo{H8 --- per-format bitwise disagreement under a batch-invariant engine.
+Self-contained result nobody has reported; may become a headline.}
+
+%---------------------------------------------------------------------------
+\section{Discussion}
+\label{sec:discussion}
+% C7, W5.
+
+%---------------------------------------------------------------------------
+\section{Conclusion}
+\label{sec:conclusion}
+
+%---------------------------------------------------------------------------
+% MANDATORY. Absence is an AUTOMATIC DESK REJECT and it costs ZERO page
+% budget, because Limitations is not counted against the 8 pages.
+% Write it EARLY (C5, W4).
+\section*{Limitations}
+\label{sec:limitations}
+% Must include: no factual-recall task (TriviaQA cut; the structural control is
+% the ARC mode pairing); L40S/SM89 single-hardware determinism claim;
+% self-quantized-only main matrix; 3 models is a fixed effect not a population;
+% judge is open-weight not human-level; annotation n and that annotators were
+% unpaid co-authors.
+
+\section*{Ethics Statement}
+\label{sec:ethics}
+
+\section*{Acknowledgments}
+\label{sec:ack}
+
+%---------------------------------------------------------------------------
+% \nocite{*} keeps the stub's bibliography non-empty until real \cite calls
+% exist (an empty thebibliography is a hard LaTeX error). Remove it once
+% Related Work cites anything.
+\nocite{*}
+\bibliography{custom}
+
+\appendix
+
+\section{Frozen configuration}
+\label{app:config}
+% Model commit SHAs, every library version, calibration dataset and counts, all
+% decoding hyperparameters, GPU model, CUDA and driver versions.
+
+\section{Annotation rubric}
+\label{app:rubric}
+% Published VERBATIM (annotation/rubric.md).
+
+\section{Pre-registration}
+\label{app:prereg}
+% analysis/preregistration.md, including the identification fix.
+
+% NOTE: appendices are double-column and must carry NO load-bearing content --
+% hiding substantive material here is itself a desk-reject ground.
+
+\end{document}

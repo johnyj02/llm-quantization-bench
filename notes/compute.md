@@ -102,6 +102,63 @@ measured generations/hour on this exact instance, which is the only honest input
 stretch list → zero-shot arm → BBH MC contrast task → GSM8K back to 500. **Never** the
 token-budget arm (H1), the H6 negative controls, the noise floor, or the determinism audit.
 
+## 4a. Cost reduction — what is available, and what is forbidden
+
+The user has flagged cost minimisation as important. The honest answer has two halves,
+because **this study deliberately buys identifiability with throughput.** Details and
+provenance in `notes/reuse.md`.
+
+### Available now, zero scientific cost
+
+1. **Cap `max_model_len` at 8192.** Llama-3.1-8B's *full* trained context is 131072, which
+   needs ~16 GiB of KV cache; the sibling project hit a hard `ValueError` on this. Our worst
+   arm (BBH 3-shot CoT at 4× = ~1.5k prompt + 4096 gen) needs ~5.6k. Capping frees a large
+   amount of KV cache. **Held fixed across all arms** — it is part of the frozen serving
+   config.
+2. **Resume + flush-to-S3 per batch**, adopted from `MedLLMSafety/run_batch_generation.py`.
+   A crash 80% through a 2,719-item cell must not cost that 80%. Biggest single saver.
+3. **One `generate()` call per batch**, letting vLLM's continuous batching schedule —
+   short sequences do not wait on the batch's longest, unlike a padded batch.
+4. **Stop the instance aggressively.** Stopped EC2 bills EBS only (~$16/mo), and unlike
+   RunPod the volume price does not double while stopped.
+5. **The judge cascade**, already in the plan: judge only where `rung2 ≠ rung3` or
+   `rung2 == incorrect`. Judging is ~107k calls and the largest line after generation.
+6. **Quantize once, reuse.** ~10–30 min per arm, and only ~1 GB VRAM (sequential layer
+   onloading — the 16 GB requirement is *host* RAM, which is why 64 GiB was chosen).
+
+### Forbidden — these would make the effects unidentifiable
+
+| Knob | Throughput gain | Why we cannot |
+|---|---|---|
+| `enable_prefix_caching=True` | **Large for us** — 8-shot CoT prompts share a long identical prefix | Breaks greedy determinism (vLLM #39389); explicitly not covered by batch invariance |
+| `VLLM_BATCH_INVARIANT=0` | 1.2–2× | It is the entire basis of H8 and of trusting any delta |
+| `tensor_parallel_size>1` | scales | BI broken under TP>1 (#51290) |
+| Sorting prompts by length | real | Changes batch composition, the exact thing #9567 shows moves outputs |
+
+Turning these on to save money would forfeit the one thing that makes the spend worth
+anything. Not a trade we can make.
+
+### The one real opportunity: sweep `max_num_seqs` in `A7`
+
+`max_num_seqs=8` is the **largest remaining cost driver** — it deliberately starves GPU
+concurrency. But that value is inherited from a **vLLM issue report on someone else's
+hardware** (#51187: 44 co-resident sequences → 3 distinct outputs in 5 repeats;
+`max_num_seqs=8` → 5/5 identical), not from a measurement on our L40S/SM89 box.
+
+**Proposal, folded into `A7` at near-zero marginal cost:** the determinism audit already
+runs 3 identical repeats per format. Sweep `max_num_seqs ∈ {8, 16, 32, 64}` inside it and
+take the **highest value that still yields bitwise-identical output across repeats.** If
+batch invariance works properly on SM89, this could cut generation wall-clock several-fold.
+
+This is strictly better than assuming the most conservative point: §3.3 already requires
+`max_num_seqs` to be **reported in the paper**, and reporting the *frontier* — the largest
+batch size at which quantized greedy decoding is bitwise reproducible, per format — is a
+more useful result than reporting one arbitrary safe value. It converts a cost problem into
+a finding the paper wants anyway.
+
+**Sequencing note:** whatever value the sweep selects must be frozen **before** `A13` main
+runs begin and held across every arm. Do not let it float per cell.
+
 ## 5. Safety and hygiene
 
 - The `obtmodel` role is **admin** (`IibsAdminAccess-DO-NOT-DELETE`). Per the user's
@@ -137,10 +194,30 @@ SageMaker other:
   ml.g6e.2xlarge for training warm pool     1.0
 ```
 
-## 7. Not yet done
+## 7. Provisioning requirements — non-negotiable
+
+🚨 **A working C compiler must be installed AND KEPT on the instance.**
+`VLLM_BATCH_INVARIANT=1` substitutes batch-invariant **Triton** kernels, and Triton
+**JIT-compiles them at runtime**. No compiler ⇒ no BI kernels ⇒ no determinism ⇒ H8 dead and
+every precision delta untrustworthy. The sibling project hit exactly this
+(*"no C compiler" from Triton's JIT kernel build*) after a build toolchain was purged
+post-`pip install`. So: install `build-essential`/`gcc`, do **not** clean it up, and have
+`A4` assert a reachable compiler at startup alongside its existing checks that
+`VLLM_BATCH_INVARIANT` is set and `tensor_parallel_size == 1`.
+
+Also verify rather than assume, per `notes/reuse.md` §5: vLLM's own precompiled
+`_C.abi3.so` links a specific CUDA runtime independent of the Python `torch` pin. Run
+`objdump -p .../vllm/_C.abi3.so | grep NEEDED` on our pinned `vllm==0.26.0` and record the
+result here before trusting the CUDA install.
+
+## 8. Not yet done
 
 - [ ] Launch the instance, pin CUDA + driver + torch + vLLM, record versions here.
 - [ ] `nvidia-smi` output recorded (the `B3` "done when" criterion is a pod launched
       *and* destroyed; on EC2 the equivalent is launch → `nvidia-smi` → stop).
+- [ ] `gcc` present and Triton JIT verified working (see §7).
+- [ ] `objdump` CUDA-runtime check on `vllm==0.26.0`.
+- [ ] Confirm batch invariance is actually supported on **SM89** — an `A7` finding, not a
+      precondition.
 - [ ] `scripts/box_up.sh` / `scripts/box_down.sh`.
 - [ ] Confirm `g6e.2xlarge` capacity in at least two AZs at launch time (quota ≠ capacity).

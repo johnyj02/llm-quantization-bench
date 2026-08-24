@@ -335,6 +335,23 @@ is bitwise nondeterministic while bf16 is not, then differential numerical noise
 *between arms*, and that per-format disagreement rate is reported as an additional floor on
 every precision contrast involving that format.
 
+**Frozen serving configuration.** One engine, one version, one hardware target, across
+**every** arm — backend choice alone moves benchmark scores up to 16.6 pp
+(arXiv:2605.19537) and explains ~39% of out-of-the-box variance (arXiv:2608.04714), so a
+floating serving config would make the precision effects unidentifiable. The following are
+fixed before `A13` and reported in the paper: `engine` and version, `tensor_parallel_size=1`,
+`VLLM_BATCH_INVARIANT`, `enable_prefix_caching=False`, attention backend, `seed=0`,
+`temperature=0`, `add_bos_token`, `max_model_len`, `max_num_seqs`, `dtype`, GPU model, CUDA
+and driver versions.
+
+`max_num_seqs` is set to the **largest value shown bitwise-reproducible across repeats by
+the `A7` audit on this hardware** (swept over {8, 16, 32, 64}), rather than to a value
+inherited from a third-party issue report. It is then **frozen and identical across all
+arms**. Both the selected value and the full frontier are reported. Choosing it by
+measurement rather than assumption is a throughput decision, not an analysis decision, and
+it is pre-registered here only so that it is on record as having been fixed before results
+existed.
+
 **H7 framing, pre-committed.** For each published degradation figure cited, compute the 95%
 CI implied by that paper's own eval size and state whether the reported delta clears it.
 Also report our own minimum detectable effect at 80% power. Wording is scrupulously
