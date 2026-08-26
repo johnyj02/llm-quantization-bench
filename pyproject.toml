@@ -52,7 +52,10 @@ packages = ["src/quantartifact"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+# "." puts the repo root on the path so the `sm_*.py` SageMaker entry points are
+# importable by tests. They hold real decision logic (probe splits, arm->engine
+# mapping, resume keys) that would otherwise only ever be exercised by a paid job.
+pythonpath = ["src", "."]
 # Scorer unit tests are the highest-value tests in this repo -- they are the
 # instrument, and gate G3 is defined by them.
 addopts = "-q --strict-markers"
