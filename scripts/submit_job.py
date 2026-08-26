@@ -228,6 +228,18 @@ def main() -> int:
         config["job_name"] = config["job_name"] + "-smoke"
         if config.get("use_spot_instances"):
             config["max_wait"] = config["max_run"]
+        # SEPARATE checkpoint prefix. Smoke artefacts cannot be *used* by a real
+        # job (the recipe hash differs, so they land on a different path), but
+        # SageMaker restores the whole `checkpoint_s3_uri` prefix into the
+        # container at every job start -- so junk left here would be re-downloaded
+        # by every subsequent job forever. And in a study whose central claim is a
+        # normalised calibration budget, a deliberately-wrong-budget checkpoint
+        # sitting in the study's own tree is exactly the artefact not to leave
+        # behind for a reviewer, or for a later me, to trip over.
+        if config.get("checkpoint_s3_uri"):
+            config["checkpoint_s3_uri"] = (
+                config["checkpoint_s3_uri"].rstrip("/") + "-smoke/"
+            )
 
     print(f"stage        : {args.stage} — {spec['description']}")
     print(f"job name     : {config['job_name']}")
