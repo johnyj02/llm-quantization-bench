@@ -18,7 +18,16 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${HERE}/box_config.sh"
 
 APPLY=0
-[ "${1:-}" = "--apply" ] && APPLY=1
+WAIT=0
+for arg in "$@"; do
+  case "${arg}" in
+    --apply) APPLY=1 ;;
+    --wait)  WAIT=1 ;;
+  esac
+done
+# How long to keep retrying when the only problem is capacity, and how often.
+: "${WAIT_INTERVAL_SEC:=60}"
+: "${WAIT_MAX_MIN:=180}"
 
 aws_() { aws --profile "${AWS_PROFILE}" --region "${QA_REGION}" "$@"; }
 
@@ -86,15 +95,35 @@ fi
 echo
 echo "=== APPLYING ==="
 
-# key pair -- private key stays local, never committed
+# key pair -- private key stays local, never committed.
+#
+# The local filename carries the REGION, because EC2 key pairs are region-scoped:
+# the same KEY_PAIR_NAME in two regions is two different keys with two different
+# private halves. Sharing one filename silently pairs a key with the wrong region
+# -- and the first attempt failed exactly here, with "Permission denied" writing
+# over the mode-400 us-east-1 key.
+KEY_FILE="${HOME}/.ssh/${KEY_PAIR_NAME}-${QA_REGION}.pem"
+
 if ! aws_ ec2 describe-key-pairs --key-names "${KEY_PAIR_NAME}" >/dev/null 2>&1; then
   mkdir -p ~/.ssh
+  # Mode 400 blocks overwrite, so relax before writing if a stale file is present.
+  [ -f "${KEY_FILE}" ] && chmod 600 "${KEY_FILE}"
   aws_ ec2 create-key-pair --key-name "${KEY_PAIR_NAME}" \
-    --query 'KeyMaterial' --output text > "${HOME}/.ssh/${KEY_PAIR_NAME}.pem"
-  chmod 400 "${HOME}/.ssh/${KEY_PAIR_NAME}.pem"
-  echo "  created key pair ${KEY_PAIR_NAME} -> ~/.ssh/${KEY_PAIR_NAME}.pem"
+    --query 'KeyMaterial' --output text > "${KEY_FILE}"
+  chmod 400 "${KEY_FILE}"
+  echo "  created key pair ${KEY_PAIR_NAME} (${QA_REGION}) -> ${KEY_FILE}"
 else
-  echo "  key pair ${KEY_PAIR_NAME} already exists"
+  echo "  key pair ${KEY_PAIR_NAME} already exists in ${QA_REGION}"
+  if [ ! -f "${KEY_FILE}" ]; then
+    echo
+    echo "REFUSING: the key pair exists in AWS but its private half is NOT at"
+    echo "  ${KEY_FILE}"
+    echo "AWS only returns the private key at creation time, so a box launched with"
+    echo "it would be unreachable. Delete the AWS key pair and re-run to get a fresh"
+    echo "pair, or restore the .pem:"
+    echo "  aws --profile ${AWS_PROFILE} --region ${QA_REGION} ec2 delete-key-pair --key-name ${KEY_PAIR_NAME}"
+    exit 1
+  fi
 fi
 
 # security group -- SSH only, from this machine's IP only
@@ -161,17 +190,96 @@ if [ -n "${existing}" ]; then
   echo "  (idempotent: not creating a second one. Use box_down.sh to stop it.)"
   instance_id="${existing}"
 else
-  instance_id=$(aws_ ec2 run-instances \
-    --image-id "${AMI_ID}" \
-    --instance-type "${INSTANCE_TYPE}" \
-    --key-name "${KEY_PAIR_NAME}" \
-    --security-group-ids "${sg_id}" \
-    --block-device-mappings "[{\"DeviceName\":\"/dev/sda1\",\"Ebs\":{\"VolumeSize\":${VOLUME_GB},\"VolumeType\":\"${VOLUME_TYPE}\",\"DeleteOnTermination\":${DELETE_VOLUME_ON_TERMINATION}}}]" \
-    --tag-specifications \
-      "ResourceType=instance,Tags=[{Key=Name,Value=${INSTANCE_NAME}},{Key=Owner,Value=${TAG_OWNER}},{Key=Purpose,Value=${TAG_PURPOSE}},{Key=AutoStop,Value=${TAG_AUTOSTOP}}]" \
-      "ResourceType=volume,Tags=[{Key=Name,Value=${VOLUME_NAME}},{Key=Owner,Value=${TAG_OWNER}},{Key=Purpose,Value=${TAG_PURPOSE}}]" \
-    --query 'Instances[0].InstanceId' --output text)
-  echo "  launched ${instance_id}"
+  # ---- try every AZ: QUOTA IS NOT CAPACITY ---------------------------------
+  #
+  # The first launch attempt failed with InsufficientInstanceCapacity despite
+  # 640 vCPUs of quota. g6e is a relatively scarce instance family, and
+  # run-instances without a subnet lets AWS pick one AZ and give up if it is
+  # full. So iterate explicitly over the default VPC's subnets.
+  vpc_id=$(aws_ ec2 describe-vpcs --filters Name=isDefault,Values=true \
+             --query 'Vpcs[0].VpcId' --output text)
+  # Only AZs that actually offer this instance type, so we do not waste attempts.
+  offered=$(aws_ ec2 describe-instance-type-offerings --location-type availability-zone \
+              --filters "Name=instance-type,Values=${INSTANCE_TYPE}" \
+              --query 'InstanceTypeOfferings[].Location' --output text)
+
+  # Order AZs by CURRENT SPOT PRICE, ascending. Spot price floats with demand, so
+  # the cheapest AZ is the least contended and the likeliest on-demand success.
+  # Falls back to the unordered list if spot history is unavailable.
+  spot_start=$(date -u -v-3H +%Y-%m-%dT%H:%M:%S 2>/dev/null || date -u -d '3 hours ago' +%Y-%m-%dT%H:%M:%S)
+  ranked=$(aws_ ec2 describe-spot-price-history --instance-types "${INSTANCE_TYPE}" \
+    --product-descriptions "Linux/UNIX" --start-time "${spot_start}" \
+    --query 'SpotPriceHistory[].[SpotPrice,AvailabilityZone]' --output text 2>/dev/null \
+    | sort -u -k2,2 | sort -n -k1,1 | awk '{print $2}')
+  for az in ${ranked}; do
+    case " ${offered} " in *" ${az} "*) ordered="${ordered:-} ${az}" ;; esac
+  done
+  for az in ${offered}; do
+    case " ${ordered:-} " in *" ${az} "*) ;; *) ordered="${ordered:-} ${az}" ;; esac
+  done
+  attempt_azs="${ordered:-${offered}}"
+  echo "  AZ order (least-contended first, by spot price):${attempt_azs}"
+
+  deadline=$(( $(date +%s) + WAIT_MAX_MIN * 60 ))
+  round=0
+  instance_id=""
+
+while :; do
+  round=$(( round + 1 ))
+  for az in ${attempt_azs}; do
+    subnet=$(aws_ ec2 describe-subnets \
+      --filters "Name=vpc-id,Values=${vpc_id}" "Name=availability-zone,Values=${az}" \
+      --query 'Subnets[0].SubnetId' --output text 2>/dev/null)
+    [ -z "${subnet}" ] || [ "${subnet}" = "None" ] && continue
+
+    echo "  trying ${az} (${subnet})..."
+    if instance_id=$(aws_ ec2 run-instances \
+        --image-id "${AMI_ID}" \
+        --instance-type "${INSTANCE_TYPE}" \
+        --key-name "${KEY_PAIR_NAME}" \
+        --security-group-ids "${sg_id}" \
+        --subnet-id "${subnet}" \
+        --associate-public-ip-address \
+        --block-device-mappings "[{\"DeviceName\":\"/dev/sda1\",\"Ebs\":{\"VolumeSize\":${VOLUME_GB},\"VolumeType\":\"${VOLUME_TYPE}\",\"DeleteOnTermination\":${DELETE_VOLUME_ON_TERMINATION}}}]" \
+        --tag-specifications \
+          "ResourceType=instance,Tags=[{Key=Name,Value=${INSTANCE_NAME}},{Key=Owner,Value=${TAG_OWNER}},{Key=Purpose,Value=${TAG_PURPOSE}},{Key=AutoStop,Value=${TAG_AUTOSTOP}}]" \
+          "ResourceType=volume,Tags=[{Key=Name,Value=${VOLUME_NAME}},{Key=Owner,Value=${TAG_OWNER}},{Key=Purpose,Value=${TAG_PURPOSE}}]" \
+        --query 'Instances[0].InstanceId' --output text 2>/dev/null); then
+      echo "  launched ${instance_id} in ${az}"
+      break
+    fi
+    instance_id=""
+    echo "    no capacity in ${az}"
+  done
+
+  [ -n "${instance_id}" ] && break
+
+  # Only loop when the user asked to wait AND we still have time.
+  if [ "${WAIT}" = "1" ] && [ "$(date +%s)" -lt "${deadline}" ]; then
+    left=$(( (deadline - $(date +%s)) / 60 ))
+    echo "  round ${round}: no capacity in any AZ. Retrying in ${WAIT_INTERVAL_SEC}s (${left} min left)."
+    echo "  (nothing is billing while we wait; only free key pair + security group exist)"
+    sleep "${WAIT_INTERVAL_SEC}"
+    continue
+  fi
+  break
+done
+
+  if [ -z "${instance_id}" ]; then
+    echo
+    echo "NO CAPACITY for ${INSTANCE_TYPE} in any AZ of ${QA_REGION}."
+    echo "Quota is fine (640 vCPUs) -- this is physical capacity, which quota does"
+    echo "not guarantee. Options, cheapest first:"
+    echo "  1. wait for capacity:  bash scripts/box_up.sh --apply --wait"
+    echo "     (polls every ${WAIT_INTERVAL_SEC}s for up to ${WAIT_MAX_MIN} min, grabs it the moment it frees)"
+    echo "  2. check pressure first: bash scripts/check_capacity.sh"
+    echo "  3. a different instance type -- but that is a SUBSTRATE change and"
+    echo "     4.6 pins hardware, so it needs a decision, not a fallback"
+    echo
+    echo "Nothing was left running. The key pair and security group persist and"
+    echo "will be reused on the next attempt (both are free)."
+    exit 1
+  fi
 
   if [ "${TERMINATION_PROTECTION}" = "true" ]; then
     aws_ ec2 modify-instance-attribute --instance-id "${instance_id}" \
@@ -192,7 +300,7 @@ cat <<EOF
 ======================================================================
 instance : ${instance_id}
 dns      : ${public_dns}
-ssh      : ssh -i ~/.ssh/${KEY_PAIR_NAME}.pem ubuntu@${public_dns}
+ssh      : ssh -i ${KEY_FILE} ubuntu@${public_dns}
 
 NEXT, ON THE BOX — before trusting any number it produces:
     bash scripts/box_verify.sh
