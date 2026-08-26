@@ -140,7 +140,38 @@ python scripts/submit_job.py --stage verify --i-have-confirmation
 sm-interface status johnyj02-QA-v0.1-<date>-<uuid>-verify
 ```
 
-Stages, in order: `verify` → `throughput` → `quantize` → `determinism`.
+Stages, in order: `verify` → `throughput` → `quantize` → `determinism`. All four have entry
+points and submit cleanly.
+
+### `--smoke` FIRST, every time
+
+**Mandatory before every real submission** (planner ruling). With one job slot and a queue,
+submitting a broken multi-hour job is the most expensive mistake available.
+
+```bash
+python scripts/submit_job.py --stage quantize --smoke --i-have-confirmation
+```
+
+`--smoke` caps `max_run` at 1800 s, suffixes the job name `-smoke`, and **redirects
+`checkpoint_s3_uri` to `…/checkpoints-smoke/`**. That last one matters: SageMaker restores the
+*whole* checkpoint prefix into the container at every job start, so junk left in the study's
+prefix is re-downloaded by every later job — and a deliberately-wrong-calibration checkpoint
+sitting in this study's own tree is the last artefact to leave for a reviewer. Smoke weights can
+never be *used* by a real job regardless, because the recipe hash differs and every consumer
+resolves by hash.
+
+### ⚠️ The account is SHARED — the one job slot is not ours alone
+
+`aws sagemaker list-training-jobs` shows another user's jobs (`jathupra-*`) in account
+`654654594225`. The `ml.g6e.2xlarge` quota of **1 is account-level**, so their job contends with
+ours for the only slot. Submit whenever the slot is free rather than batching up work.
+
+### A stage exiting non-zero is not always a failed run
+
+`sm_verify.py` and `sm_quantize.py` exit non-zero if *any* check or arm failed, so SageMaker
+marks the job `Failed` even when it produced its full report. **Read the report before concluding
+the run was lost.** `sm_determinism.py` deliberately inverts this: nondeterminism exits 0 (it is a
+finding), and only a failure to *measure* exits non-zero.
 
 ### Where the code actually lives when a job runs
 
@@ -223,15 +254,34 @@ bash scripts/build_image.sh          # build + push to ECR, then sets image_uri
    and `transformers<=5.10.1`, conflicting with vllm 0.26.0. This is §3.2's two-venv split
    expressed as two images.
 
-### ⚠️ Open risk the `verify` stage resolves
+### ✅ CLOSED: the CUDA-13 risk. Measured 2026-08-26 — do not re-litigate
 
-`vllm==0.26.0` links `libcudart.so.13`, so **the host driver must support CUDA 13**.
-MedLLMSafety hit `"The NVIDIA driver on your system is too old (found version 12080)"` on
-`ml.g5.2xlarge` and fell back to `vllm==0.18.0` (which links `.so.12`). `ml.g6e.2xlarge` is
-newer and the current DLC ships CUDA 13.0, so it is probably fine — but verify before spending.
+`vllm==0.26.0` links `libcudart.so.13`, so the host driver had to support CUDA 13. MedLLMSafety
+hit `"The NVIDIA driver on your system is too old (found version 12080)"` on `ml.g5.2xlarge` and
+fell back to `vllm==0.18.0`. **`ml.g6e.2xlarge` is fine.** The `verify` stage measured:
 
-**If the driver reports < 13, changing the engine version is a PLANNER decision**, not an
-executor fallback: the version is frozen and reported in the paper, and batch-invariance
+| | measured |
+|---|---|
+| driver | **595.91.07** |
+| torch | `2.11.0+cu130`, built for CUDA 13.0, `available=True` |
+| vLLM linkage | `libcuda.so.1`, **`libcudart.so.13`**, `libtorch_cuda.so` |
+| gcc / Triton | Debian 14.2.0 / triton 3.6.0, JIT compiled and ran |
+| GPU | L40S, **46068 MiB** (not the nominal 48 GB), SM 8.9 |
+
+**The engine version stays frozen at 0.26.0. No planner escalation needed.** Full write-up in
+`notes/compute.md` §9; the four measured facts are now in `configs/models.yaml:hardware`.
+
+⚠️ Still open, and **A7 owns it**: `bi_supported_on_sm89` is `null`. Triton compiling a kernel is
+necessary but *not sufficient* for batch invariance, and §3.3's 1.2–2× BI overhead is an **Ampere**
+number that does not transfer to Ada.
+
+⚠️ Two `sm_verify.py` fixes from `5ada832` are **unexercised on GPU** — the `ctypes.CDLL` probe
+(replacing a wrong `import vllm._C`; 0.26.0 registers ops through `torch.ops`) and the
+`importlib.metadata` version fallback. Fold a re-verify into the next serving-image job rather
+than spending a queue slot on `verify` alone.
+
+**If a future box ever reports driver < 13, changing the engine version is a PLANNER decision**,
+not an executor fallback: the version is frozen and reported in the paper, and batch-invariance
 behaviour is version-specific (PR #27660; the `auto_gptq.py`/`auto_awq.py` kernel guards H8 is
 built on).
 
