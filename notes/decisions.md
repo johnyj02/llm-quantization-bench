@@ -117,6 +117,48 @@ Extends D10 with two specifics:
 proposed instance name, tags, key-pair name, security-group name, volume name, and S3 prefix
 **as a reviewable list**, plus the account/region/profile in use — not as a fait accompli.
 
+### D11 RESOLVED 2026-08-26 — account moved, naming scheme specified
+
+**Account: `654654594225`** (not `670060057797`). ⚠️ **CONDUIT-managed, not Isengard.**
+`ada` defaults to `isengard` and returns a misleading *"Account not found"*; it also no longer
+falls back to the role name for Conduit, so both flags are required:
+
+```
+ada credentials update --provider conduit --account 654654594225 \
+    --role IibsAdminAccess-DO-NOT-DELETE --profile qa-gpu --once
+```
+
+**Quota re-verified in the new account, and it DID differ** — which is exactly why D11 requires
+re-verification rather than assuming the grant travels:
+
+| region | On-Demand G | `g6e.2xlarge` AZs | SageMaker default bucket |
+|---|---|---|---|
+| **us-east-1 (chosen)** | **640** vCPUs | 4 | **already exists** |
+| us-west-2 | 768 vCPUs | 4 | not yet created |
+
+640 vs the previous account's 768. Both are far above the 8 vCPUs `g6e.2xlarge` needs, so it is
+not binding — but the number is different and is now recorded against the right account.
+
+**Naming scheme, user-specified:** `testing-QA-johnyj02-<thing>-<date>`, where **`QA` is the
+project initials only and is NEVER expanded**. With `testing` in front, the whole string reads
+as quality-assurance testing — a human scanning resource names, job ids, tags or S3 keys should
+learn nothing about the research. Same rule for S3: `johnyj02/testing/QA/`.
+
+- instance `testing-QA-johnyj02-job-<YYYYMMDD>`
+- security group `testing-QA-johnyj02-sg`, key pair `testing-QA-johnyj02-key`
+- volume `testing-QA-johnyj02-vol-<YYYYMMDD>`
+- S3 `s3://sagemaker-us-east-1-654654594225/johnyj02/testing/QA/`
+- tags `Owner=johnyj02`, `Purpose=testing-QA`, `AutoStop=true`
+
+**Do not expand "QA", and do not add a project/paper/venue/model/benchmark name to any name,
+tag, path or job id.** This supersedes the withdrawn `Project=QuantArtifact` / `quantartifact-*`
+proposal.
+
+**GPU, since the user asked:** `g6e.2xlarge` = **1 × NVIDIA L40S 48 GB** (SM89 Ada), 8 vCPU,
+64 GiB RAM, $2.242/hr. Not an A100: AWS has no single-A100 instance, and A100-80G exists only as
+`p4de.24xlarge` (8 GPUs, ~$40/hr, spot quota 0). L40S 48 GB is the largest single-GPU option and
+`EXECUTOR-TASKS.md` §3.1 already names L40S as approved.
+
 ## 2026-08-26
 
 ### D12 — `B2` and `B4` are the user's, settled, and CLOSED. Do not re-raise.
