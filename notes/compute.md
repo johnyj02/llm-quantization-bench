@@ -254,10 +254,23 @@ verifying its premise, which held for the old account.
 | `ml.g6.2xlarge` | 1 × L4 | 24 GB | both | on-demand | 1 |
 | `ml.g5.16xlarge` | 1 × A10G | 24 GB | both | spot | 1 |
 
-⚠️ **`ml.g6e.2xlarge` — the approved instance — has NO training-job quota.** It shows only
-`for training warm pool usage = 1`, which is a warm-pool *retention* allowance, not permission
-to run jobs. So SMInterface cannot run the approved single-L40S configuration without a quota
-increase request (days of latency).
+⚠️ **CORRECTION (same day): `ml.g6e.2xlarge` DOES have training-job quota.**
+
+| quota | us-west-2 | us-east-1 |
+|---|---|---|
+| `ml.g6e.2xlarge for training job usage` | **1** | **1** |
+| `ml.g6e.2xlarge for spot training job usage` | **1** | **1** |
+
+**My error, and it was the same mistake twice.** I queried with `--max-items 400`; SageMaker has
+far more quotas than that, so the result was silently truncated and I concluded there was no
+quota. The user spotted it in the console. Lesson: `list-service-quotas` for `sagemaker` must be
+paginated fully — never capped.
+
+**So no quota request is needed.** We have exactly the approved configuration: one
+`ml.g6e.2xlarge` = 1 × L40S 48 GB, on-demand, with spot also available as a fallback.
+
+SageMaker on-demand for `ml.g6e.2xlarge` is **$2.8035/hr** — a ~25% premium over EC2's $2.2421,
+which buys queueing instead of `InsufficientInstanceCapacity`.
 
 ### The genuine advantage of the SageMaker path
 
@@ -276,3 +289,32 @@ default, and batch-vs-interactive, all of which are configurable or workable.
 - **`max_run` must be raised well above the 3600 s default**, per O4's own warning.
 - **A7 becomes a submitted script rather than an SSH session.** This is O4's real objection and
   it stands — but a queued batch job that runs beats an interactive box that never launches.
+
+### Container: a custom ECR image is required, not optional
+
+Verified 2026-08-26:
+
+| | version |
+|---|---|
+| `vllm==0.26.0` pins | **`torch==2.11.0`**, `torchvision==0.26.0`, `torchaudio==2.11.0` (exact `==`) |
+| Newest SageMaker PyTorch training DLC | **`torch 2.10.0`**, py313, **CUDA 13.0** |
+
+So the stock DLC cannot host our pinned vLLM: torch is one minor version short and
+pip-installing over it is the failure mode the sibling project already paid for — vLLM's
+**precompiled** `_C.abi3.so` links a specific libcudart regardless of what the Python torch
+package says (`notes/reuse.md` §5), and the DLC ships CUDA 13.0 against vLLM's `.so.12`
+expectation.
+
+**Two paths, and the choice is scientific, not just operational:**
+
+1. **Custom image, `framework: generic`** — CUDA 12.x base, `torch==2.11.0`, `vllm==0.26.0`,
+   build toolchain **retained** (Triton JIT-compiles the batch-invariant kernels at runtime, so
+   no compiler means no determinism). Keeps `EXECUTOR-TASKS.md` §3.2's pinned engine exactly.
+   Cost: build + ECR push.
+2. **Downgrade to `vllm==0.18.0`**, which pins `torch==2.10.0` and matches the DLC — the version
+   the sibling project actually ran. Cheaper operationally, but the engine version is **frozen
+   and reported in the paper** (§3.2), and `VLLM_BATCH_INVARIANT` behaviour differs across
+   versions (PR #27660 made CUDA graphs BI-compatible; the `auto_gptq.py`/`auto_awq.py` kernel
+   guards H8 is built on are version-specific). **Changing it is a planner decision, not mine.**
+
+Path 1 is the default unless the planner rules otherwise.

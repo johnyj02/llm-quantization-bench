@@ -225,8 +225,10 @@ substrate and SMInterface "a documented non-goal". That is reversed. SMInterface
 queueing — its objections were the 3600 s `max_run` default, the 30 GB volume default, and
 batch-vs-interactive, all of which are configurable or workable.
 
-**Quota is not a blocker — the user will obtain it.** Needed:
-`ml.g6e.2xlarge for training job usage` ≥ 1 (currently only a warm-pool retention allowance).
+**Quota is already in place — no request needed.** `ml.g6e.2xlarge for training job usage = 1`
+in both us-west-2 and us-east-1 (plus spot = 1). I initially reported otherwise because I capped
+`list-service-quotas` at `--max-items 400` and SageMaker has more quotas than that, silently
+truncating the result; the user caught it in the console. **Always paginate that call fully.**
 
 **Consequences, all now mandatory:**
 - EC2 provisioning is WITHDRAWN. `scripts/box_*.sh` are retained for provenance but are
