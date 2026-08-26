@@ -122,10 +122,27 @@ for model_key, model in models.items():
             )
             elapsed = time.monotonic() - started
             size_gb = sum(f.stat().st_size for f in path.rglob("*") if f.is_file()) / 1e9
-            print(f"       done in {elapsed / 60:.1f} min, {size_gb:.2f} GB")
+            # Read back the provenance the writer just emitted, so the job report
+            # carries the MEASURED calibration token count rather than the budget
+            # ceiling. `total_tokens` is num_samples * max_seq_length, which is an
+            # upper bound: with padding disabled, a short sample contributes less.
+            provenance = {}
+            provenance_path = path / "quantartifact_provenance.json"
+            if provenance_path.exists():
+                provenance = json.loads(provenance_path.read_text())
+            tokens = provenance.get("calibration_tokens_actual")
+            budget = provenance.get("calibration_tokens_budget")
+            if tokens and budget:
+                print(f"       done in {elapsed / 60:.1f} min, {size_gb:.2f} GB, "
+                      f"calibration {tokens:,} tokens ({tokens / budget:.1%} of the "
+                      f"{budget:,} ceiling)")
+            else:
+                print(f"       done in {elapsed / 60:.1f} min, {size_gb:.2f} GB")
             report["arms"].append(
                 {"model": model_key, "arm": arm, "hash": digest, "path": str(path),
                  "minutes": round(elapsed / 60, 1), "size_gb": round(size_gb, 2),
+                 "calibration_tokens_actual": tokens,
+                 "calibration_tokens_budget": budget,
                  "skipped": False}
             )
         except Exception as exc:  # noqa: BLE001

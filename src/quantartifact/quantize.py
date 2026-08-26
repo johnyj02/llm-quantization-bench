@@ -406,12 +406,24 @@ def quantize_model(
     from transformers import AutoModelForCausalLM, AutoTokenizer  # noqa: PLC0415
 
     tokenizer = AutoTokenizer.from_pretrained(model_repo, revision=model_revision)
+    # ⚠️ NO `device_map="auto"`, deliberately, matching llmcompressor's own W4A16
+    # example. `device_map` installs accelerate hooks and places the whole model on
+    # the GPU, which defeats llmcompressor's sequential layer onloading -- the very
+    # thing `configs/quant.yaml` relies on when it budgets ~1 GB VRAM and ~16 GB
+    # HOST RAM. Preloading an 8B onto the card and then accumulating GPTQ Hessians
+    # (which are large: in_features^2 floats per layer) is how this OOMs.
+    # The example calls `dispatch_model` only AFTER oneshot, for a sanity
+    # generation we do not need.
     model = AutoModelForCausalLM.from_pretrained(
-        model_repo, revision=model_revision, torch_dtype="auto", device_map="auto"
+        model_repo, revision=model_revision, torch_dtype="auto"
     )
 
     dataset = load_dataset(calibration.dataset, split=calibration.dataset_split)
     if calibration.shuffle:
+        # Shuffle the FULL split, then take n -- not llmcompressor's
+        # `split="train_sft[:512]"` then shuffle, which only permutes a fixed
+        # prefix. A real random sample is what `subsample_seed` is for, and the
+        # cost is one pass over 207,865 rows (~2 s, measured).
         dataset = dataset.shuffle(seed=calibration.seed)
     dataset = dataset.select(range(calibration.num_samples))
 
@@ -424,14 +436,47 @@ def quantize_model(
 
     dataset = dataset.map(preprocess)
 
+    # 🚨 TOKENIZE EXPLICITLY. Two reasons, both load-bearing.
+    #
+    # 1. `add_special_tokens=False` — the chat template has ALREADY inserted BOS.
+    #    Letting anything downstream tokenize with the default True gives every
+    #    calibration sample a DOUBLE BOS. That is the same class of bug gate G2
+    #    caught in the prompt path, and here it would be a systematic difference
+    #    from the reference recipe that no accuracy number would reveal.
+    # 2. `truncation=True, max_length=...` is what makes the declared token budget
+    #    actually BIND. Without it, `max_seq_length` is a hope rather than a bound,
+    #    and the budget is the paper's central normalisation claim.
+    def tokenize(sample: dict) -> dict:
+        return tokenizer(
+            sample["text"],
+            padding=False,
+            max_length=calibration.max_seq_length,
+            truncation=True,
+            add_special_tokens=False,
+        )
+
+    dataset = dataset.map(tokenize, remove_columns=dataset.column_names)
+
+    # The ACTUAL token count, not the budget ceiling. With `padding=False` a
+    # sample shorter than max_seq_length contributes its own length, so the real
+    # total is <= num_samples * max_seq_length. The paper must report this number,
+    # not the product -- `calibration.total_tokens` is an upper bound by
+    # construction and stating it as the realised budget would be wrong.
+    actual_tokens = sum(len(ids) for ids in dataset["input_ids"])
+
     oneshot(
         model=model,
         dataset=dataset,
         recipe=build_recipe(spec),
         max_seq_length=calibration.max_seq_length,
         num_calibration_samples=calibration.num_samples,
-        output_dir=str(destination),
     )
+
+    # Saved explicitly rather than via `oneshot(output_dir=...)`, because
+    # `save_compressed=True` is what actually writes a compressed checkpoint --
+    # this is the example's pattern, and the difference is a full-size
+    # unquantized-on-disk artifact that vLLM would not load as a quantized model.
+    model.save_pretrained(str(destination), save_compressed=True)
     tokenizer.save_pretrained(destination)
 
     # Provenance travels with the weights, not just in the repo.
@@ -443,6 +488,8 @@ def quantize_model(
                 "model_revision": model_revision,
                 "spec": spec.to_dict(),
                 "calibration": calibration.to_dict(),
+                "calibration_tokens_actual": actual_tokens,
+                "calibration_tokens_budget": calibration.total_tokens,
                 "quantize_version": QUANTIZE_VERSION,
             },
             indent=2,
