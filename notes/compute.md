@@ -230,3 +230,49 @@ result here before trusting the CUDA install.
       precondition.
 - [ ] `scripts/box_up.sh` / `scripts/box_down.sh`.
 - [ ] Confirm `g6e.2xlarge` capacity in at least two AZs at launch time (quota ≠ capacity).
+
+---
+
+## 9. SageMaker re-checked in the NEW account (2026-08-26) — correcting a gap
+
+**My error.** §2 rejected SMInterface on verified evidence that SageMaker training-job quota
+was **0 for every usable GPU** — but that was measured in the *old* account `670060057797`.
+When the account moved to `654654594225` (D11) I re-verified **EC2** quota and **not**
+SageMaker. D11 says a quota grant is account-specific; I applied that rule to one service and
+not the other. The user caught it.
+
+**Also worth stating plainly:** the decision not to use SMInterface was **not mine**. It is
+`EXECUTOR-TASKS.md` **O4**, made by the planner before execution began. My contribution was
+verifying its premise, which held for the old account.
+
+### What the new account actually has (training-job quota, non-zero only)
+
+| type | GPUs | VRAM | region | mode | quota |
+|---|---|---|---|---|---|
+| `ml.g6e.12xlarge` | 4 × L40S | 48 GB ea | both | **spot** | 1 |
+| `ml.g5.12xlarge` | 4 × A10G | 24 GB ea | us-east-1 | on-demand | 2 |
+| `ml.g6.2xlarge` | 1 × L4 | 24 GB | both | on-demand | 1 |
+| `ml.g5.16xlarge` | 1 × A10G | 24 GB | both | spot | 1 |
+
+⚠️ **`ml.g6e.2xlarge` — the approved instance — has NO training-job quota.** It shows only
+`for training warm pool usage = 1`, which is a warm-pool *retention* allowance, not permission
+to run jobs. So SMInterface cannot run the approved single-L40S configuration without a quota
+increase request (days of latency).
+
+### The genuine advantage of the SageMaker path
+
+**SageMaker training jobs QUEUE for capacity; EC2 `RunInstances` fails immediately.** That is a
+real and material difference given L40S is currently exhausted in 10 AZs, and it is not
+something O4 weighed — O4's objections were the 3600 s `max_run` default, the 30 GB volume
+default, and batch-vs-interactive, all of which are configurable or workable.
+
+### Consequences if we take it
+
+- **`ml.g6e.12xlarge` gives the approved GPU** (L40S 48 GB) but bills 4 to use 1. Must pin
+  `CUDA_VISIBLE_DEVICES=0` **and assert it at startup** — `tensor_parallel_size>1` breaks batch
+  invariance (vLLM #51290), and a 4-GPU box is exactly where that mistake happens.
+- **Spot means interruption.** Survivable: `A4` already checkpoints and resumes per batch, and
+  the resume index is keyed on the full join tuple.
+- **`max_run` must be raised well above the 3600 s default**, per O4's own warning.
+- **A7 becomes a submitted script rather than an SSH session.** This is O4's real objection and
+  it stands — but a queued batch job that runs beats an interactive box that never launches.
