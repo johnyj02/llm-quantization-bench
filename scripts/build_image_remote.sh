@@ -78,7 +78,8 @@ if ssh -o BatchMode=yes -o ConnectTimeout=10 "${DEV_HOST}" true 2>/dev/null; the
     printf "  docker : "; command -v docker >/dev/null 2>&1 \
       && { docker info >/dev/null 2>&1 && echo "present, daemon RUNNING" || echo "present, daemon NOT running"; } \
       || echo "MISSING"
-    printf "  ada    : "; command -v ada >/dev/null 2>&1 && echo present || echo MISSING
+    printf "  ada    : "; ( command -v ada >/dev/null 2>&1 || [ -x "$HOME/.toolbox/bin/ada" ] ) \
+      && echo "present (~/.toolbox/bin, not on non-interactive PATH)" || echo MISSING
   ' 2>/dev/null
 else
   echo "=== remote host: UNREACHABLE (see cert note above) ==="
@@ -114,6 +115,9 @@ echo "=== 2-4. credentials, ECR, build, push (on the dev desktop) ==="
 ssh -o BatchMode=yes "${DEV_HOST}" "
 set -euo pipefail
 cd ${REMOTE_DIR}
+
+# ada lives in ~/.toolbox/bin, which is NOT on a non-interactive SSH PATH.
+export PATH=\"\$HOME/.toolbox/bin:\$PATH\"
 
 echo '--- Conduit credentials'
 ada credentials update --provider conduit --account ${AWS_ACCOUNT} \
