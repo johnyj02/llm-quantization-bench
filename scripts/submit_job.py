@@ -27,8 +27,10 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -116,12 +118,49 @@ def refresh_conduit_credentials(profile: str) -> None:
         )
 
 
+# Only these land in the uploaded tarball. Everything else is excluded.
+#
+# ⚠️ The SageMaker SDK tars **all** of `source_dir` and honours no ignore file.
+# Pointed at the repo root that is 575 MB, of which 568 MB is `.venv-harness` +
+# `.venv` — uploaded on EVERY submission, and useless in the container, which has
+# its own Python. Worse than wasteful: those are macOS **arm64** wheels, so they
+# are actively wrong for a linux/amd64 container.
+STAGE_INCLUDE_DIRS = ("src", "configs", "scripts", "vendor")
+STAGE_INCLUDE_GLOBS = ("sm_*.py", "pyproject.toml")
+
+
+def stage_source(stage: str) -> Path:
+    """Copy only what the job needs into a temp dir, and return that as source_dir.
+
+    Deliberately an allowlist, not a denylist: a new large directory in the repo
+    should not silently start being uploaded.
+    """
+    staged = Path(tempfile.mkdtemp(prefix=f"qa-src-{stage}-"))
+
+    for name in STAGE_INCLUDE_DIRS:
+        source = REPO / name
+        if source.is_dir():
+            shutil.copytree(
+                source, staged / name,
+                ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".pytest_cache"),
+            )
+    for pattern in STAGE_INCLUDE_GLOBS:
+        for path in REPO.glob(pattern):
+            if path.is_file():
+                shutil.copy2(path, staged / path.name)
+
+    size_mb = sum(f.stat().st_size for f in staged.rglob("*") if f.is_file()) / 1e6
+    print(f"staged       : {staged}  ({size_mb:.1f} MB, "
+          f"{sum(1 for _ in staged.rglob('*') if _.is_file())} files)")
+    return staged
+
+
 def build_config(stage: str, overrides: dict) -> dict:
     config = yaml.safe_load((REPO / "configs" / "sm_job.yaml").read_text())
     spec = STAGES[stage]
 
     config["entry_point"] = spec["entry_point"]
-    config["source_dir"] = str(REPO)
+    config["source_dir"] = str(REPO)  # replaced by stage_source() at submit time
     config["job_name"] = job_name(stage)
     # Per-stage max_run, but never below the file's floor: a stage that needs
     # longer must say so, and a stage that needs less should not hold a slot.
@@ -162,6 +201,9 @@ def main() -> int:
     print(f"max_run      : {config['max_run']}s   volume: {config['volume_size']}GB   "
           f"spot: {config['use_spot_instances']}")
     print(f"output       : {config['output_path']}")
+    print(f"code upload  : {config['output_path'].rsplit('/johnyj02',1)[0]}"
+          f"/{config['job_name']}/source/sourcedir.tar.gz")
+    print("               -> extracted to /opt/ml/code in the container")
     print(f"image_uri    : {config.get('image_uri') or 'NOT SET'}")
     print(f"env          : {sorted(k for k in config.get('environment', {}) if k != 'HF_TOKEN')}")
     print(f"HF_TOKEN     : {'present' if config.get('environment', {}).get('HF_TOKEN') else 'ABSENT'}")
@@ -197,6 +239,9 @@ def main() -> int:
             "Use --plan-only to inspect at zero cost.\n"
         )
         return 2
+
+    # Stage a minimal source tree so the upload is small and linux-correct.
+    config["source_dir"] = str(stage_source(args.stage))
 
     if str(SMINTERFACE_SRC) not in sys.path:
         sys.path.insert(0, str(SMINTERFACE_SRC))

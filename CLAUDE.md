@@ -141,6 +141,23 @@ sm-interface status johnyj02-QA-v0.1-<date>-<uuid>-verify
 ```
 
 Stages, in order: `verify` → `throughput` → `quantize` → `determinism`.
+
+### Where the code actually lives when a job runs
+
+| step | location |
+|---|---|
+| 1. source of truth | `/Users/johnyj02/workspaces/QuantArtifact` (local git, **no remote**) |
+| 2. staged copy | a temp dir with only `src/ configs/ scripts/ vendor/ sm_*.py pyproject.toml` (~1 MB) |
+| 3. uploaded tarball | `s3://sagemaker-us-east-1-654654594225/<job-name>/source/sourcedir.tar.gz` |
+| 4. in the container | extracted to **`/opt/ml/code`**, entry point run from there |
+| 5. results | written to `/opt/ml/model` → `output_path` in S3 |
+
+⚠️ **`submit_job.py` stages an ALLOWLIST rather than uploading `source_dir` directly.**
+The SageMaker SDK tars *all* of `source_dir` and honours no ignore file, so pointing it at the
+repo root would upload **575 MB on every submission** — 568 MB of it `.venv-harness` + `.venv`,
+which are useless in the container (it has its own Python) and are macOS **arm64** wheels, so
+actively wrong for a linux/amd64 container. Allowlist, not denylist: a new large directory in
+the repo must not silently start being uploaded.
 Config: `configs/sm_job.yaml`. Overrides SMInterface's dangerous defaults —
 `max_run` 3600 → per-stage (a 2,719-item cell dies in an hour), `volume_size` 30 → 200 GB.
 
