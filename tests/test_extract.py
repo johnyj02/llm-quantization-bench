@@ -101,6 +101,78 @@ def test_bbh_capitalized_answer_phrase_fails_strict():
     assert recovered.value == "False", "rung 2 must recover it"
 
 
+@pytest.mark.parametrize(
+    ("generation", "expected"),
+    [
+        # (?=.) demands a character AFTER the capture, forcing a one-character
+        # backtrack. So when the text ends exactly at the answer, the harness
+        # silently truncates it.
+        ("the answer is 42", "4"),        # <-- drops the "2"
+        ("So the answer is False", "Fals"),  # <-- drops the "e"
+        ("the answer is (B)", "(B"),      # <-- drops the ")"
+        # A trailing period supplies the lookahead character, so these are fine.
+        ("the answer is 42.", "42"),
+        ("So the answer is False.", "False"),
+        ("the answer is (B).", "(B)"),
+    ],
+)
+def test_bbh_get_answer_drops_final_character_without_trailing_punctuation(generation, expected):
+    """VERIFIED harness defect, predicted by the planner and confirmed here.
+
+    ``(?<=the answer is )(.*)(?=.)`` is greedy with a mandatory trailing
+    lookahead, so a generation ending exactly at its answer loses the last
+    character and is scored WRONG on a correct answer.
+
+    This is not hypothetical: BBH's ``until`` is ``["</s>", "Q", "\\n\\n"]``, so a
+    stop sequence can terminate the text right at the answer and trigger it.
+    Squarely on-thesis, plausibly differential by precision, and rung 1 stays
+    verbatim regardless -- we measure the defect, we do not patch it.
+    """
+    assert extract_strict(generation, "bbh", "boolean_expressions").value == expected
+
+
+def test_rung2_recovers_the_dropped_final_character():
+    """The defect must be recoverable at rung 2, or it is not an extraction artifact."""
+    for generation, gold in [
+        ("So the answer is False", "False"),
+        ("the answer is 42", "42"),
+    ]:
+        strict = extract_strict(generation, "bbh", "boolean_expressions")
+        assert not answers_match(strict.value, gold, "bbh", "boolean_expressions")
+
+        permissive = extract_permissive(generation, "bbh", "boolean_expressions")
+        assert answers_match(permissive.value, gold, "bbh", "boolean_expressions"), (
+            f"rung 2 must recover {gold!r} from {generation!r}"
+        )
+
+
+def test_self_correction_first_vs_last_match_on_phrase_arm():
+    """Rung 1 takes the FIRST match; flexible-extract takes the LAST.
+
+    Neither strict regex sets ``group_select``, so both default to the first
+    match, while ``flexible-extract`` sets ``group_select: -1``. Self-correction
+    is common in CoT, so part of any strict/flexible gap is a POSITION-selection
+    artifact rather than a strictness artifact. R1.4 adds rung 1b to separate
+    them; this fixture pins the underlying behaviour.
+    """
+    generation = "The answer is 6. Wait, I made an error. The answer is 8."
+    strict = extract_strict(generation, "gsm8k_cot")
+    # "6." not "6": the regex is `The answer is (\-?[0-9\.\,]+).` and `\.` sits
+    # INSIDE the character class, so the capture greedily swallows the sentence
+    # period. The harness tolerates that at metric time via
+    # `regexes_to_ignore: ["\\.$"]`; we tolerate it via numeric comparison.
+    assert strict.value == "6.", "rung 1 takes the FIRST match, period included"
+    assert answers_match(strict.value, "6", "gsm8k_cot"), "trailing period must not fail a match"
+
+    permissive = extract_permissive(generation, "gsm8k_cot")
+    assert permissive.value == "8", "rung 2 takes the model's LAST commitment"
+
+    # The consequence that matters: on a self-corrected generation whose final
+    # answer is right, rung 1 scores it WRONG purely on match position.
+    assert not answers_match(strict.value, "8", "gsm8k_cot")
+    assert answers_match(permissive.value, "8", "gsm8k_cot")
+
+
 def test_bbh_capitalization_failure_flag_not_set_when_phrase_absent_entirely():
     """Distinguish "wrong case" from "no answer phrase at all" -- different findings."""
     strict = extract_strict("I am not sure.", "bbh", "boolean_expressions")

@@ -34,15 +34,25 @@ Standing permission for `~/.cache` and `~/Library/Caches` only. **Never** `~/Des
 delete locally.** Verification before deletion is mandatory, not optional.
 
 ### D6 — GSM8K: run BOTH task variants (option C)
-Resolves the conflict in `notes/harness-configs.md` §3.
-- **`gsm8k_cot` (8-shot CoT) is the PRIMARY reference** — `EXECUTOR-TASKS.md` §2.2 locks the
-  reference format as few-shot CoT, and H1 (the lead hypothesis) needs chains of thought to
-  truncate.
-- **`gsm8k` (5-shot, non-CoT) is a pre-registered SECONDARY variant** — carries the `####`
-  regex, makes **Anchor C** reproducible.
-- The comparison between them is itself a pre-registered result.
-- **Scope increase: +19,785 generations (~20%) above the locked §2.2 matrix.** Explicitly
-  approved. Recorded in `analysis/preregistration.md` §5.
+**The decision stands. Its stated basis is VOID — superseded by ruling R1 on 2026-08-25.**
+
+- ✅ **Still true:** both variants run, on the same 1319 items; +19,785 generations (~20%)
+  above the locked §2.2 matrix, explicitly approved.
+- ❌ **Void:** the primary/secondary split and its justification. I claimed `gsm8k` (5-shot)
+  was non-CoT so H1 needed `gsm8k_cot` as primary. **Verified false 2026-08-25:** `gsm8k` has
+  `fewshot_split: train` with `doc_to_target: "{{answer}}"`, and GSM8K train answers are
+  multi-step worked solutions with `<<…>>` annotations ending `#### N`. **So `gsm8k` at 5-shot
+  is also chain-of-thought and demonstrates `####` five times.** "H1 needs CoT" does not
+  discriminate between the arms.
+- ✅ **Replaced by (R1.1):** neither arm is primary. Register **`answer_marker ∈ {hash,
+  phrase}`** as a two-level factor, **both confirmatory**, with the pre-registered directional
+  prediction `interaction(hash) > interaction(phrase) ≈ 0`. The arms hold items, gold, task
+  and competence ~constant and vary **only marker naturalness** — a near-clean manipulation of
+  *compliance difficulty*, which is the quantity the whole competence/compliance split rests
+  on. A near-null on `phrase` becomes a **confirmed prediction** rather than a disappointing
+  primary.
+
+See `notes/planner-rulings.md` R1 and its verification table.
 
 ### D7 — Author list frozen at two
 The user plus one co-author. Settled **before** annotation begins, as required. Both must
@@ -80,3 +90,29 @@ confirms, then I run. This applies to:
 
 Zero-compute work continues without asking: writing code, unit tests over fixtures, configs,
 prose, prereg, related work, and read-only AWS/HF queries.
+
+## 2026-08-25
+
+### D11 — 🚨 The D10 ask must come BEFORE naming anything, and the account may change
+> **"before you run any job you must ask me the human. Cause I want to make sure the job names
+> are generic etc.. and possibly change the account"**
+
+Extends D10 with two specifics:
+
+1. **Resource and job names must be reviewed by the user before creation, and must be
+   generic.** ⚠️ This **overrides** `notes/compute.md` §5, which currently proposes tagging
+   `Project=QuantArtifact` and naming resources `quantartifact-*`. That is exactly the kind of
+   project-identifying name the user wants to vet. **Propose names, do not apply them.**
+   Default proposal going forward: neutral names with no paper/project/venue identifiers, and
+   no tag values that describe the research.
+2. **The AWS account is not settled.** `670060057797` (profile `obtmodel`) is where the recon
+   was done and where quota was verified, but the user may move this elsewhere. So:
+   - Do **not** hard-code the account, profile, region, or bucket anywhere. They are config.
+   - `notes/compute.md`'s quota evidence is **account-specific** and must be re-verified if the
+     account changes — in particular the 768-vCPU On-Demand G quota, which is the entire reason
+     EC2 is viable here.
+   - The S3 sync target (`s3://sagemaker-us-east-1-670060057797/...`) is provisional.
+
+**Consequence for the first ask:** the launch request I bring to the user must include the
+proposed instance name, tags, key-pair name, security-group name, volume name, and S3 prefix
+**as a reviewable list**, plus the account/region/profile in use — not as a fait accompli.

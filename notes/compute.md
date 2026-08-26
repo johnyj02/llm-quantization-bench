@@ -163,16 +163,25 @@ runs begin and held across every arm. Do not let it float per cell.
 
 - The `obtmodel` role is **admin** (`IibsAdminAccess-DO-NOT-DELETE`). Per the user's
   standing production-safety rules: prefer read-only operations, and **create only
-  new, clearly-namespaced resources**. Everything this project creates is tagged
-  `Project=QuantArtifact` and named `quantartifact-*`. **Nothing pre-existing in this
-  account is modified, terminated, or deleted.**
+  new resources**. **Nothing pre-existing in this account is modified, terminated, or
+  deleted.**
+- ⚠️ **SUPERSEDED by decision D11 (2026-08-25).** This section previously specified tagging
+  `Project=QuantArtifact` and naming resources `quantartifact-*`. **That is withdrawn.** The
+  user requires resource and job names to be **generic** and **reviewed by them before
+  creation** — no paper, project, or venue identifiers in names or tag values. Names are to be
+  *proposed* in the launch request, not applied.
+- ⚠️ **The account is not settled** (D11). `670060057797` / profile `obtmodel` / `us-east-1` is
+  where recon was done and quota verified, but the user may move this. Account, profile,
+  region and bucket are **config, never hard-coded**. If the account changes, the §6 quota
+  evidence must be re-verified — especially the 768-vCPU On-Demand G quota, which is the sole
+  reason EC2 is viable here.
 - All AWS calls made during `B2`/`B3` recon on 2026-08-23 were **read-only**
   (`sts get-caller-identity`, `service-quotas get/list`, `ec2 describe-*`,
   `pricing get-products`). No resource was created or changed.
 - Termination protection to be enabled on the instance; the EBS root/data volume set to
   **not** delete on termination, so an accidental stop cannot lose generations.
 - Generations are the artifact. Sync `artifacts/generations/*.jsonl.gz` to S3
-  (`s3://sagemaker-us-east-1-670060057797/quantartifact/`) after every cell completes.
+  (bucket/prefix TBD per D11 -- generic naming, user-reviewed) after every cell completes.
 
 ## 6. AWS quota evidence (read-only, 2026-08-23, us-east-1)
 
