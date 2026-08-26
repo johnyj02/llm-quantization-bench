@@ -318,3 +318,60 @@ expectation.
    guards H8 is built on are version-specific). **Changing it is a planner decision, not mine.**
 
 Path 1 is the default unless the planner rules otherwise.
+
+---
+
+## 9. `verify` stage — measured on the box, 2026-08-26
+
+Job `johnyj02-QA-v0-1-20260826-33b4267e-verify`, `ml.g6e.2xlarge`, us-east-1. Ran 2 min.
+**13 of 14 checks passed.** SageMaker reports the job `Failed` because `sm_verify.py` exits
+non-zero on any failed check — that is the exit code, not a lost run; the report was written
+and every measurement below is from it.
+
+### 🎉 The CUDA-13 risk is RESOLVED — the engine version stays frozen
+
+This was the one open risk that could have forced a planner decision (§4 of `CLAUDE.md`).
+MedLLMSafety hit `"NVIDIA driver ... too old (found version 12080)"` on `ml.g5.2xlarge` and had
+to fall back to `vllm==0.18.0`. We do not:
+
+| fact | measured |
+|---|---|
+| GPU | NVIDIA L40S, **46068 MiB** (not the nominal 48 GB) |
+| driver | **595.91.07** |
+| compute capability | **8.9** — SM89 Ada, as planned |
+| torch | `2.11.0+cu130`, built for CUDA **13.0**, `available=True` |
+| vLLM linkage | `libcuda.so.1`, **`libcudart.so.13`**, `libtorch_cuda.so` |
+| gcc | Debian **14.2.0**-19 at `/usr/bin/gcc` |
+| Triton | **3.6.0** — compiled and ran a kernel |
+
+So `vllm==0.26.0` is kept as frozen and reported. No engine downgrade, and H8's
+version-specific kernel guards stay valid.
+
+**The C compiler survived into the runtime image**, which was the point of not purging
+`build-essential`: `VLLM_BATCH_INVARIANT` works by substituting batch-invariant *Triton*
+kernels, JIT-compiled at runtime, so no compiler would mean no determinism.
+
+⚠️ Triton compiling a kernel is **necessary but not sufficient** for batch invariance.
+`models.yaml:bi_supported_on_sm89` stays `null` — **A7 still owns that finding.** The 1.2–2×
+BI overhead figure in `EXECUTOR-TASKS.md` §3.3 is an Ampere number and does not transfer to SM89.
+
+### The one failure was my check, not the box
+
+`vllm_extension_loads` did `import vllm._C` → `ModuleNotFoundError`. **vLLM 0.26.0 does not
+expose its extension at that import path** (ops register through `torch.ops`), and `objdump` had
+already read the `.so`'s `NEEDED` entries successfully in the check immediately above — so the
+file existed and linked fine. Fixed in `5ada832`: load the `.so` directly with `ctypes.CDLL`,
+which is precisely "does this binary resolve against the installed CUDA runtime and driver"
+with no assumption about how vLLM surfaces it in Python. Same commit fixed the version table
+printing `?` for `math_verify` (no `__version__`; use `importlib.metadata`).
+
+🚧 **Both fixes are UNEXERCISED ON GPU.** They gate jobs 2+ (which serve with vLLM), not job 1
+(the quant image has no vLLM). Fold a re-verify into the next serving-image job rather than
+spending a queue slot on `verify` alone.
+
+### The account is SHARED — the one job slot is not ours alone
+
+`list-training-jobs` shows another user's jobs (`jathupra-*`) in this account. The
+`ml.g6e.2xlarge` quota of **1 is account-level**, so a concurrent job from them contends with
+ours for the only slot. Nothing was in flight when job 1 was submitted, but this is a real
+scheduling hazard and an argument for submitting promptly whenever the slot is free.
