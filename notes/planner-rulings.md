@@ -334,6 +334,119 @@ risk; the rule that nothing on the user's machine gets deleted without their say
 
 ---
 
+## Round 2 — R9–R11 (2026-08-26)
+
+Asked after G2 passed, batched per D13. Answers R9–R11.
+
+### R9 (Q-A) — Add a **synthetic matched arm**. Option (2), at **4,500 generations, not 19,800**.
+
+**My cost estimate was 4.4× too high.** I assumed 1319 items × 15 cells. The arm estimates
+exactly one contrast — the rung1→rung2 gap under `####` vs under `The answer is N.` — and
+published evidence puts that gap at **41–64 points** (2601.14277 App. B), so n=500 resolves it
+with room to spare. It is a marker × precision interaction, so it needs bf16 + the two
+pre-quantized 4-bit methods only, not bnb-NF4 or GPTQ-8bit (whose role is dose-response on the
+reference condition).
+
+> **500 items × 9 cells (3 models × {bf16, GPTQ-4, AWQ-4}) = 4,500. ~3% of the matrix.**
+
+**Construction, exactly:** take `gsm8k_cot`'s prompt **verbatim** and change **only** the
+exemplar terminator `The answer is N.` → `#### N`. Inherit the 8 hardcoded exemplars, their
+reasoning text, the `Q:`/`A:` scaffold, `num_fewshot: 8`, and
+`until: ["Q:", "</s>", "<|im_end|>"]`. Rung-1 regex becomes `#### (\-?[0-9\.\,]+)`. **That
+controls (b) shots, (c) exemplar content and (d) `until` simultaneously**, because all three are
+inherited from `gsm8k_cot` rather than from `gsm8k`. Task id `gsm8k_cot_hashmarker`. Label it a
+**synthetic, non-harness-verbatim arm** in configs, prereg and paper — do not soften that, it is
+the arm's job.
+
+**Why "accept and caveat" was not available:** my (b)/(c) confound **runs toward our own
+hypothesis.** Eight hand-written clean exemplars should teach format compliance better than 5
+randomly sampled ones carrying `<<48/2=24>>` calculator noise — predicting higher `gsm8k_cot`
+compliance for reasons unrelated to marker naturalness, *the same direction the marker
+prediction points*. That is the failure mode R2 exists to prevent, one factor over, and a
+caveat does not fix a bias that runs our way.
+
+**What the original design already bought** (worth stating in the preref, since it justifies
+reporting the confounded pair at all): `strict_acc(gsm8k)` vs `strict_acc(gsm8k_cot)` is
+confounded by (b)(c), but the **within-arm rung1→rung2 gap** is not, to first order — shots and
+exemplar content move *competence*, which shifts both rungs together and differences out. The
+gap-of-gaps was always the better-identified quantity. The matched arm closes only the
+**residual** channel: exemplar quality acting on compliance directly rather than through
+competence.
+
+**Three arms with roles assigned — this is the ruling, not the arm alone:**
+
+| Arm | Kind | Role | In the marker contrast? |
+|---|---|---|---|
+| `gsm8k_cot` | harness | primary; natural marker, ecological | **yes** |
+| `gsm8k_cot_hashmarker` | **synthetic** | the identified marker contrast | **yes** |
+| `gsm8k` | harness | secondary; Anchor C + evidence published configs differ | **no** |
+
+**The marker effect is estimated from the matched pair ONLY.** `gsm8k` does three other jobs —
+Anchor C, the ecological claim, and a **sign-agreement check** against the identified estimate —
+with (b)(c)(d) named explicitly. This retires Q-A rather than caveating it: the confounded
+comparison stops carrying inferential weight.
+
+Both halves are needed: synthetic-only invites *"you invented a prompt"*; harness-only invites
+*"your comparison is confounded."* Both, with a stated division of labour, answers both.
+
+**Also:** report `TRUNC_STOPSEQ` **per arm**, since (d) means `gsm8k`'s `until` differs. Break it
+out rather than pooling across GSM8K.
+
+### R10 (Q-B) — Zero-shot runs `gsm8k_cot` **only**. `answer_marker` is **nested within few-shot**, not crossed with prompt format.
+
+The zero-shot × `####` cell is **degenerate**. The marker is carried *by the exemplars*; strip
+them and nothing conveys `####` except an explicit instruction — a different manipulation
+(instruction-following, not exemplar-imitation). It would score ≈0 at rung 1 for a trivial
+reason, and **a floor effect cannot support an interaction test.**
+
+No cost change. **Declare the nesting in the prereg and state the floor-effect prediction as the
+reason the cell is absent** — explaining an unbalanced design pre-empts the reviewer question
+instead of inviting it.
+
+### R11 (Q-C) — Score the **space-prefixed** continuation, and assert single-token-ness per model.
+
+`gen_prefix` ends `…The best answer is` with **no trailing space**, so the continuation the
+generative arm must produce begins with one. The log-likelihood arm is a valid counterfactual
+only if it scores **what the generative arm would have to emit**.
+
+Scoring `"A"` instead would measure a tokenization the model essentially never produces after
+`is`, and that penalty **varies by model and precision** — exactly the artifact shape that would
+manufacture an H6 result on the never-cut negative control.
+
+Independent confirmation of the convention: `arc_easy.yaml` scores
+`doc_to_choice: "{{choices.text}}"` against a `doc_to_text` ending `"Answer:"`, and lm-eval's
+default `target_delimiter` is `" "` — native ARC-C log-likelihood already scores space-prefixed
+continuations.
+
+**Two guards, both required:**
+1. **Assert single-token-ness per tokenizer** and record the four token IDs per model in the
+   prompt manifest. If a model splits it, that model needs explicit length normalization and the
+   discrepancy is **reported, not absorbed**.
+2. **Validate empirically on the pilot:** measure the distribution of the actual first token
+   emitted after `The best answer is` in the ARC-chat generative outputs. If it is overwhelmingly
+   `▁A`/`▁B`/`▁C`/`▁D`, the choice is a measured fact rather than an argument. ~10 lines, and H6
+   is never-cut.
+
+### 🚨 R11 addendum — G3's ARC cross-validation criterion was pointed at the wrong instrument
+
+Our ARC-ll arm scores **option letters** on the **chat prompt**; lm-eval's native
+`arc_challenge` scores **full answer texts** on the `Question:`/`Answer:` prompt. Different
+instruments answering different questions — both legitimate, **not interchangeable**.
+
+> **The G3 ≤0.5 pp cross-validation must run against lm-eval's NATIVE `arc_challenge` config**
+> (= our arm 3). Run against our arm 2, the criterion would have measured nothing.
+
+Recorded in `notes/gates.md`; arm 3 exists precisely to be the cross-validation target.
+
+### Round cost and the trim order
+
+**+4,500 (~3%).** The +30% already approved stands; this does **not** add another 20%. The `A6`
+contingency still governs — if measured SM89 throughput pushes the reference block past
+**Sep 13**, the trim order is **ARC few-shot → zero-shot → `gsm8k` secondary → BBH last**, and
+**BBH never drops below 250/subtask.**
+
+---
+
 ## Verification
 
 All three verified **2026-08-25**. **The planner was right on all three; I was wrong on two
@@ -357,3 +470,34 @@ Also pinned: on a self-corrected generation (*"The answer is 6. Wait… The answ
 1 returns `6.` and scores **wrong**, while rung 2 returns `8` and scores right — a pure
 **position-selection** artifact, which is exactly what R1.4's rung 1b exists to separate from
 the strictness artifact.
+
+### Round 2 verification (2026-08-26)
+
+| Claim | Status | Evidence |
+|---|---|---|
+| R11: `" A"` is a single token per model | ⚠️ **TRUE FOR 2 OF 3 — guard #1 fired** | See below. Qwen and Llama yes; **Phi-3.5-mini NO**. |
+
+**R11's guard #1 did its job on the first run.** Measured `encode(x, add_special_tokens=False)`:
+
+| model | `" A"` | tokens | `"A"` | tokens |
+|---|---|---|---|---|
+| Qwen2.5-3B | `[362]` | `['ĠA']` ✅ 1 | `[32]` | `['A']` |
+| Llama-3.1-8B | `[362]` | `['ĠA']` ✅ 1 | `[32]` | `['A']` |
+| **Phi-3.5-mini** | **`[29871, 319]`** | **`['▁', '▁A']` ❌ 2** | **`[319]`** | **`['▁A']` ✅ 1** |
+
+**Cause.** Phi-3.5 uses a **SentencePiece** tokenizer where `▁A` *already encodes the leading
+space*. Encoding the literal `" A"` therefore emits a redundant standalone `▁` (29871) **followed
+by** `▁A`. Qwen and Llama use byte-level BPE, where `ĠA` is the space-prefixed token and the bare
+`"A"` is a genuinely different token.
+
+**So "always prefix a space" is the wrong rule** — it is the same shape as the double-BOS trap:
+a blanket convention that is right for two models and wrong for a third.
+
+**Implementation that is correct for every tokenizer convention: tokenize in context and
+difference.** Encode `prefix` and `prefix + continuation`, and take the trailing ids that differ.
+That is exactly what the model sees, so it is correct by construction regardless of whether the
+tokenizer is BPE or SentencePiece, and it needs no per-family special-casing.
+
+R11's substantive ruling is **unaffected** — we still score the continuation the generative arm
+would actually emit (space + letter). Only the mechanism for obtaining its token ids changes, and
+the recorded per-model ids in the manifest now become the evidence that it was done right.

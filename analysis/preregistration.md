@@ -252,6 +252,34 @@ Arm 3 preserves comparability with published ARC-C numbers and is the G3 cross-v
 target. **Arm 2 costs no generation** — four single-token scorings over an already-computed
 prefix.
 
+🚨 **The G3 ≤0.5 pp cross-validation runs against arm 3, lm-eval's NATIVE config — not arm 2.**
+Arm 2 scores *option letters* on the *chat* prompt; native `arc_challenge` scores *full answer
+texts* on the `Question:`/`Answer:` prompt. Different instruments answering different questions,
+both legitimate, **not interchangeable**. Recorded before the run so the criterion cannot be
+reinterpreted after seeing a number.
+
+**Arm 2 continuations are space-prefixed: `" A"`, `" B"`, `" C"`, `" D"`.** `gen_prefix` ends
+`…The best answer is` with no trailing space, so that is what the generative arm must emit, and the
+log-likelihood arm is a valid counterfactual only if it scores the same thing. Scoring `"A"` would
+measure a tokenization the model essentially never produces after `is`, and the penalty varies by
+model *and* precision — exactly the artifact shape that would manufacture an H6 result on the
+never-cut negative control. Corroboration: lm-eval's default `target_delimiter` is `" "`, so native
+ARC-C log-likelihood already scores space-prefixed continuations.
+
+⚠️ **Continuation token ids are obtained by tokenizing IN CONTEXT and differencing**, not by
+encoding the continuation standalone. Measured 2026-08-26: standalone `" A"` is **one** token on
+Qwen2.5 and Llama-3.1 (byte BPE, `ĠA`) but **two** on Phi-3.5 (SentencePiece, `['▁','▁A']`, because
+`▁A` already encodes the space). In context all three yield a single token. "Always prefix a space"
+is the wrong rule — the same shape as the double-BOS trap.
+
+**Guards, both pre-registered:**
+1. **Assert single-token-ness per model** and record the four token ids per model in the prompt
+   manifest. If a model splits an option, that model gets explicit length normalization and the
+   discrepancy is **reported, not absorbed**. (Verified: all three are single-token in context.)
+2. **Validate empirically on `pilot-v1`:** measure the distribution of the actual first token
+   emitted after `The best answer is` in the ARC-chat generative outputs. If it is overwhelmingly
+   `▁A`/`▁B`/`▁C`/`▁D`, the choice is a measured fact rather than an argument.
+
 ⚠️ **4-choice restriction.** The chat template hard-codes A–D
 (`{% if choices.text|length > 3 %}`), so a 5-choice ARC-Challenge item **silently loses its
 fifth choice**, and if the gold answer is the dropped one the item is unanswerable — wrong for
@@ -285,6 +313,18 @@ measured prompt format + budget + stop sequences + metric normalization simultan
 Recorded as one documented deviation: the zero-shot arm departs from harness-verbatim scoring
 **and** generation config, enumerated in the appendix. G2 is unaffected — it tests prompt
 rendering, not metric configuration.
+
+**`answer_marker` is NESTED within few-shot, not crossed with prompt format.** The zero-shot arm
+runs **`gsm8k_cot` only**, plus BBH. The zero-shot × `hash` cell is **deliberately absent and the
+absence is declared here**, because it would be degenerate: the marker is carried *by the
+exemplars*, so stripping them leaves nothing to convey `####` except an explicit instruction —
+which is a different manipulation altogether (instruction-following rather than
+exemplar-imitation). That cell would score ≈0 at rung 1 for a trivial reason, and **a floor effect
+cannot support an interaction test.**
+
+Pre-registered prediction, stated so the unbalanced design is explained rather than merely
+observed: were the cell run, rung-1 accuracy under zero-shot × `hash` would be near zero for
+**all** precisions, yielding no estimable interaction.
 
 ---
 
@@ -380,10 +420,60 @@ split is withdrawn; nothing was generated under it.
 | CoT in exemplars | yes | yes |
 | required marker | `#### N` — **arbitrary** | `The answer is N.` — **natural language** |
 
-The two arms hold items, gold, task and competence approximately constant and vary **only the
-naturalness of the required answer marker.** That is a near-clean experimental manipulation of
-**compliance difficulty** — the exact quantity the competence/compliance decomposition rests
-on — and it is the same design logic as the BBH format gradient, applied within one task.
+⚠️ **The two harness arms differ in FOUR ways, not one** — verified 2026-08-26:
+
+| | difference | status |
+|---|---|---|
+| (a) | marker: `#### N` vs `The answer is N.` | **the intended manipulation** |
+| (b) | shots: 5 vs 8 | confound |
+| (c) | exemplar content: sampled from `train` vs 8 hardcoded | confound |
+| (d) | `until`: `["Question:",…]` vs `["Q:",…]` | confound |
+
+Items and gold **are** identical (the same 1319). But **(b) and (c) run toward our own
+hypothesis:** eight hand-written clean exemplars should teach format compliance better than five
+randomly sampled ones carrying `<<48/2=24>>` calculator noise — predicting higher `gsm8k_cot`
+compliance for reasons unrelated to marker naturalness, *the same direction the marker prediction
+points.* A caveat cannot fix a bias that runs our way.
+
+**So the marker contrast is estimated from a synthetic MATCHED arm, and three arms are
+pre-registered with distinct roles:**
+
+| Arm | Kind | Role | In the marker contrast? |
+|---|---|---|---|
+| `gsm8k_cot` | harness | primary; natural marker, ecological | **yes** |
+| `gsm8k_cot_hashmarker` | **synthetic** | the **identified** marker contrast | **yes** |
+| `gsm8k` | harness | secondary: Anchor C, ecological claim, sign-agreement check | **no** |
+
+**`gsm8k_cot_hashmarker` construction.** `gsm8k_cot`'s prompt **verbatim**, with **only** the
+exemplar terminator rewritten `The answer is N.` → `#### N`. Shots, exemplar text, the `Q:`/`A:`
+scaffold and `until` are all inherited from `gsm8k_cot`, so (b), (c) and (d) are controlled
+simultaneously. Rung-1 regex becomes `#### (\-?[0-9\.\,]+)`. It is asserted that exactly
+`num_fewshot` substitutions occur and never zero — a zero-substitution arm would be byte-identical
+to its base, i.e. a null contrast that looks like a real one.
+
+**This arm is NOT harness-verbatim and is labelled as such in the configs, this document, and the
+paper.** That is the arm's job, and the label is not to be softened.
+
+**Cost:** 500 items × 9 cells (3 models × {bf16, GPTQ-4bit, AWQ-4bit}) = **4,500 generations**
+(~3%). It estimates one contrast whose published magnitude is 41–64 points (arXiv:2601.14277
+App. B), so n=500 resolves it with room to spare; and being a marker × precision interaction it
+does not need bnb-NF4 or GPTQ-8bit, whose role is dose-response on the reference condition.
+
+**Why the confounded pair is still reported.** `strict_acc(gsm8k)` vs `strict_acc(gsm8k_cot)` is
+confounded by (b)(c), but the **within-arm rung1→rung2 gap** is not, to first order: shots and
+exemplar content move *competence*, which shifts both rungs together and differences out. The
+gap-of-gaps was always the better-identified quantity; the matched arm closes only the residual
+channel in which exemplar quality acts on compliance directly rather than through competence.
+
+**Pre-committed division of labour:** the marker effect is estimated from the **matched pair
+only**. `gsm8k` contributes Anchor C, the ecological claim ("published harness configs really do
+differ this way"), and a **sign-agreement check** against the identified estimate — with (b)(c)(d)
+named explicitly wherever it appears. Reporting both halves answers both reviewer attacks:
+synthetic-only invites *"you invented a prompt"*, harness-only invites *"your comparison is
+confounded."*
+
+**`TRUNC_STOPSEQ` is reported per arm, not pooled across GSM8K**, because (d) means `gsm8k`'s stop
+set differs.
 
 **Pre-registered directional prediction:**
 

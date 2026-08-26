@@ -28,7 +28,8 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
-from collections.abc import Iterator
+import re
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
 
@@ -55,6 +56,68 @@ FEWSHOT_SEED = 1234
 
 class BOSError(RuntimeError):
     """A rendered prompt has the wrong number of leading BOS tokens."""
+
+
+class PromptTransformError(RuntimeError):
+    """A synthetic-arm prompt transform did not apply as specified."""
+
+
+# ---------------------------------------------------------------------------
+# Synthetic matched arm (planner ruling R9)
+# ---------------------------------------------------------------------------
+
+# `gsm8k` and `gsm8k_cot` differ in FOUR ways, not the one we want to manipulate:
+#   (a) marker            "#### N"  vs  "The answer is N."   <- the intended contrast
+#   (b) shots             5         vs  8
+#   (c) exemplar content  SAMPLED from train  vs  8 hardcoded
+#   (d) until             ["Question:",…]     vs  ["Q:",…]
+#
+# (b) and (c) run TOWARD our own hypothesis: 8 hand-written clean exemplars
+# should teach format compliance better than 5 sampled ones carrying
+# `<<48/2=24>>` calculator noise, predicting higher `gsm8k_cot` compliance for
+# reasons unrelated to marker naturalness -- the same direction the marker
+# prediction points. A caveat cannot fix a bias that runs our way.
+#
+# So the identified marker contrast comes from a SYNTHETIC arm: `gsm8k_cot`'s
+# prompt verbatim with ONLY the exemplar terminator swapped. That inherits
+# (b), (c) and (d) from `gsm8k_cot` and controls all three at once.
+#
+# This arm is NOT harness-verbatim and must be labelled as such everywhere.
+_ANSWER_PHRASE_RE = re.compile(r"The answer is (-?[0-9][0-9.,]*)\.")
+
+
+def to_hash_marker(prompt_text: str) -> tuple[str, int]:
+    """Rewrite `gsm8k_cot` exemplar terminators to the `####` marker.
+
+    ``"… = 6. The answer is 6."`` → ``"… = 6. #### 6"``
+
+    Safe to apply to the whole prompt: only *exemplars* carry an answer, and the
+    trailing question ends at ``"A:"`` with nothing after it, so there is no
+    terminator to rewrite there.
+
+    Returns ``(rewritten, n_substitutions)``. The caller asserts the count equals
+    the shot count — a silent zero-substitution would produce an arm identical to
+    `gsm8k_cot`, i.e. a null contrast that looks like a real one.
+    """
+    rewritten, n = _ANSWER_PHRASE_RE.subn(r"#### \1", prompt_text)
+    return rewritten, n
+
+
+# Registry of synthetic arms: task id -> (base lm-eval task, transform, label).
+SYNTHETIC_ARMS: dict[str, dict[str, Any]] = {
+    "gsm8k_cot_hashmarker": {
+        "base_task": "gsm8k_cot",
+        "transform": to_hash_marker,
+        "answer_marker": "hash",
+        "harness_verbatim": False,
+        "strict_regex": r"#### (\-?[0-9\.\,]+)",
+        "note": (
+            "SYNTHETIC, NOT harness-verbatim. gsm8k_cot's prompt with only the "
+            "exemplar terminator changed to ####. Controls shots, exemplar "
+            "content and until simultaneously, so the marker contrast is identified."
+        ),
+    },
+}
 
 
 @dataclasses.dataclass
@@ -87,6 +150,11 @@ class MaterializedPrompt:
     # exemplars, so its seed is irrelevant even though nothing is hardcoded.
     # Of our nine cells, `gsm8k` is the ONLY seed-sensitive one.
     fewshot_seed_matters: bool = False
+    # False for synthetic arms (R9). Recorded per prompt so the distinction
+    # cannot be lost between the artifact and the paper.
+    harness_verbatim: bool = True
+    prompt_transform: str | None = None
+    n_transform_substitutions: int | None = None
     harness_version: str = HARNESS_VERSION
     artifact_version: str = PROMPT_ARTIFACT_VERSION
 
@@ -96,6 +164,70 @@ class MaterializedPrompt:
 
 def sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+# ---------------------------------------------------------------------------
+# ARC arm 2 — log-likelihood continuations (planner ruling R11)
+# ---------------------------------------------------------------------------
+
+# The generative arm's prompt ends `…The best answer is` with NO trailing space,
+# so the continuation it must emit begins with one. The log-likelihood arm is a
+# valid counterfactual only if it scores exactly that.
+ARC_CONTINUATIONS: tuple[str, ...] = (" A", " B", " C", " D")
+
+
+def continuation_token_ids(tokenizer, prefix: str, continuation: str) -> list[int]:
+    """Token ids for ``continuation`` **as it appears after** ``prefix``.
+
+    ⚠️ Tokenized IN CONTEXT and differenced, rather than encoded standalone,
+    because encoding the continuation on its own is wrong for some tokenizer
+    families. Measured 2026-08-26:
+
+    ========================= =================== ==================
+    model                     ``encode(" A")``    tokens
+    ========================= =================== ==================
+    Qwen2.5-3B (byte BPE)     ``[362]``           ``['ĠA']``     ✅ 1
+    Llama-3.1-8B (byte BPE)   ``[362]``           ``['ĠA']``     ✅ 1
+    **Phi-3.5-mini (SP)**     ``[29871, 319]``    ``['▁','▁A']`` ❌ 2
+    ========================= =================== ==================
+
+    Phi-3.5 uses SentencePiece, where ``▁A`` *already encodes the leading space*,
+    so the literal ``" A"`` emits a redundant standalone ``▁`` first. "Always
+    prefix a space" is therefore the wrong rule — the same shape as the double-BOS
+    trap, right for two models and wrong for a third.
+
+    Differencing in context sidesteps the whole question: it yields precisely the
+    ids the model would have to produce, whatever the tokenizer convention.
+    """
+    base = tokenizer(prefix, add_special_tokens=False)["input_ids"]
+    full = tokenizer(prefix + continuation, add_special_tokens=False)["input_ids"]
+
+    if full[: len(base)] != base:
+        # The continuation re-tokenized the boundary (it merged with the prefix's
+        # final token). Fall back to the longest common prefix so we still return
+        # only the tokens attributable to the continuation, and let the caller see
+        # the length.
+        common = 0
+        for left, right in zip(base, full, strict=False):
+            if left != right:
+                break
+            common += 1
+        return full[common:]
+
+    return full[len(base) :]
+
+
+def arc_continuation_ids(tokenizer, prefix: str) -> dict[str, list[int]]:
+    """Per-option continuation ids, recorded in the manifest as R11 requires.
+
+    A model whose option continuation is not a single token needs explicit length
+    normalization, and R11 requires that discrepancy be **reported, not absorbed**
+    — so the ids are returned for recording rather than silently collapsed.
+    """
+    return {
+        continuation: continuation_token_ids(tokenizer, prefix, continuation)
+        for continuation in ARC_CONTINUATIONS
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -227,6 +359,9 @@ def render_task_prompts(
     limit: int | None = None,
     item_ids: list[str] | None = None,
     fewshot_seed: int = FEWSHOT_SEED,
+    transform: Callable[[str], tuple[str, int]] | None = None,
+    transform_name: str | None = None,
+    expected_substitutions: int | None = None,
 ) -> Iterator[MaterializedPrompt]:
     """Render prompts for one (task, model) with lm-eval, yielding frozen records.
 
@@ -278,6 +413,23 @@ def render_task_prompts(
                 f"{lm_eval_task_name} yields multiple contexts per doc; not in scope"
             )
 
+        n_subs: int | None = None
+        if transform is not None:
+            context, n_subs = transform(context)
+            # A silent zero-substitution would yield an arm byte-identical to the
+            # base task -- a null contrast that looks like a real one. Assert.
+            if expected_substitutions is not None and n_subs != expected_substitutions:
+                raise PromptTransformError(
+                    f"{transform_name} on {lm_eval_task_name} item {index}: "
+                    f"expected {expected_substitutions} substitutions, made {n_subs}"
+                )
+            if n_subs == 0:
+                raise PromptTransformError(
+                    f"{transform_name} on {lm_eval_task_name} item {index}: "
+                    f"transform made NO substitutions -- the arm would be identical "
+                    f"to its base task"
+                )
+
         # Decided once per (model, task) from the first prompt, then held fixed
         # so every prompt in a cell is tokenized identically.
         if add_special is None:
@@ -309,6 +461,9 @@ def render_task_prompts(
             fewshot_seed=fewshot_seed,
             fewshot_hardcoded=fewshot_hardcoded,
             fewshot_seed_matters=(not fewshot_hardcoded and num_fewshot > 0),
+            harness_verbatim=(transform is None),
+            prompt_transform=transform_name,
+            n_transform_substitutions=n_subs,
         )
 
 
@@ -410,4 +565,6 @@ def manifest_for(prompts: list[MaterializedPrompt]) -> dict[str, Any]:
         "fewshot_seed": first.fewshot_seed if first else None,
         "fewshot_hardcoded": first.fewshot_hardcoded if first else None,
         "fewshot_seed_matters": first.fewshot_seed_matters if first else None,
+        "harness_verbatim": first.harness_verbatim if first else None,
+        "prompt_transform": first.prompt_transform if first else None,
     }

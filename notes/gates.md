@@ -103,3 +103,15 @@ Two harness defects are pinned as tests rather than patched:
 **Outstanding:** the ARC log-likelihood cross-validation — our `acc`/`acc_norm` within **0.5 pp**
 of `lm-eval`'s on one bf16 model. That needs model weights on a GPU, so it is gated on D10/D11.
 Everything else in G3 is closed.
+
+🚨 **The criterion was pointed at the wrong instrument, and is now corrected** (planner ruling
+R11 addendum). Our ARC-ll arm (**arm 2**) scores *option letters* on the *chat* prompt;
+lm-eval's native `arc_challenge` (**arm 3**) scores *full answer texts* on the
+`Question:`/`Answer:` prompt. Different instruments answering different questions — both
+legitimate, **not interchangeable**.
+
+> **The ≤0.5 pp cross-validation must run against lm-eval's NATIVE config, i.e. our arm 3.**
+> Run against arm 2 it would have measured nothing.
+
+Arm 3 exists precisely to be this target. Recorded before the run, so the criterion cannot be
+quietly reinterpreted after seeing a number.

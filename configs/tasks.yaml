@@ -98,6 +98,58 @@ tasks:
     flexible_group_select: -1
     answer_type: numeric
 
+  gsm8k_cot_hashmarker:
+    # ⚠️ SYNTHETIC ARM — NOT harness-verbatim. Planner ruling R9.
+    #
+    # WHY IT EXISTS. gsm8k and gsm8k_cot differ in FOUR ways, not one:
+    #   (a) marker            "#### N" vs "The answer is N."  <- the intended contrast
+    #   (b) shots             5 vs 8
+    #   (c) exemplar content  SAMPLED from train vs 8 hardcoded
+    #   (d) until             ["Question:",...] vs ["Q:",...]
+    # and (b)/(c) run TOWARD our own hypothesis -- 8 clean hand-written exemplars
+    # should teach format compliance better than 5 sampled ones carrying
+    # <<48/2=24>> calculator noise, predicting higher gsm8k_cot compliance for
+    # reasons unrelated to marker naturalness. A caveat cannot fix a bias that
+    # runs our way, so the marker contrast needs an identified arm.
+    #
+    # CONSTRUCTION: gsm8k_cot's prompt VERBATIM with ONLY the exemplar terminator
+    # rewritten "The answer is N." -> "#### N". Shots, exemplar text, the Q:/A:
+    # scaffold and `until` are all inherited from gsm8k_cot, so (b)(c)(d) are
+    # controlled simultaneously. Asserted: exactly num_fewshot substitutions, and
+    # never zero (a zero-substitution arm would be a null contrast that looks real).
+    #
+    # THE MARKER EFFECT IS ESTIMATED FROM THE MATCHED PAIR ONLY
+    # (gsm8k_cot vs gsm8k_cot_hashmarker). `gsm8k` does NOT enter it.
+    synthetic: true
+    harness_verbatim: false
+    answer_marker: hash
+    base_task: gsm8k_cot
+    prompt_transform: to_hash_marker
+    dataset_path: openai/gsm8k
+    dataset_name: main
+    split: test
+    output_type: generate_until
+    num_fewshot: 8
+    fewshot_source: hardcoded_in_yaml        # inherited from gsm8k_cot
+    # 500 items x 9 cells (3 models x {bf16, gptq-4bit, awq-4bit}) = 4,500.
+    # It estimates ONE contrast whose published magnitude is 41-64 points
+    # (arXiv:2601.14277 App. B), so n=500 resolves it with room to spare. It is a
+    # marker x precision interaction, so it does NOT need bnb-NF4 or GPTQ-8bit,
+    # whose role is dose-response on the reference condition only.
+    n_items: 500
+    subsample_seed: 20260823
+    subsample_mode: prefix_nested            # prefix of the same 1319 ordering
+    precisions: [bf16, gptq-4bit, awq-4bit]
+    max_gen_toks:
+      1x: 256
+      2x: 512
+      4x: 1024
+    until: ["Q:", "</s>", "<|im_end|>"]      # inherited from gsm8k_cot
+    strict_regex: '#### (\-?[0-9\.\,]+)'
+    flexible_regex: '(-?[$0-9.,]{2,})|(-?[0-9]+)'
+    flexible_group_select: -1
+    answer_type: numeric
+
   # -------------------------------------------------------------------------
   # BBH x 6 — the FORMAT GRADIENT (free-form -> boolean -> multiple-choice).
   # This is a prediction of the hypothesis, not six arbitrary tasks (§2.2).
@@ -196,7 +248,23 @@ tasks:
     arc_arm: 2
     prompt_source: arc_challenge_chat        # MUST be byte-identical to arm 1
     scoring_mode: loglikelihood
+    # WITH the leading space (planner ruling R11). gen_prefix ends
+    # "...The best answer is" with NO trailing space, so the continuation the
+    # GENERATIVE arm must emit begins with one. Scoring "A" instead would measure
+    # a tokenization the model essentially never produces after "is", and that
+    # penalty varies by model AND precision -- exactly the artifact shape that
+    # would manufacture an H6 result on the never-cut negative control.
+    # Corroboration: lm-eval's default target_delimiter is " ", so native ARC-C
+    # log-likelihood already scores space-prefixed continuations.
     continuations: [" A", " B", " C", " D"]
+    # ⚠️ Token ids are obtained by tokenizing IN CONTEXT and differencing, not by
+    # encoding the continuation standalone. Measured 2026-08-26: standalone " A"
+    # is 1 token on Qwen/Llama (byte BPE, 'GA') but 2 on Phi-3.5 (SentencePiece,
+    # ['_','_A'], because '_A' already encodes the space). In context all three
+    # give a single token. "Always prefix a space" is the wrong rule; differencing
+    # is correct for every tokenizer convention.
+    continuation_tokenization: in_context_difference
+    assert_single_token_per_option: true     # R11 guard #1; ids recorded per model
     n_items: 500
     item_ids_shared_with: arc_challenge_chat
     max_gen_toks: null                       # no generation at all
@@ -294,7 +362,16 @@ prompt_variants:
     reference: true
   zeroshot:
     reference: false
+    # gsm8k_cot ONLY, not both answer_marker levels. Planner ruling R10:
+    # answer_marker is NESTED WITHIN few-shot, not crossed with prompt_format.
+    # The marker is carried BY THE EXEMPLARS -- strip them and nothing conveys
+    # "####" except an explicit instruction, which is a different manipulation
+    # (instruction-following, not exemplar-imitation). The zero-shot x hash cell
+    # would score ~0 at rung 1 for a trivial reason, and A FLOOR EFFECT CANNOT
+    # SUPPORT AN INTERACTION TEST. The absence is declared and explained in the
+    # prereg rather than left as an unexplained gap in the design.
     applies_to: [gsm8k_cot, bbh]              # H5 arm, 9 cells x 1400 items
+    answer_marker_nested_within_fewshot: true
 
 # ---------------------------------------------------------------------------
 # Chat template — FIXED, not a factor (planner ruling R1.2).
@@ -340,13 +417,15 @@ chat_template:
 #  +19,785  D6 second GSM8K variant (answer_marker factor)
 #   +8,400  R1.3 BBH contrast subtasks 150 -> 250
 #   +2,000  R1.2 chat-template off-probe
+#   +4,500  R9 gsm8k_cot_hashmarker synthetic matched arm (500 x 9 cells)
 #       +0  R4 ARC arm 2 (log-likelihood, no generation)
+#       +0  R10 zero-shot stays one marker level (no new cells)
 #       +0  R1.4 rung 1b and R3 stop-seq analysis (pure re-scoring)
 #  =======
-# ~129,000
+# ~133,500
 item_counts:
   reference_generative_per_cell: 2719
   sweep_per_cell: 1400
   zeroshot_per_cell: 1400
-  revised_total_estimate: 129000
+  revised_total_estimate: 133500
   supersedes: "EXECUTOR-TASKS.md 2.6 table (99,000)"
