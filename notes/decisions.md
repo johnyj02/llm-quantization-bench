@@ -210,3 +210,37 @@ Treat its answers as **authoritative on planning decisions**. If one contradicts
 repo, say so and ask again — never quietly pick my own way. And per its own standing
 instruction, **verify claims it flags as unverified** (it was right on all three in R1–R4, but
 two of my own premises were wrong, so the check runs both ways).
+
+### D14 — 🚨 SMInterface ONLY. Override O4. (user, 2026-08-26)
+> **"We will only use SMInterface override the planner change all references and codes etc.. That
+> is a must. with respect to quota if we dont have it i can get it that is not a issue."**
+
+**`EXECUTOR-TASKS.md` O4 is OVERRIDDEN by user decision.** O4 declared the rented/EC2 box the
+substrate and SMInterface "a documented non-goal". That is reversed. SMInterface is now the
+**only** compute path.
+
+**Rationale that makes this correct rather than merely instructed:** SageMaker training jobs
+**queue for capacity**; EC2 `RunInstances` fails immediately. `g6e.2xlarge` was unavailable in
+**10 AZs across three regions**, so the EC2 path had no way to make progress. O4 never weighed
+queueing — its objections were the 3600 s `max_run` default, the 30 GB volume default, and
+batch-vs-interactive, all of which are configurable or workable.
+
+**Quota is not a blocker — the user will obtain it.** Needed:
+`ml.g6e.2xlarge for training job usage` ≥ 1 (currently only a warm-pool retention allowance).
+
+**Consequences, all now mandatory:**
+- EC2 provisioning is WITHDRAWN. `scripts/box_*.sh` are retained for provenance but are
+  **non-goals**; do not run them. `notes/compute.md` §1–§8 describes a withdrawn plan.
+- `A7`'s determinism audit becomes a **submitted batch job**, not an SSH session. This was O4's
+  real objection and it stands as a cost, not a blocker.
+- `max_run` must be raised far above SMInterface's 3600 s default, and `volume_size` above its
+  30 GB default (we need ~200 GB).
+- ⚠️ **SMInterface's `session.refresh_credentials()` hardcodes
+  `ada credentials update --profile=<p> --once` with NO `--provider conduit`.** This account is
+  Conduit-managed, so auto-refresh WILL fail. Set `auto_refresh_credentials: false` and refresh
+  manually before submitting.
+- Role in the new account is **`AmazonSageMakerAdminIAMExecutionRole`**, not the
+  `SageMakerExecutionRole` in SMInterface's own example (that was the old account).
+- vLLM 0.26.0 pins torch exactly, and the PyTorch DLC ships a different torch. The sibling
+  project hit this and solved it with a custom image (`MedLLMSafety/Dockerfile.vllm`). Expect
+  `framework: generic` + an ECR image rather than the stock DLC.
