@@ -81,9 +81,52 @@ if SMOKE:
 print(f"models       : {list(models)}")
 print(f"arms         : {arms}")
 print(f"calibration  : {calibration.num_samples} x {calibration.max_seq_length} "
-      f"= {calibration.total_tokens:,} tokens, seed {calibration.seed}")
+      f"= {calibration.total_tokens:,} tokens (budget ceiling), seed {calibration.seed}")
 print(f"dataset      : {calibration.dataset} [{calibration.dataset_split}]")
 print(f"checkpoints  : {CHECKPOINT_DIR}")
+print()
+
+# Verify EVERY model is reachable at its pinned revision before quantizing any of
+# them. `meta-llama/Llama-3.1-8B-Instruct` is gated, and it is LAST in the config
+# order — so without this an expired or unset HF_TOKEN surfaces roughly two hours
+# into the job, after the slot is spent and the two ungated models are done.
+# Seconds to check, hours to discover otherwise.
+print("=== access preflight ===")
+# Blocks ONLY on a gated repo, and that asymmetry is deliberate. A gated failure
+# is a credential problem: deterministic, and certain to recur two hours from now.
+# An ungated failure is far more likely to be a transient network error, and
+# killing a job that would have succeeded wastes the one queue slot we waited for
+# — so those are reported and left to the per-arm error handling below.
+_blocked = []
+try:
+    from huggingface_hub import HfApi
+
+    _api = HfApi(token=os.environ.get("HF_TOKEN"))
+    for _key, _model in models.items():
+        _gated = bool(_model.get("gated"))
+        try:
+            _info = _api.model_info(_model["repo"], revision=_model["revision"])
+            # Confirm the pin resolved to exactly the commit we asked for. A tag
+            # that moved would otherwise be quantized silently under the old name.
+            _sha = getattr(_info, "sha", None)
+            _match = "" if _sha in (None, _model["revision"]) else f"  ⚠️ resolved {_sha[:12]}"
+            print(f"  [OK ] {_key:14} @ {_model['revision'][:12]}"
+                  f"{' (gated)' if _gated else ''}{_match}")
+        except Exception as _exc:  # noqa: BLE001
+            print(f"  [{'FAIL' if _gated else 'WARN'}] {_key:14} "
+                  f"{type(_exc).__name__}: {_exc}"[:220])
+            if _gated:
+                _blocked.append(_key)
+except ImportError:
+    print("  huggingface_hub unavailable; skipping (transformers will fail later)")
+
+if _blocked:
+    print()
+    print(f"BLOCKED: gated repo(s) {_blocked} unreachable at the pinned revision.")
+    print("  This is a credential problem and will not fix itself mid-job. A gated")
+    print("  repo needs a valid HF_TOKEN in the job environment — check that")
+    print("  submit_job.py reported 'HF_TOKEN: present' at submit time.")
+    sys.exit(1)
 print()
 
 report: dict = {
