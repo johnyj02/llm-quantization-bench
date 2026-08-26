@@ -21,13 +21,22 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 : "${AWS_ACCOUNT:=654654594225}"
 : "${QA_REGION:=us-east-1}"
 : "${ECR_REPO:=johnyj02-qa}"
-: "${IMAGE_TAG:=v0.1-$(date -u +%Y%m%d)}"
+: "${DOCKERFILE:=Dockerfile}"
+# Distinct tag per image so the two cannot overwrite each other in ECR.
+: "${TAG_SUFFIX:=}"
+[ "${DOCKERFILE}" = "Dockerfile.quant" ] && TAG_SUFFIX="-quant"
+: "${IMAGE_TAG:=v0.1-$(date -u +%Y%m%d)${TAG_SUFFIX}}"
 
 REGISTRY="${AWS_ACCOUNT}.dkr.ecr.${QA_REGION}.amazonaws.com"
 IMAGE_URI="${REGISTRY}/${ECR_REPO}:${IMAGE_TAG}"
 
 APPLY=0
-[ "${1:-}" = "--apply" ] && APPLY=1
+for i in "$@"; do
+  case "$i" in
+    --apply) APPLY=1 ;;
+    --dockerfile=*) DOCKERFILE="${i#*=}" ;;
+  esac
+done
 
 cat <<EOF
 ======================================================================
@@ -35,6 +44,7 @@ cat <<EOF
 ======================================================================
 build host  : ${DEV_HOST}
 remote dir  : ${REMOTE_DIR}
+dockerfile  : ${DOCKERFILE}
 image uri   : ${IMAGE_URI}
 platform    : linux/amd64  (NATIVE on the dev desktop -- no emulation)
 EOF
@@ -136,7 +146,7 @@ aws ecr get-login-password --region ${QA_REGION} | \
   docker login --username AWS --password-stdin ${REGISTRY}
 
 echo '--- build (native amd64)'
-docker build --platform linux/amd64 -t ${IMAGE_URI} -f Dockerfile .
+docker build --platform linux/amd64 -t ${IMAGE_URI} -f ${DOCKERFILE} .
 
 echo '--- push'
 docker push ${IMAGE_URI}

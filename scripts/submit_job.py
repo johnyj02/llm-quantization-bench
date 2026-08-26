@@ -57,6 +57,10 @@ STAGES: dict[str, dict] = {
         "entry_point": "sm_quantize.py",
         "description": "GPTQ + AWQ at the normalised 512x2048 calibration budget",
         "max_run": 21600,
+        # DIFFERENT IMAGE. llmcompressor pins compressed-tensors==0.17.1 exactly
+        # and transformers<=5.10.1, which conflicts with vllm 0.26.0 -- one image
+        # cannot host both (EXECUTOR-TASKS.md 3.2's two-venv split, as two images).
+        "image_key": "quant",
     },
     "determinism": {
         "entry_point": "sm_determinism.py",
@@ -185,6 +189,13 @@ def build_config(stage: str, overrides: dict) -> dict:
     if token:
         config.setdefault("environment", {})["HF_TOKEN"] = token
 
+    # Per-stage image. The quantize stage needs llmcompressor, which cannot
+    # coexist with vllm in one image; everything else needs the serving image.
+    image_key = spec.get("image_key", "serve")
+    images = config.pop("images", {}) or {}
+    if image_key in images:
+        config["image_uri"] = images[image_key]
+
     config["hyperparameters"] = {"stage": stage, **overrides}
     return config
 
@@ -193,6 +204,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Submit a QuantArtifact job via SMInterface")
     parser.add_argument("--stage", required=True, choices=sorted(STAGES))
     parser.add_argument("--plan-only", action="store_true", help="print the job spec, submit nothing")
+    parser.add_argument(
+        "--smoke",
+        action="store_true",
+        help="20 items, short max_run, same code path. MANDATORY rehearsal before "
+             "any real submission: with one job slot and a queue, a broken 20-hour "
+             "job is the most expensive mistake available.",
+    )
     parser.add_argument("--wait", action="store_true", help="block and stream logs")
     parser.add_argument(
         "--i-have-confirmation",
@@ -201,8 +219,15 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    config = build_config(args.stage, {})
+    config = build_config(args.stage, {"smoke": 1} if args.smoke else {})
     spec = STAGES[args.stage]
+    if args.smoke:
+        # Short leash and a distinct name, so a smoke run can never be
+        # mistaken for the real thing in the job list or in S3.
+        config["max_run"] = min(config["max_run"], 1800)
+        config["job_name"] = config["job_name"] + "-smoke"
+        if config.get("use_spot_instances"):
+            config["max_wait"] = config["max_run"]
 
     print(f"stage        : {args.stage} — {spec['description']}")
     print(f"job name     : {config['job_name']}")
@@ -212,6 +237,9 @@ def main() -> int:
     print(f"role         : {config['role'].split('/')[-1]}")
     print(f"max_run      : {config['max_run']}s   volume: {config['volume_size']}GB   "
           f"spot: {config['use_spot_instances']}")
+    print(f"checkpoints  : {config.get('checkpoint_s3_uri') or 'NONE — a long job would lose everything on timeout'}")
+    if args.smoke:
+        print("mode         : SMOKE (20 items, short max_run, name suffixed -smoke)")
     print(f"output       : {config['output_path']}")
     print(f"code upload  : {config['output_path'].rsplit('/johnyj02',1)[0]}"
           f"/{config['job_name']}/source/sourcedir.tar.gz")

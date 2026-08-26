@@ -56,6 +56,22 @@ role: arn:aws:iam::654654594225:role/service-role/SageMaker-ExecutionRole-202402
 output_path: s3://sagemaker-us-east-1-654654594225/johnyj02/QA/v0.1/
 
 # ---------------------------------------------------------------------------
+# 🚨 CHECKPOINTING — the highest-value engineering item, per the planner.
+#
+# /opt/ml/model uploads ONLY AT THE END of a job. A timeout or preemption at
+# hour 15 of 20 therefore loses all 15 hours. checkpoint_s3_uri is different:
+# SageMaker syncs /opt/ml/checkpoints to S3 CONTINUOUSLY during the run, and
+# restores it into the container at start.
+#
+# So generations are written incrementally to /opt/ml/checkpoints, and every job
+# skips join keys already present there. With ONE concurrent job slot and an
+# unbounded per-job queue wait, losing a long job is the most expensive failure
+# available to us.
+# ---------------------------------------------------------------------------
+checkpoint_s3_uri: s3://sagemaker-us-east-1-654654594225/johnyj02/QA/v0.1/checkpoints/
+checkpoint_local_path: /opt/ml/checkpoints
+
+# ---------------------------------------------------------------------------
 # Container. framework: generic + a custom image.
 #
 # WHY NOT THE STOCK DLC: vLLM 0.26.0 pins torch to an EXACT version, and its
@@ -69,6 +85,14 @@ output_path: s3://sagemaker-us-east-1-654654594225/johnyj02/QA/v0.1/
 # batch-invariant Triton kernels which are JIT-compiled at RUNTIME. No compiler
 # means no determinism, which kills H8 and invalidates every delta.
 framework: generic
+
+# TWO images, because llmcompressor and vllm cannot coexist (3.2's two-venv split).
+#   serve : vllm 0.26.0 + torch 2.11.0 (cu130) -- generation, judging, determinism
+#   quant : llmcompressor 0.12.0.1 + torch 2.6.0 (cu128) -- the quantize stage only
+# submit_job.py selects per stage; image_uri below is the default (serve).
+images:
+  serve: 654654594225.dkr.ecr.us-east-1.amazonaws.com/johnyj02-qa:v0.1-20260826
+  quant: null        # TODO: build with Dockerfile.quant
 image_uri: 654654594225.dkr.ecr.us-east-1.amazonaws.com/johnyj02-qa:v0.1-20260826
 
 # ---------------------------------------------------------------------------

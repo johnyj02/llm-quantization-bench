@@ -1,0 +1,68 @@
+# Quantization image — SEPARATE from Dockerfile, and not by preference.
+#
+# `EXECUTOR-TASKS.md` §3.2 requires two environments because the dependency
+# conflict is hard and verified:
+#
+#   llmcompressor 0.12.0.1  pins compressed-tensors==0.17.1 EXACTLY
+#                           and transformers<=5.10.1
+#   vllm 0.26.0             wants transformers 5.16.x (what our serving image has)
+#
+# One image cannot satisfy both, and a pip resolver asked to try will either
+# downgrade transformers under vLLM or refuse. So: `Dockerfile` serves, this one
+# quantizes. The handoff between them is the weights on disk plus
+# `quant_config_hash`, which is exactly the clean interface we want anyway.
+#
+# NOTE this image needs NO vllm and NO CUDA 13. llmcompressor quantizes with
+# sequential layer onloading, so it uses ~1 GB VRAM; the real requirement is HOST
+# RAM (~16 GB), which is why ml.g6e.2xlarge's 64 GiB was chosen. torch here only
+# has to run the calibration forward passes.
+#
+# Build:  bash scripts/build_image_remote.sh --apply --dockerfile Dockerfile.quant
+
+FROM python:3.11-slim
+
+# Kept, not purged. Same reasoning as the serving image: anything that JIT-compiles
+# needs a compiler present at RUNTIME, and `gcc` alone lacks libc headers.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        binutils \
+        curl \
+        git \
+    && rm -rf /var/lib/apt/lists/*
+
+# torch from the CUDA-12.8 index. Deliberately 12.8 rather than 13: this image has
+# no vLLM, so nothing here needs a CUDA-13 runtime, and 12.8 is the more broadly
+# supported driver floor across instance types.
+RUN pip install --no-cache-dir \
+        torch==2.6.0 torchvision==0.21.0 \
+        --index-url https://download.pytorch.org/whl/cu128
+
+# llmcompressor for BOTH GPTQ and AWQ — one tool, one calibration code path, which
+# removes a confound rather than merely documenting one.
+#
+# NEVER add autoawq (downgrades transformers to 4.47.1 and wrecks the env) or
+# auto-gptq (GitHub-archived; its own README redirects here). sm_quantize.py
+# asserts their absence at runtime, and this build asserts it below.
+RUN pip install --no-cache-dir \
+        sagemaker-training \
+        llmcompressor==0.12.0.1 \
+        datasets>=3.0 \
+        boto3>=1.34 \
+        pyyaml>=6.0
+
+# Fail the BUILD rather than a queued job: verify the toolchain survived, the
+# exact pin held, and the forbidden packages are absent.
+RUN gcc --version >/dev/null 2>&1 || (echo "FATAL: no C compiler" && exit 1)
+RUN python -c "\
+import llmcompressor, compressed_tensors, transformers;\
+print('llmcompressor', llmcompressor.version.__version__ if hasattr(llmcompressor,'version') else '?');\
+print('compressed-tensors', compressed_tensors.__version__);\
+print('transformers', transformers.__version__);\
+assert compressed_tensors.__version__.startswith('0.17.1'), 'compressed-tensors pin broken'"
+RUN python -c "\
+import importlib.util as u;\
+bad = [p for p in ('autoawq','auto_gptq') if u.find_spec(p)];\
+assert not bad, f'forbidden packages present: {bad}'"
+
+ENTRYPOINT ["train"]
