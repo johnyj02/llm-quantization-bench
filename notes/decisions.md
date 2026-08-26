@@ -144,11 +144,25 @@ project initials only and is NEVER expanded**. With `testing` in front, the whol
 as quality-assurance testing — a human scanning resource names, job ids, tags or S3 keys should
 learn nothing about the research. Same rule for S3: `johnyj02/testing/QA/`.
 
-- instance `testing-QA-johnyj02-job-<YYYYMMDD>`
-- security group `testing-QA-johnyj02-sg`, key pair `testing-QA-johnyj02-key`
-- volume `testing-QA-johnyj02-vol-<YYYYMMDD>`
-- S3 `s3://sagemaker-us-east-1-654654594225/johnyj02/testing/QA/`
+**REVISED by the user later the same day to:** `johnyj02-QA-v<x.x>-<date>-<uuid>`
+
+- instance `johnyj02-QA-v0.1-20260826-33b4267e`
+- security group / key pair / volume: the same base plus `-sg` / `-key` / `-vol`
+- S3 `s3://sagemaker-us-east-1-654654594225/johnyj02/QA/v0.1/<date>-<uuid>/`
 - tags `Owner=johnyj02`, `Purpose=testing-QA`, `AutoStop=true`
+- `v<x.x>` is **derived from `src/quantartifact/__init__.py`** so the version cannot drift from
+  the package.
+
+⚠️ **The UUID is generated ONCE and persisted to `.box-run-id` (gitignored).** A fresh UUID per
+invocation would break `box_up.sh`'s idempotency: it finds an existing instance by name, so a
+rolling name means every re-run launches *another* $2.24/hr instance while the first keeps
+billing unnoticed. Two guards were added because of this:
+1. `box_up.sh` **also** looks up by `Owner`+`Purpose` tags, ignoring the name, and **refuses**
+   if a box exists under a different name — overridable only with an explicit
+   `ALLOW_SECOND_BOX=1`. This catches a lost `.box-run-id`, and also simply running on a later
+   date.
+2. `box_down.sh` looks up **by tag, not by name**, and stops *all* matches. A stop script that
+   silently finds nothing because the date rolled over is how an instance runs all weekend.
 
 **Do not expand "QA", and do not add a project/paper/venue/model/benchmark name to any name,
 tag, path or job id.** This supersedes the withdrawn `Project=QuantArtifact` / `quantartifact-*`

@@ -42,3 +42,7 @@ paper/*.blg
 paper/*.synctex.gz
 paper/*.fdb_latexmk
 paper/*.fls
+
+# Machine-local box identity. Keeps resource names STABLE across box_up.sh
+# re-runs so it stays idempotent; delete to start a genuinely new box.
+.box-run-id

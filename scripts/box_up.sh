@@ -118,11 +118,43 @@ else
   echo "  security group ${SECURITY_GROUP_NAME} already exists (${sg_id})"
 fi
 
-# instance
+# ---- instance, with TWO duplicate guards -----------------------------------
+#
+# Guard 1: exact name. Normal idempotent re-run.
 existing=$(aws_ ec2 describe-instances \
   --filters "Name=tag:Name,Values=${INSTANCE_NAME}" \
             "Name=instance-state-name,Values=pending,running,stopping,stopped" \
   --query 'Reservations[].Instances[].InstanceId' --output text)
+
+# Guard 2: by TAG, ignoring the name. The name embeds a date and a uuid, so a
+# lost .box-run-id (or simply running on a later date) would produce a DIFFERENT
+# name for the same logical box and guard 1 would miss it -- launching a second
+# $2.24/hr instance while the first kept billing unnoticed. This catches that.
+if [ -z "${existing}" ]; then
+  by_tag=$(aws_ ec2 describe-instances \
+    --filters "Name=tag:Owner,Values=${TAG_OWNER}" \
+              "Name=tag:Purpose,Values=${TAG_PURPOSE}" \
+              "Name=instance-state-name,Values=pending,running,stopping,stopped" \
+    --query 'Reservations[].Instances[].[InstanceId,Tags[?Key==`Name`].Value|[0],State.Name]' \
+    --output text)
+  if [ -n "${by_tag}" ]; then
+    echo
+    echo "REFUSING: an instance with Owner=${TAG_OWNER} Purpose=${TAG_PURPOSE} already exists,"
+    echo "under a DIFFERENT name than this run would create:"
+    echo "${by_tag}" | sed 's/^/    /'
+    echo
+    echo "This run would have created: ${INSTANCE_NAME}"
+    echo
+    echo "The name embeds a date and a uuid, so a new date or a lost .box-run-id"
+    echo "produces a new name for the same logical box. Launching would leave TWO"
+    echo "instances billing at \$2.24/hr."
+    echo
+    echo "Either reuse the existing one, or if you genuinely want a second box:"
+    echo "    ALLOW_SECOND_BOX=1 bash scripts/box_up.sh --apply"
+    [ "${ALLOW_SECOND_BOX:-0}" = "1" ] || exit 1
+    echo "ALLOW_SECOND_BOX=1 set — proceeding anyway."
+  fi
+fi
 
 if [ -n "${existing}" ]; then
   echo "  instance ${INSTANCE_NAME} already exists: ${existing}"
