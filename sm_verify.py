@@ -130,10 +130,31 @@ try:
     record("vllm_cuda_linkage", True,
            f"vllm {vllm.__version__} links {sorted(set(needed)) or '(none found)'}")
 
-    # The decisive check: can vLLM's compiled extension actually load?
-    code, out = sh(sys.executable, "-c", "import vllm._C; print('ok')")
+    # The decisive check: can vLLM's compiled extension actually LOAD against this
+    # host driver? That is the CUDA-13 question, and it is the one thing that
+    # would force an engine downgrade.
+    #
+    # ⚠️ Do NOT test `import vllm._C`. The first run of this stage failed on
+    # exactly that, wrongly: vLLM 0.26.0 does not expose the extension at that
+    # import path (its ops register through `torch.ops`), yet objdump had already
+    # read the .so's NEEDED entries successfully — so the file existed and linked
+    # fine. The check was wrong, not the box.
+    #
+    # Load the .so directly with ctypes instead. That is precisely "does this
+    # binary resolve against the installed CUDA runtime and driver", with no
+    # assumption about how vLLM chooses to surface it in Python.
+    probe = (
+        "import ctypes, glob, os, sys, vllm;"
+        "so = sorted(glob.glob(os.path.join(os.path.dirname(vllm.__file__), '_C*.so')));"
+        "assert so, 'no _C*.so found';"
+        "[ctypes.CDLL(s) for s in so];"
+        "import torch;"
+        "ops = [n for n in dir(torch.ops) if 'vllm' in n.lower() or n == '_C'];"
+        "print('loaded', [os.path.basename(s) for s in so], 'torch.ops:', ops)"
+    )
+    code, out = sh(sys.executable, "-c", probe)
     record("vllm_extension_loads", code == 0,
-           "vllm._C imported" if code == 0 else out[-300:],
+           out.strip()[-300:] if code == 0 else out[-400:],
            fatal=(code != 0))
 except Exception as exc:  # noqa: BLE001
     record("vllm_cuda_linkage", False, f"{type(exc).__name__}: {exc}", fatal=True)
@@ -181,11 +202,25 @@ for package, reason in (("autoawq", "downgrades transformers to 4.47.1"),
 
 print("=== 8. Pinned versions ===")
 versions = {}
+# Distribution names differ from import names, and some packages (math_verify)
+# expose no __version__ at all -- the first run printed "?" for it. Prefer
+# importlib.metadata, which reads the installed distribution.
+DIST_NAMES = {"lm_eval": "lm-eval", "math_verify": "math-verify"}
 for name in ("vllm", "torch", "transformers", "lm_eval", "math_verify", "bitsandbytes", "triton"):
     try:
-        versions[name] = getattr(__import__(name), "__version__", "?")
+        __import__(name)
     except Exception:  # noqa: BLE001
         versions[name] = "MISSING"
+        continue
+    version = getattr(sys.modules[name], "__version__", None)
+    if not version:
+        try:
+            from importlib.metadata import version as dist_version
+
+            version = dist_version(DIST_NAMES.get(name, name))
+        except Exception:  # noqa: BLE001
+            version = "?"
+    versions[name] = version
 report["versions"] = versions
 for name, version in versions.items():
     print(f"        {name:14} {version}")
