@@ -158,6 +158,36 @@ newest SageMaker PyTorch DLC is torch 2.10.0. And pip-installing over it does no
 **the CUDA runtime vLLM's own precompiled `.so` links is not controlled by the Python torch
 pin** — verified in MedLLMSafety with `objdump -p vllm/_C.abi3.so | grep NEEDED`.
 
+### 🔨 BUILD ON THE DEV DESKTOP, not this Mac
+
+```bash
+DEV=dev-dsk-johnyj02-2a-53853bae.us-west-2.amazon.com
+bash scripts/build_image_remote.sh              # plan only
+bash scripts/build_image_remote.sh --apply      # rsync repo, build, push to ECR
+```
+
+**Why the dev desktop and not the laptop:**
+
+| | Mac | dev desktop |
+|---|---|---|
+| arch | **arm64** → cross-build under emulation, very slow | **x86_64** → native `linux/amd64`, which is what SageMaker needs |
+| disk | ~24 GB free; torch+vllm images are multi-GB | ~1.5 TB free |
+| network | home uplink | Amazon network, much faster for the multi-GB pulls |
+
+⚠️ **SSH to the dev desktop needs a live Midway cert**, and it expires roughly daily
+(`Valid: from … to …`, ~20 h). When SSH returns `Permission denied (publickey)` that is
+almost always an expired cert, not a key problem. **The user must refresh it** — it is
+interactive:
+
+```bash
+ssh-keygen -L -f ~/.ssh/id_ecdsa-cert.pub | grep Valid   # check expiry
+mwinit -s                                                 # user runs this; interactive
+```
+
+Do **not** invoke the shell's `mwinit` alias — on this machine it pipes a hardcoded password.
+
+Local build (fallback only, if the dev desktop is unreachable):
+
 ```bash
 bash scripts/build_image.sh          # build + push to ECR, then sets image_uri
 ```
