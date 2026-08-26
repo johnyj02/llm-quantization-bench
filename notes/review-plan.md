@@ -3,7 +3,10 @@
 **Why this is a day-1 task and not a week-5 task:** it needs a third person's calendar in
 late September. That is external latency, and external latency does not compress.
 
-**Status:** ⏳ **not started — needs the user.** An agent cannot recruit a human reader.
+**Status:** ✅ **CLOSED 2026-08-26 — the user has readers ready.** (Decision D12.)
+
+Nothing further is required from me on this task. The draft goes out **Sep 30**, feedback due
+**Oct 4** (gate G8). Do not re-raise it.
 
 ---
 

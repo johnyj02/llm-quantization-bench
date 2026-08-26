@@ -116,3 +116,41 @@ Extends D10 with two specifics:
 **Consequence for the first ask:** the launch request I bring to the user must include the
 proposed instance name, tags, key-pair name, security-group name, volume name, and S3 prefix
 **as a reviewable list**, plus the account/region/profile in use — not as a fait accompli.
+
+## 2026-08-26
+
+### D12 — `B2` and `B4` are the user's, settled, and CLOSED. Do not re-raise.
+The user has confirmed both. I raised them repeatedly after they were answered; that stops.
+
+**The user is also factually right that neither is needed now**, and the plan's day-1 framing
+overstated the urgency:
+
+- **`B4` external readers — CLOSED, readers are ready.** The draft does not go out until
+  **Sep 30**, with feedback due **Oct 4**. The only reason `EXECUTOR-TASKS.md` §4 put it on day
+  1 was calendar latency for a third person's late-September time. That risk is retired.
+- **`B2` OpenReview — the real deadline is Oct 14**, within 48 h of submission, and it is
+  entirely post-experiment. Profile completeness is a prerequisite for registration, not a
+  precondition for any experimental work. The §4 day-1 framing was about the desk-reject
+  consequence, not about timing.
+
+**Still true and still non-negotiable:** missing the **Oct 14** reviewer registration is an
+**automatic desk reject**, and the obligation is per-author. It stays on the calendar in
+`notes/arr-obligations.md` §5 as a hard date. But it is the user's to execute and needs no
+further prompting from me.
+
+### D13 — Route questions to the PLANNER, not to the user
+> **"Any questions and issues you have ask the planner."**
+
+Default channel for anything I cannot settle from the repo: `./ask-planner`. Reserve the user
+for (a) job/compute approval under D10/D11, (b) decisions only they can make (money, people,
+accounts, credentials), and (c) reporting results.
+
+Cost discipline, from the tool's own instructions: **each call re-sends the planner's entire
+context, so batch related questions into one call** rather than firing several, and do not ask
+it anything answerable by reading the repo. Use `FORK=1 ./ask-planner` for throwaway or
+exploratory questions so its history stays clean.
+
+Treat its answers as **authoritative on planning decisions**. If one contradicts my read of the
+repo, say so and ask again — never quietly pick my own way. And per its own standing
+instruction, **verify claims it flags as unverified** (it was right on all three in R1–R4, but
+two of my own premises were wrong, so the check runs both ways).

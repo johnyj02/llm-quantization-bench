@@ -14,7 +14,7 @@ This is the running record. Evidence paths are repo-relative.
 | **G5** reference runs | Sep 13 | ⛔ blocked | — | needs GPU |
 | **G6** submittable draft | **Sep 20** | 🟡 mechanism ready | — | `make -C paper g6` checks all four criteria |
 | G7 results frozen | Sep 25 | — | — | |
-| G8 external review | Oct 4 | ⛔ needs `B4` | — | two readers not yet asked |
+| G8 external review | Oct 4 | 🟡 on track | — | `B4` closed — readers ready (D12); draft due Sep 30 |
 | G9 submitted | Oct 10 | — | — | |
 
 ---
