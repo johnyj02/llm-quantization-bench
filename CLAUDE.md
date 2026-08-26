@@ -128,6 +128,33 @@ aws sagemaker list-training-jobs --profile qa-gpu --region us-west-2 \
 the whole reason for D14: `g6e.2xlarge` was unavailable in **10 AZs across three regions**, so
 EC2 could not make progress at all.
 
+### 🚨 CAPACITY queues. QUOTA does NOT. Only ONE job may exist at a time.
+
+These are two different limits and only the first one waits:
+
+| | behaviour |
+|---|---|
+| **capacity** (no free GPU right now) | job sits in `Pending` — *"Training job waiting for capacity"* — and starts when one frees up. This is D14's whole benefit. |
+| **quota** (`ml.g6e.2xlarge for training job usage` = 1) | **rejected instantly** at `CreateTrainingJob` with `ResourceLimitExceeded: … current utilization of 1 Instances`. No queue, no retry. |
+
+**A `Pending` job consumes the quota slot.** So with a limit of 1 you cannot stack a second job
+behind the first — the submission is refused outright. Submit one, wait for it to reach a
+terminal state, then submit the next.
+
+⚠️ **`stop-training-job` does not free the slot immediately.** The job passes through `Stopping`
+(~45 s observed) still holding the quota. Poll for `Stopped` before resubmitting, or the next
+submit fails with the same `ResourceLimitExceeded`.
+
+```bash
+# Is our slot actually free? (checks the specific job, cheap)
+aws sagemaker describe-training-job --profile qa-gpu --region us-east-1 \
+  --training-job-name <name> --query '[TrainingJobStatus,SecondaryStatus]' --output text
+```
+
+⚠️ Do **not** poll with `list-training-jobs` in a tight loop — it throttles
+(`ThrottlingException: Rate exceeded`) and, with `NameContains`, paginates the whole shared
+account history without returning. Use `describe-training-job` on the exact name, ≥60 s apart.
+
 ```bash
 # Inspect at zero cost — submits nothing
 python scripts/submit_job.py --stage verify --plan-only
