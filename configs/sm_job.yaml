@@ -92,7 +92,7 @@ framework: generic
 # submit_job.py selects per stage; image_uri below is the default (serve).
 images:
   serve: 654654594225.dkr.ecr.us-east-1.amazonaws.com/johnyj02-qa:v0.1-20260826
-  quant: null        # TODO: build with Dockerfile.quant
+  quant: 654654594225.dkr.ecr.us-east-1.amazonaws.com/johnyj02-qa:v0.1-20260826-quant
 image_uri: 654654594225.dkr.ecr.us-east-1.amazonaws.com/johnyj02-qa:v0.1-20260826
 
 # ---------------------------------------------------------------------------

@@ -22,13 +22,6 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 : "${QA_REGION:=us-east-1}"
 : "${ECR_REPO:=johnyj02-qa}"
 : "${DOCKERFILE:=Dockerfile}"
-# Distinct tag per image so the two cannot overwrite each other in ECR.
-: "${TAG_SUFFIX:=}"
-[ "${DOCKERFILE}" = "Dockerfile.quant" ] && TAG_SUFFIX="-quant"
-: "${IMAGE_TAG:=v0.1-$(date -u +%Y%m%d)${TAG_SUFFIX}}"
-
-REGISTRY="${AWS_ACCOUNT}.dkr.ecr.${QA_REGION}.amazonaws.com"
-IMAGE_URI="${REGISTRY}/${ECR_REPO}:${IMAGE_TAG}"
 
 APPLY=0
 for i in "$@"; do
@@ -37,6 +30,19 @@ for i in "$@"; do
     --dockerfile=*) DOCKERFILE="${i#*=}" ;;
   esac
 done
+
+# ⚠️ IMAGE_TAG is derived AFTER argument parsing, and that ordering is the whole
+# point. An earlier version computed it before parsing --dockerfile, so TAG_SUFFIX
+# was always empty and a `--dockerfile=Dockerfile.quant` build was tagged with the
+# SERVE tag -- silently overwriting the serving image in ECR. Recovered by
+# re-tagging from the old digest, but only because ECR keeps the untagged manifest.
+: "${TAG_SUFFIX:=}"
+[ "${DOCKERFILE}" = "Dockerfile.quant" ] && TAG_SUFFIX="-quant"
+: "${IMAGE_TAG:=v0.1-$(date -u +%Y%m%d)${TAG_SUFFIX}}"
+
+# Derived from IMAGE_TAG, so it must come after it.
+REGISTRY="${AWS_ACCOUNT}.dkr.ecr.${QA_REGION}.amazonaws.com"
+IMAGE_URI="${REGISTRY}/${ECR_REPO}:${IMAGE_TAG}"
 
 cat <<EOF
 ======================================================================
@@ -151,6 +157,33 @@ docker build --platform linux/amd64 -t ${IMAGE_URI} -f ${DOCKERFILE} .
 echo '--- push'
 docker push ${IMAGE_URI}
 "
+
+# The ssh block above runs under `set -euo pipefail`, so a failed docker build
+# propagates -- but only if nothing swallows it. Assert the image really exists in
+# ECR before claiming success and rewriting the config.
+# Verify the tag really landed. Do NOT swallow stderr: an expired local token
+# made an earlier version of this check report "BUILD DID NOT PRODUCE ..." for a
+# build that had in fact succeeded, which is a far more confusing failure than the
+# credential error it was hiding.
+verify_out=$(aws --profile "${AWS_PROFILE}" --region "${QA_REGION}" ecr describe-images \
+  --repository-name "${ECR_REPO}" --image-ids imageTag="${IMAGE_TAG}" 2>&1) || {
+  case "${verify_out}" in
+    *ExpiredToken*|*InvalidClientTokenId*)
+      echo
+      echo "Cannot verify the push: LOCAL credentials expired (the build itself may"
+      echo "well have succeeded). Refresh and re-check:"
+      echo "  ada credentials update --provider conduit --account ${AWS_ACCOUNT} \\"
+      echo "      --role IibsAdminAccess-DO-NOT-DELETE --profile ${AWS_PROFILE} --once"
+      echo "  aws --profile ${AWS_PROFILE} --region ${QA_REGION} ecr describe-images \\"
+      echo "      --repository-name ${ECR_REPO}"
+      exit 2 ;;
+    *)
+      echo
+      echo "BUILD DID NOT PRODUCE ${IMAGE_TAG} in ECR:"
+      echo "${verify_out}" | tail -3
+      exit 1 ;;
+  esac
+}
 
 echo
 echo "pushed: ${IMAGE_URI}"

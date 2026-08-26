@@ -34,8 +34,16 @@ RUN apt-get update \
 # torch from the CUDA-12.8 index. Deliberately 12.8 rather than 13: this image has
 # no vLLM, so nothing here needs a CUDA-13 runtime, and 12.8 is the more broadly
 # supported driver floor across instance types.
+#
+# ⚠️ torch 2.10.0, NOT 2.6.0. An earlier draft copied 2.6.0 from
+# MedLLMSafety/Dockerfile and the build failed twice over:
+#   - 2.6.0 is no longer published on the cu128 index (it now starts at 2.7.0)
+#   - llmcompressor 0.12.0.1 requires torch>=2.10.0,<=2.12.0 (its own
+#     requires_dist), so 2.6.0 was never compatible regardless of availability
+# 2.10.0 is in range, on the index, and is the version the current SageMaker
+# PyTorch DLC ships, so it is the best-exercised choice in that window.
 RUN pip install --no-cache-dir \
-        torch==2.6.0 torchvision==0.21.0 \
+        torch==2.10.0 torchvision==0.25.0 \
         --index-url https://download.pytorch.org/whl/cu128
 
 # llmcompressor for BOTH GPTQ and AWQ — one tool, one calibration code path, which
@@ -44,22 +52,32 @@ RUN pip install --no-cache-dir \
 # NEVER add autoawq (downgrades transformers to 4.47.1 and wrecks the env) or
 # auto-gptq (GitHub-archived; its own README redirects here). sm_quantize.py
 # asserts their absence at runtime, and this build asserts it below.
+# transformers/accelerate/datasets are left to pip: llmcompressor constrains them
+# already (transformers<=5.10.1,>=5.9.0; datasets<=5.0.0,>=4.8.4;
+# accelerate<=1.13.0,>=1.6.0) and pinning them again here only creates a second
+# place for the constraint to drift out of sync.
 RUN pip install --no-cache-dir \
         sagemaker-training \
         llmcompressor==0.12.0.1 \
-        datasets>=3.0 \
         boto3>=1.34 \
         pyyaml>=6.0
 
 # Fail the BUILD rather than a queued job: verify the toolchain survived, the
 # exact pin held, and the forbidden packages are absent.
 RUN gcc --version >/dev/null 2>&1 || (echo "FATAL: no C compiler" && exit 1)
+# Version checks go through importlib.metadata, NOT module attributes.
+# `llmcompressor.version` is a STRING, not a module, so
+# `llmcompressor.version.__version__` raises AttributeError -- that failed a build.
+# Distribution metadata is the reliable source and works regardless of whether a
+# package chooses to expose __version__ at all.
 RUN python -c "\
-import llmcompressor, compressed_tensors, transformers;\
-print('llmcompressor', llmcompressor.version.__version__ if hasattr(llmcompressor,'version') else '?');\
-print('compressed-tensors', compressed_tensors.__version__);\
-print('transformers', transformers.__version__);\
-assert compressed_tensors.__version__.startswith('0.17.1'), 'compressed-tensors pin broken'"
+from importlib.metadata import version;\
+import llmcompressor, compressed_tensors, transformers, torch;\
+v = {d: version(d) for d in ('llmcompressor','compressed-tensors','transformers','torch')};\
+print(v);\
+assert v['compressed-tensors'] == '0.17.1', f'compressed-tensors pin broken: {v}';\
+assert v['llmcompressor'].startswith('0.12.0'), f'llmcompressor pin broken: {v}';\
+assert torch.__version__.startswith('2.10.'), f'torch pin broken: {torch.__version__}'"
 RUN python -c "\
 import importlib.util as u;\
 bad = [p for p in ('autoawq','auto_gptq') if u.find_spec(p)];\
