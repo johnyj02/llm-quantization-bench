@@ -175,35 +175,127 @@ generation exists, and report the residual precision effect that survives it.
 \subsection{Experimental design}
 \label{sec:design}
 % 3 models x 5 precisions x tasks; one-factor-at-a-time from a fixed
-% reference condition. State the Llama-3.1-8B access status and any
-% substitution EITHER WAY.
+% reference condition. Llama-3.1-8B access confirmed 2026-08-23, so the
+% armed substitution to Qwen2.5-7B is VOID and is not mentioned as live.
+We evaluate three instruction-tuned models spanning a 3--8B size gradient:
+Qwen2.5-3B-Instruct, Phi-3.5-mini-instruct, and Llama-3.1-8B-Instruct. Each is
+pinned by commit SHA rather than tag, since tags move and reproducibility holds
+only within identical versions.
+
+Five precision arms form a dose--response rather than a two-point comparison:
+\texttt{bf16}, GPTQ-8bit, GPTQ-4bit, AWQ-4bit, and bitsandbytes NF4. A monotone
+bf16 $\rightarrow$ 8-bit $\rightarrow$ 4-bit trend is a substantially stronger
+internal-validity argument than a single contrast, because a protocol artifact
+has no reason to track bit-width monotonically.
+
+All manipulations are one-factor-at-a-time from a single fixed reference
+condition, so every reported effect is attributable to the one factor varied.
+NF4 is included in the reference condition but excluded from the token-budget
+sweep, and we state the reason rather than the exclusion alone: NF4 has no CUDA
+kernels in our serving engine, and it is quantized \emph{in flight} at load
+rather than loaded from a pre-made checkpoint. That is a backend difference
+layered on the bit-width difference, which we name explicitly rather than absorb.
 
 \subsection{Quantization and calibration}
 \label{sec:quant}
-% THE most likely reviewer attack surface. State that GPTQ and AWQ are
-% normalised to ONE calibration budget (512 samples @ 2048 seqlen, one pinned
-% set, one pinned seed) because llmcompressor's own examples differ by 8x
-% between the two methods, which would make the GPTQ-vs-AWQ delta
-% uninterpretable. Self-quantized primary; vendor checkpoints are a
-% documented cross-check only (desc_act confound).
+% THE most likely reviewer attack surface.
+This is the most likely attack surface on the paper, so we state it in full.
+Both GPTQ and AWQ are produced by one tool, through one calibration code path,
+at \emph{one} normalised budget: 512 sequences of at most 2048 tokens drawn from
+a single pinned shuffle of \texttt{ultrachat\_200k}, identical for every arm,
+every bit-width, and every model. We report the realised token count rather than
+the product of those two numbers, since sequences shorter than the cap
+contribute their own length.
+
+Normalisation is necessary because the reference implementation's own examples
+differ by \textbf{8$\times$} in calibration budget between the two methods
+(GPTQ at 512$\times$2048 symmetric; AWQ at 256$\times$512 asymmetric). Accepting
+those defaults would mean a GPTQ-versus-AWQ difference confounded with an
+8$\times$ calibration difference \emph{and} a symmetry difference. We therefore
+normalise AWQ to symmetric 4-bit weight-only quantization, which is a deliberate
+deviation from its published example, and we flag it as such.
+
+Group size is 128 and activation reordering is disabled for every GPTQ arm,
+matching the vendor's own released checkpoints. Disabling reordering is set
+explicitly rather than left to the library, whose default silently applies a
+static reordering. Every parameter above is hashed into a configuration digest
+carried on each generation record, so a reader can verify that no arm drifted.
+
+All arms are self-quantized with identical settings. Vendor checkpoints are used
+only as an external cross-check, never mixed into the main matrix, because a
+widely used third-party GPTQ checkpoint for one of our models enables activation
+reordering against the vendor's own setting --- exactly the kind of silent
+confound this design exists to exclude.
 
 \subsection{The scoring ladder}
 \label{sec:ladder}
-% strict -> permissive -> math-verify -> judge, all applied to every stored
-% generation, zero extra generation. THE HEADLINE IS RUNG 1 VS RUNG 2 --
-% deterministic, auditable, judge-independent. That is what makes judge
-% validation non-blocking.
+Every generation is stored once and scored many times. We apply a ladder of
+extractors to the \emph{same} stored text, so the entire ladder costs zero
+additional generation and every rung sees byte-identical inputs:
+
+\begin{enumerate}\itemsep0pt
+  \item \textbf{strict} --- the evaluation harness's canonical regular
+    expression, used verbatim.
+  \item \textbf{strict-last} --- the same expression selecting the
+    \emph{last} match instead of the first, which separates answer
+    \emph{position} from extraction \emph{strictness}.
+  \item \textbf{permissive} --- the harness's flexible extractor, with its rules
+    enumerated in the pre-registration.
+  \item \textbf{symbolic} --- equivalence checking rather than string matching.
+  \item \textbf{judge} --- a trained answer verifier \citep{chen2025xverify}.
+\end{enumerate}
+
+\textbf{The headline contrast is rung 1 versus rung 2.} Both are deterministic,
+auditable, and judge-independent, which is what makes judge validation a
+robustness check rather than a load-bearing dependency: if the judge fails its
+agreement gate, the paper's main claim is unaffected. Rung 1b exists because a
+harness that takes the first match will score a model that restates its answer
+differently from one that does not, independent of correctness.
 
 \subsection{Compliance, competence, and truncation}
 \label{sec:decomp}
-% The 2x2. Compliance is a DEPENDENT VARIABLE IN ITS OWN RIGHT.
+We decompose the measured strict delta into three additive components: a
+\emph{competence} component (the model does not know the answer), a
+\emph{compliance} component (it knows but does not emit the answer in the
+expected form), and a \emph{truncation} component (it would have emitted the
+answer but ran out of budget). Recovering the third requires two fields that
+cannot be reconstructed after the fact --- the engine's termination reason and
+the generated token count --- so both are recorded on every generation, and our
+writer refuses any record missing either.
+
+Compliance is treated as a dependent variable in its own right, not merely as a
+correction term. We also distinguish an answer being \emph{extractable} from the
+model having \emph{committed} to it: a fallback rule that returns the last number
+in a truncated trace has extracted something the model never asserted, and
+counting that as compliance would inflate the very component we are trying to
+measure.
 
 \subsection{Serving configuration and determinism}
 \label{sec:determinism}
-% One engine, one version, across every arm -- backend choice alone moves
-% scores up to 16.6pp (2605.19537) and explains ~39% of variance (2608.04714).
-% REPORT max_num_seqs (issue #51187), VLLM_BATCH_INVARIANT, TP=1,
-% enable_prefix_caching=False, GPU model, CUDA and driver versions.
+The serving configuration is frozen and identical across every arm: one engine,
+one pinned version, one set of decoding parameters, greedy decoding throughout.
+This is not incidental rigour. Backend choice alone moves benchmark scores by up
+to 16.6 points \citep{pape2026silent} and accounts for roughly 39\% of
+out-of-the-box variance \citep{masoudian2026sideeffect}, so a serving
+configuration that floated across arms would make precision effects
+unidentifiable regardless of sample size.
+
+Greedy decoding is not by itself sufficient for reproducibility, because
+inference engines batch requests and batched reductions are not
+order-invariant. We therefore enable batch-invariant kernels, run with tensor
+parallelism of one (batch invariance is broken above one), disable prefix
+caching (it changes greedy output and is explicitly outside the invariance
+guarantee, and it would otherwise help throughput considerably on our shared
+few-shot prefixes), and fix the maximum number of co-resident sequences to a
+value \emph{measured} rather than assumed: the largest setting that is bitwise
+reproducible across repeated identical runs for \emph{every} precision arm, which
+is a minimum over arms because a single shared value is required.
+
+We report that value, the per-arm bitwise disagreement rates behind it, the GPU
+model, and the CUDA and driver versions. Where a quantized arm is less
+reproducible than \texttt{bf16}, the difference is a noise floor on every
+contrast involving that arm, and we pre-commit to claiming no effect smaller
+than it.
 
 %---------------------------------------------------------------------------
 \section{Results}
