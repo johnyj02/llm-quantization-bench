@@ -107,6 +107,18 @@ environment:
   # a 4-GPU instance is where the TP>1 mistake happens, and this is the habit.
   CUDA_VISIBLE_DEVICES: "0"
   TOKENIZERS_PARALLELISM: "false"
+  # 🚨 PUT THE HF CACHE ON THE EBS VOLUME. `volume_size: 200` is mounted at
+  # /opt/ml; the container's ROOT filesystem is much smaller, and HF's default
+  # cache is ~/.cache/huggingface, which lives there. Job 1 pulls ~29 GB of base
+  # weights (6.2 + 7.6 + 15.1) plus the calibration dataset, and Llama-3.1-8B is
+  # the LAST model in config order -- so a full root filesystem would surface
+  # hours in, after the queue slot is spent. The quantize smoke only fetches the
+  # 6.2 GB Qwen and would never reveal it.
+  #
+  # Deliberately NOT under /opt/ml/model (uploaded as job output) or
+  # /opt/ml/checkpoints (synced to S3 continuously) -- either would ship 29 GB of
+  # unmodified upstream weights to our bucket on every run.
+  HF_HOME: "/opt/ml/hf-cache"
   # HF_TOKEN is injected by submit_job.py from the environment, never committed.
 
 # ---------------------------------------------------------------------------
