@@ -110,6 +110,62 @@ def job_name(stage: str) -> str:
     return name
 
 
+def unique_job_name(base: str, region: str, profile: str) -> str:
+    """Append ``-r<N>`` if ``base`` was already used. Requires live credentials.
+
+    ⚠️ **SageMaker training-job names must be unique for the lifetime of the
+    account**, and ours are deterministic: the uuid comes from ``.box-run-id`` and
+    is reused ON PURPOSE so a stage's jobs correlate across the study. So the
+    FIRST retry of any stage on the same day collides and is rejected at
+    ``CreateTrainingJob`` — which, with one queue slot, is a slot we waited for
+    and then wasted.
+
+    Regenerating the uuid instead would fix uniqueness and lose correlatability,
+    so we keep the base name and count attempts. ``-r2`` also reads as what it is
+    in the console, which a random suffix would not (D11: a human scanning
+    resources should be able to review these names).
+    """
+    import boto3  # noqa: PLC0415 - only needed on the submit path
+
+    client = boto3.Session(profile_name=profile, region_name=region).client("sagemaker")
+
+    from botocore.exceptions import ClientError  # noqa: PLC0415 - submit path only
+
+    def exists(name: str) -> bool:
+        # ⚠️ `describe_training_job` (an O(1) direct lookup), NOT
+        # `list_training_jobs(NameContains=…)`. The latter paginates the whole
+        # account history -- and this account is SHARED, so that history is long
+        # enough that the call did not return within two minutes.
+        #
+        # ⚠️ A missing job raises **ValidationException**, not ResourceNotFound.
+        # Catching `client.exceptions.ResourceNotFound` looks right and never
+        # fires. Match on the message, and re-raise anything else rather than
+        # reporting a permissions or throttling error as "name is free".
+        try:
+            client.describe_training_job(TrainingJobName=name)
+            return True
+        except ClientError as exc:
+            if "not found" in str(exc).lower():
+                return False
+            raise
+
+    if not exists(base):
+        return base
+    for attempt in range(2, 100):
+        candidate = f"{base}-r{attempt}"
+        # The 63-char bound is re-checked here because the suffix is appended
+        # AFTER job_name()'s check, so that guard cannot see it.
+        if len(candidate) > 63:
+            raise SystemExit(
+                f"retry suffix pushes the job name past SageMaker's 63-char limit "
+                f"({len(candidate)}): {candidate}"
+            )
+        if not exists(candidate):
+            print(f"job name     : {base} already used -> {candidate}")
+            return candidate
+    raise SystemExit(f"{base}: 99 attempts already used; something is wrong")
+
+
 def refresh_conduit_credentials(profile: str) -> None:
     """Refresh Conduit credentials, which SMInterface cannot do itself.
 
@@ -242,7 +298,8 @@ def main() -> int:
             )
 
     print(f"stage        : {args.stage} — {spec['description']}")
-    print(f"job name     : {config['job_name']}")
+    print(f"job name     : {config['job_name']}"
+          f"  (+ '-r<N>' if already used — names must be unique per account)")
     print(f"instance     : {config['instance_type']} x{config['instance_count']}  "
           f"(1 x L40S 48GB, SM89)")
     print(f"region       : {config['region']}   profile: {config['profile']}")
@@ -299,6 +356,12 @@ def main() -> int:
         sys.path.insert(0, str(SMINTERFACE_SRC))
 
     refresh_conduit_credentials(config["profile"])
+
+    # After the refresh, because it needs live credentials. Before submit, because
+    # a duplicate name is rejected at CreateTrainingJob.
+    config["job_name"] = unique_job_name(
+        config["job_name"], config["region"], config["profile"]
+    )
 
     # Lazy: SMInterface is only importable once its src is on sys.path above.
     from sm_interface.config import JobConfig  # noqa: PLC0415
