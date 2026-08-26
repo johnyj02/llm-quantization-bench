@@ -38,25 +38,22 @@ BILLABLE = frozenset({"quantize", "generate", "judge", "determinism", "prompts"}
 
 
 def _dispatch_generate(argv: list[str]) -> int:
-    from quantartifact.generate import (
-        main as generate_main,  # noqa: PLC0415 - lazy: keeps `qa --help` from importing torch/vllm
-    )
+    # Lazy on purpose: keeps `qa --help` from importing torch/vllm.
+    from quantartifact.generate import main as generate_main  # noqa: PLC0415
 
     return generate_main(argv)
 
 
 def _dispatch_quantize(argv: list[str]) -> int:
-    from quantartifact.quantize import (
-        main as quantize_main,  # noqa: PLC0415 - lazy: keeps `qa --help` from importing torch/vllm
-    )
+    # Lazy on purpose: keeps `qa --help` from importing torch/vllm.
+    from quantartifact.quantize import main as quantize_main  # noqa: PLC0415
 
     return quantize_main(argv)
 
 
 def _dispatch_determinism(argv: list[str]) -> int:
-    from quantartifact.determinism import (
-        main as determinism_main,  # noqa: PLC0415 - lazy: keeps `qa --help` from importing torch/vllm
-    )
+    # Lazy on purpose: keeps `qa --help` from importing torch/vllm.
+    from quantartifact.determinism import main as determinism_main  # noqa: PLC0415
 
     return determinism_main(argv)
 
