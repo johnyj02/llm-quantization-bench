@@ -39,7 +39,8 @@ use_spot_instances: false
 # ---------------------------------------------------------------------------
 # Account / credentials. Account is CONDUIT-managed (D11).
 # ---------------------------------------------------------------------------
-region: us-west-2
+# MUST match the ECR image's region -- SageMaker cannot pull cross-region.
+region: us-east-1
 profile: qa-gpu
 
 # ⚠️ MUST be false. SMInterface's session.refresh_credentials() hardcodes
@@ -52,7 +53,7 @@ auto_refresh_credentials: false
 # from SMInterface's own example, which targeted the previous account.
 role: arn:aws:iam::654654594225:role/AmazonSageMakerAdminIAMExecutionRole
 
-output_path: s3://sagemaker-us-west-2-654654594225/johnyj02/QA/v0.1/
+output_path: s3://sagemaker-us-east-1-654654594225/johnyj02/QA/v0.1/
 
 # ---------------------------------------------------------------------------
 # Container. framework: generic + a custom image.
@@ -68,7 +69,7 @@ output_path: s3://sagemaker-us-west-2-654654594225/johnyj02/QA/v0.1/
 # batch-invariant Triton kernels which are JIT-compiled at RUNTIME. No compiler
 # means no determinism, which kills H8 and invalidates every delta.
 framework: generic
-image_uri: null        # TODO: build + push to ECR before the first real job
+image_uri: 654654594225.dkr.ecr.us-east-1.amazonaws.com/johnyj02-qa:v0.1-20260826
 
 # ---------------------------------------------------------------------------
 # Environment — the frozen determinism contract (EXECUTOR-TASKS.md §3.3).

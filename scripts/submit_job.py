@@ -30,7 +30,7 @@ import os
 import subprocess
 import sys
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import yaml
@@ -88,7 +88,7 @@ def run_uuid() -> str:
 
 def job_name(stage: str) -> str:
     """D11 naming. "QA" is initials only and is never expanded."""
-    date = datetime.now(timezone.utc).strftime("%Y%m%d")
+    date = datetime.now(UTC).strftime("%Y%m%d")
     return f"johnyj02-QA-{qa_version()}-{date}-{run_uuid()}-{stage}"
 
 
@@ -203,8 +203,9 @@ def main() -> int:
 
     refresh_conduit_credentials(config["profile"])
 
-    from sm_interface.config import JobConfig
-    from sm_interface.runner import submit
+    # Lazy: SMInterface is only importable once its src is on sys.path above.
+    from sm_interface.config import JobConfig  # noqa: PLC0415
+    from sm_interface.runner import submit  # noqa: PLC0415
 
     handle = submit(JobConfig.from_dict(config), wait=args.wait)
     print(json.dumps({"job_name": config["job_name"], "submitted": True}, indent=2))

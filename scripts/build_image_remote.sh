@@ -144,10 +144,10 @@ docker push ${IMAGE_URI}
 
 echo
 echo "pushed: ${IMAGE_URI}"
-python3 - "$IMAGE_URI" <<'PY'
+python3 - "$IMAGE_URI" "$REPO_ROOT" <<'PY'
 import pathlib, re, sys
 uri = sys.argv[1]
-p = pathlib.Path(__file__).resolve().parents[1] / "configs" / "sm_job.yaml"
+p = pathlib.Path(sys.argv[2]) / "configs" / "sm_job.yaml"
 s = p.read_text()
 p.write_text(re.sub(r"^image_uri: .*$", f"image_uri: {uri}", s, flags=re.M))
 print(f"  configs/sm_job.yaml image_uri -> {uri}")
