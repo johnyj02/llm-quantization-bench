@@ -25,6 +25,7 @@ from quantartifact.scoring.extract import (
     answers_match,
     extract_permissive,
     extract_strict,
+    extract_strict_last,
     normalise_answer,
     score_generation,
 )
@@ -171,6 +172,55 @@ def test_self_correction_first_vs_last_match_on_phrase_arm():
     # answer is right, rung 1 scores it WRONG purely on match position.
     assert not answers_match(strict.value, "8", "gsm8k_cot")
     assert answers_match(permissive.value, "8", "gsm8k_cot")
+
+
+def test_rung1b_selects_the_last_match_and_decomposes_the_gap():
+    """Rung 1b (R1.4) separates POSITION selection from STRICTNESS.
+
+    1 -> 1b is the position effect; 1b -> 2 is the strictness effect. Without
+    1b, a self-correction gap would be misattributed to strictness, which is the
+    paper's headline contrast.
+    """
+    generation = "The answer is 6. Wait, I erred. The answer is 8."
+
+    first = extract_strict(generation, "gsm8k_cot")
+    last = extract_strict_last(generation, "gsm8k_cot")
+
+    # "6." keeps the period (a space follows, satisfying the trailing `.`),
+    # while "8" loses it (the string ends, so the capture backtracks to give the
+    # trailing `.` a character). Same greedy-plus-mandatory-lookahead mechanism
+    # as the BBH last-character defect, and harmless here only because we
+    # compare numerically.
+    assert first.value == "6.", "rung 1 takes the FIRST match"
+    assert last.value == "8", "rung 1b takes the LAST match"
+    assert not answers_match(first.value, "8", "gsm8k_cot")
+    assert answers_match(last.value, "8", "gsm8k_cot")
+
+
+def test_rung1b_is_identical_to_rung1_when_there_is_one_match():
+    generation = "So the answer is 42."
+    assert (
+        extract_strict(generation, "gsm8k_cot").value
+        == extract_strict_last(generation, "gsm8k_cot").value
+    )
+
+
+def test_rung1b_never_loses_what_rung1_found():
+    """Monotonicity along 1 -> 1b. Selecting a different match must not demote."""
+    # Rung 1 (first match) is correct here; rung 1b picks a later, wrong one.
+    generation = "The answer is 8. For contrast, the answer is 6."
+    results = score_generation(generation, "8", "gsm8k_cot", math_verify_available=False)
+    assert results["strict"]["correct"] is True
+    assert results["strict_last"]["correct"] is True, "1b must not lose rung 1's hit"
+
+
+def test_rung1b_is_a_noop_for_arc_chat():
+    """No regex in the harness filter means no match position to select."""
+    generation = " C"
+    assert (
+        extract_strict(generation, "arc_challenge_chat").value
+        == extract_strict_last(generation, "arc_challenge_chat").value
+    )
 
 
 def test_bbh_capitalization_failure_flag_not_set_when_phrase_absent_entirely():

@@ -15,7 +15,8 @@
 versioning:
   # Scorer outputs are keyed by (cell, scorer_name, scorer_version).
   # BUMP THE VERSION ON ANY CHANGE. NEVER OVERWRITE.
-  extract_version: "1.0.0"
+  # 1.1.0: added rung 1b (strict_last) per planner ruling R1.4.
+  extract_version: "1.1.0"
   compliance_version: "1.0.0"
   trace_scan_version: "1.0.0"
   judge_version: "1.0.0"
@@ -49,6 +50,32 @@ rungs:
         take: first
         ignore_case: true
         ignore_punctuation: true
+
+  # -------------------------------------------------------------------------
+  # RUNG 1b — strict regex, LAST match. Added per planner ruling R1.4.
+  #
+  # The confound it exists to remove: NEITHER strict regex sets `group_select`,
+  # so both take the FIRST match, while `flexible-extract` sets -1 and takes the
+  # LAST. Self-correction is common in CoT ("The answer is 6. Wait -- The answer
+  # is 8."), so part of any measured strict-vs-flexible gap is WHICH MATCH WAS
+  # SELECTED, not how strict the pattern was. Without 1b that position effect is
+  # silently attributed to strictness -- i.e. to the paper's headline contrast.
+  #
+  # The ladder therefore decomposes as:
+  #   1  -> 1b   position-selection effect
+  #   1b -> 2    strictness effect
+  #
+  # Pure re-scoring, ZERO extra generation. Rung 1 stays verbatim; this is an
+  # addition, never a replacement.
+  # -------------------------------------------------------------------------
+  strict_last:
+    order: 1.5
+    deterministic: true
+    same_regex_as: strict
+    group_select: -1
+    # arc_challenge_chat has no regex in its harness filter, so there is no
+    # match position to select and 1b is identical to 1 by construction.
+    noop_for: [arc_challenge_chat]
 
   # -------------------------------------------------------------------------
   # RUNG 2 — permissive. THE WORKHOLE. Deterministic, documented,

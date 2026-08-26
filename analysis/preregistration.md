@@ -50,9 +50,22 @@ the set of items for which **every** arm produced a committed answer.
   is itself the finding, and the competence contrast is reported as low-precision
   accordingly.
 
-Pre-committed interpretation rule: a small stratum does **not** license falling back to
-the full-sample competence contrast as primary. It licenses the Manski bounds of §1.3
-carrying more of the argument.
+**⚠️ `committed` and `TRUNC_BUDGET` are NOT mutually exclusive, and must not be made so.**
+A generation reading *"The answer is 42. Let me verify: 42 × 2 = "* is **both** committed and
+budget-truncated. Truncation **after** commitment does not bias the competence contrast — the
+model already told us its answer — so **those items belong in the stratum and are not
+filtered out.** Only truncation that prevents commitment is a threat. Getting this backwards
+would shrink the stratum for no inferential gain.
+
+**Pre-committed interpretation rules for stratum size:**
+- A small stratum does **not** license falling back to the full-sample competence contrast as
+  primary. It licenses the Manski bounds of §1.3 carrying more of the argument.
+- **Minimum viable stratum, pre-specified: 50%.** The stratum intersects over 5 precision
+  arms, so it shrinks multiplicatively — at 0.90 compliance per arm and independence it would
+  be 0.90⁵ = 0.59, and higher in practice since compliance is correlated across arms.
+  **If the stratum is <50% of items for a given (model, task), the stratum contrast is
+  EXPLORATORY for that cell and the Manski bounds become primary there.** Declared now so the
+  threshold cannot be chosen after seeing which cells would pass.
 
 ### 1.2 Compliance-transition matrix — reported as a finding, not conditioned away
 
@@ -102,7 +115,19 @@ Item-level logistic mixed-effects model, **fit separately per task**:
 correct ~ precision * scoring + model + (1 | item)
 ```
 
-- `precision` and `scoring` are fixed factors; `scoring` levels are the four rungs of §5.
+- `precision` and `scoring` are fixed factors; `scoring` levels are the **five** rungs of §5
+  (`strict`, `strict_last`, `permissive`, `math_verify`, `judge`).
+- **On GSM8K the model additionally carries `answer_marker` and its interactions**, since the
+  two variants are two levels of one factor on the same items:
+
+  ```
+  correct ~ precision * scoring * answer_marker + model + (1 | item)
+  ```
+
+  The pre-registered quantity of interest is the **three-way**
+  `precision × scoring × answer_marker` term, which is the direct test of the compliance
+  mechanism (§3's directional prediction). BBH and ARC have no `answer_marker` level and use
+  the two-factor form above.
 - **`model` is a FIXED effect.** With only 3 models, 3 levels cannot support a variance
   estimate. Item is the only random effect.
 - The `precision × scoring` interaction coefficient **is** the artifact estimate. Reported
@@ -142,6 +167,127 @@ correct ~ precision * scoring + model + (1 | item)
 
 ---
 
+## 3a. Item counts and the powered-ness of the format gradient
+
+**BBH per-subtask counts are NOT uniform, and the reason is power, not convenience.**
+
+Minimum detectable effects, paired binary, `SE(Δ) ≈ √(p_d/n)`, `MDE ≈ 2.8·SE` at 80% power:
+
+| n | MDE at `p_d`=0.10 | MDE at `p_d`=0.30 |
+|---|---|---|
+| 1319 (GSM8K full) | **2.4 pp** | 4.2 pp |
+| 900 (BBH pooled) | **2.9 pp** | 5.0 pp |
+| 600 (4 free-form pooled) | 3.6 pp | 6.2 pp |
+| 250 | 5.6 pp | 9.6 pp |
+| **150 (one subtask)** | **7.2 pp** | **12.6 pp** |
+
+The **format gradient** (free-form → boolean → multiple-choice) is a prediction of the
+hypothesis, not six arbitrary tasks. But its three levels are: 4 free-form subtasks **pooled**
+(n=600), `boolean_expressions` **alone**, and `logical_deduction_five_objects` **alone**. At
+n=150 the two single-subtask levels could not detect anything under ~7 pp — so two of the three
+gradient levels would have been unpowered.
+
+**Pre-registered counts:** the two single-subtask **contrast** levels are raised to the full
+**250** items available; the four pooled free-form subtasks stay at **150**. BBH is therefore
+**1,100 items per cell**, not 900. ≈ **+8,400 generations (~6%)**, targeted precisely at the
+underpowered levels. **No subtasks are added** — that would mean new configs and a wider
+multiplicity family.
+
+Pooled BBH (n=1,100) and full GSM8K (n=1,319) are adequately powered, and the paper's thesis
+rests on the **pooled cross-task comparison**, not on any single subtask.
+
+Note this is separate from **H7**, which is unaffected: H7(a) is arithmetic over *other
+papers'* eval sizes and does not depend on our counts at all.
+
+---
+
+## 3b. Chat template — FIXED, not a factor
+
+`--apply_chat_template` wraps the entire few-shot block into a single user turn, after which
+instruction-tuned models tend to revert to their own prose format rather than continuing the
+demonstrated pattern. This is the most likely explanation for arXiv:2601.14277 reporting F16
+GSM8K strict 24.64 vs flexible 77.63 **despite** 5-shot exemplars that demonstrate `####`.
+
+**Pre-registered decisions:**
+1. **Chat template ON, single-turn, for every arm.** Stated in the paper with the citation. It
+   is **not** a factor — making it one would roughly double the matrix for an axis that is a
+   confound to pin, not a novelty.
+2. **One off-template probe**, to quantify what we held fixed and to pre-empt *"why didn't your
+   strict scores collapse like theirs?"*: one model (`qwen2.5-3b`), {bf16, GPTQ-4bit}, `gsm8k`,
+   500 items, template **off**. ≈2,000 generations. Reported as a calibration measurement, not
+   as a factor level.
+3. ⚠️ **`add_bos_token=True` combined with a chat template produces a DOUBLE BOS.** Red Hat's
+   `add_bos_token` recommendation is for non-template use. A silent double BOS shifts scores
+   and would confound **every** arm simultaneously.
+   **Mandatory assertion, checked in gate G2:** log the final token IDs of one rendered prompt
+   per model and assert **exactly one leading BOS token**. A failure here blocks generation.
+
+---
+
+## 3c. H6 negative control — THREE arms, and why two were not enough
+
+`EXECUTOR-TASKS.md` §2.2 states *"the gap between the modes **is** the extraction cost,
+measured directly."* As specified it was not, because the two harness tasks differ in **prompt
+content and answer space**, not only in scoring mode: `arc_challenge` renders
+`"Question: …\nAnswer:"` and scores log-likelihood over answer **texts**, while
+`arc_challenge_chat` renders a full A/B/C/D instruction and scores a generated **letter**.
+
+*(An earlier draft claimed the confound was shot count. Verified false 2026-08-25:
+`arc_easy.yaml` contains no `num_fewshot` field at all, so **both** arms are 0-shot.)*
+
+**Pre-registered three-arm design, same items throughout:**
+
+| arm | prompt | scoring | role |
+|---|---|---|---|
+| **1** | chat prompt + `gen_prefix` | generate → extract | extraction surface **present** |
+| **2** | **byte-identical to arm 1** | log-likelihood over `{" A"," B"," C"," D"}` | extraction surface **absent** |
+| **3** | harness-verbatim `arc_challenge` | log-likelihood over answer texts | published-comparable baseline |
+
+> **The H6 contrast is arm 1 vs arm 2.** The prompt is byte-identical; the only thing that
+> varies is whether the answer is generated-then-extracted or read off a likelihood ranking.
+> **That is the extraction cost, measured directly** — which is what §2.2 claimed and did not
+> have.
+
+Arm 3 preserves comparability with published ARC-C numbers and is the G3 cross-validation
+target. **Arm 2 costs no generation** — four single-token scorings over an already-computed
+prefix.
+
+⚠️ **4-choice restriction.** The chat template hard-codes A–D
+(`{% if choices.text|length > 3 %}`), so a 5-choice ARC-Challenge item **silently loses its
+fifth choice**, and if the gold answer is the dropped one the item is unanswerable — wrong for
+every arm, which would surface as a spurious competence effect. **The 500-item sample is
+restricted to 4-choice items, and the exclusion count is reported.**
+
+---
+
+## 3d. H5 — everything except prompt text is held fixed
+
+As specified, H5 was **uninterpretable**. The harness's two BBH templates differ in far more
+than prompt text:
+
+| | `_cot_fewshot` (v4.0) | `_cot_zeroshot` (v3.0) |
+|---|---|---|
+| `max_gen_toks` | **1024** | **absent → default 256** |
+| `until` | `["</s>", "Q", "\n\n"]` | `["</s>", "Q:", "<\|im_end\|>"]` |
+| `filter_list` | `get-answer` regex | **none at all** |
+| metric | `ignore_case` commented out | `ignore_case: true` + 5 `regexes_to_ignore` |
+
+So **both** truncation mechanisms differed between the H5 arms — including a **4× generation
+budget gap**, and the generation budget is **H1's own independent variable**. H5 would have
+measured prompt format + budget + stop sequences + metric normalization simultaneously.
+
+**Pre-registered fix — held fixed across both prompt variants:**
+- `max_gen_toks` = **1024** (the few-shot value) for both.
+- `until` = the **few-shot** stop list for both.
+- All four rungs applied identically.
+- **Only the prompt text varies.**
+
+Recorded as one documented deviation: the zero-shot arm departs from harness-verbatim scoring
+**and** generation config, enumerated in the appendix. G2 is unaffected — it tests prompt
+rendering, not metric configuration.
+
+---
+
 ## 4. Truncation — definition, and a correction to the naive one
 
 **Pre-registered definition.** An generation is **budget-truncated** iff
@@ -172,6 +318,28 @@ manipulates), with `TRUNC_STOPSEQ` reported alongside because it is a second, di
 measurement artifact operating on the same mechanism, and because it does not respond to
 the budget sweep — which makes it a useful internal control.
 
+**`TRUNC_STOPSEQ` is a fourth component of the H4 decomposition, and it is tested for
+differentiality by precision.** Pre-registered here so the test is not a post-hoc addition:
+
+> `H4′: measured_strict_delta = competence_delta + compliance_delta + truncation_delta
+> + stopseq_delta`
+
+- **Pre-specified test:** is the `TRUNC_STOPSEQ` rate differential by precision (bf16 vs each
+  quantized arm), tested by exact McNemar on the paired item-level indicator?
+- **If yes**, quantized models emit bare `Q` / blank lines / premature periods more often, and
+  this is a genuine compliance-delta mechanism that belongs in the decomposition table with a
+  number and its own subsection.
+- **If no**, it is a static configuration defect affecting all arms equally, reported as a
+  measured rate and a limitation of the benchmark rather than as an effect of quantization.
+
+**Emphasis, pre-committed: H1 remains the lead regardless of how large `TRUNC_STOPSEQ` turns
+out to be.** H1 responds to a manipulation we control, has a dose-response curve across three
+budget levels, and resolves a published contradiction. `TRUNC_STOPSEQ` has no counterfactual
+and no dose-response — it is a bug report unless the differentiality test above is positive, in
+which case it is a measured effect but still not a hypothesis with a manipulation behind it.
+Recording this now prevents a large stop-sequence rate from tempting a restructure of the paper
+around whichever number came out biggest.
+
 Rationale for pre-registering this now: `EXECUTOR-PLAN.md` §2.3 and `EXECUTOR-TASKS.md`
 §7.2 define `TRUNCATED` as `finish_reason == "length"` alone. On BBH that definition would
 undercount truncation substantially. Fixing it after seeing results would be a
@@ -192,37 +360,70 @@ pure functions over stored artifacts (`scoring/extract.py`, no I/O).
   logged and counted; the count is a reported finding, not a discarded error.
 - `arc_challenge_chat`: `remove_whitespace` then `take_first`, with metric
   `ignore_case: true, ignore_punctuation: true`.
-**GSM8K task variants — RESOLVED 2026-08-23, both in scope.**
+**GSM8K — `answer_marker` is a two-level FACTOR, both levels confirmatory.**
 
-`notes/harness-configs.md` §3 establishes that "few-shot CoT", "harness-verbatim" and the
-`####` strict regex cannot all hold at once in v0.4.12. Both variants are therefore run,
-with pre-designated roles:
+Both harness GSM8K variants run on the same 1319 items. Neither is primary.
 
-- **`gsm8k_cot` (8-shot CoT) is the PRIMARY reference.** `EXECUTOR-TASKS.md` §2.2 locks the
-  reference prompt format as few-shot CoT, and **H1 — the paper's lead hypothesis — requires
-  chains of thought to truncate.** A non-CoT prompt cannot test it. Its rung-1 regex is
-  `The answer is (\-?[0-9\.\,]+).`
-- **`gsm8k` (5-shot, non-CoT) is a PRE-REGISTERED SECONDARY variant**, not a substitute
-  reference. Its rung-1 regex is `#### (\-?[0-9\.\,]+)`, which instruction-tuned models
-  essentially never emit. It is included for two stated reasons: it is the pairing
-  arXiv:2601.14277 measured (so **Anchor C** is reproducible), and it is the harness's
-  own high-artifact configuration.
-- **The comparison between the two is itself a pre-registered result**, not a robustness
-  check: the same models and items scored under two harness-sanctioned prompt/regex
-  pairings, one of which chat models can satisfy and one of which they cannot. It
-  demonstrates directly that **the measured artifact's magnitude is a property of the
-  harness configuration rather than of the model.**
-- **Pre-committed expectation, recorded before any data exists:** the rung-1-vs-rung-2 gap
-  should be **large on `gsm8k`** and **small or absent on `gsm8k_cot`**. If instead the gap
-  is large on `gsm8k_cot`, that is a surprise and will be reported as one.
-- The headline H3 omnibus contrast is computed on the **primary** reference (`gsm8k_cot`)
-  plus BBH and ARC; `gsm8k` enters as its own pre-specified contrast within the same
-  Holm–Bonferroni family. This is **not** a licence to report whichever variant gives the
-  larger effect — the primary is named here, before results.
+⚠️ **Correction of record.** An earlier draft designated `gsm8k_cot` primary on the grounds
+that `gsm8k` was non-CoT and so could not test H1. **That was verified false on 2026-08-25:**
+`gsm8k` has `fewshot_split: train` with `doc_to_target: "{{answer}}"`, and GSM8K train answers
+are multi-step worked solutions with `<<…>>` calculator annotations ending `#### N` (confirmed
+by fetching train rows). **Both variants are few-shot chain-of-thought, and `gsm8k`
+demonstrates `####` five times.** Neither does `EXECUTOR-PLAN.md` §1.1's *"instruction-tuned
+models essentially never emit `####`"* hold for this task as configured. The primary/secondary
+split is withdrawn; nothing was generated under it.
 
-Scope cost, recorded for honesty: +1,319 items × 15 cells ≈ **19,785 additional
-generations**, ~20% above the `EXECUTOR-TASKS.md` §2.2 locked matrix. Approved by the user
-2026-08-23.
+| | `gsm8k` | `gsm8k_cot` |
+|---|---|---|
+| `answer_marker` | **`hash`** | **`phrase`** |
+| shots | 5, sampled from `train` | 8, hardcoded in the YAML |
+| CoT in exemplars | yes | yes |
+| required marker | `#### N` — **arbitrary** | `The answer is N.` — **natural language** |
+
+The two arms hold items, gold, task and competence approximately constant and vary **only the
+naturalness of the required answer marker.** That is a near-clean experimental manipulation of
+**compliance difficulty** — the exact quantity the competence/compliance decomposition rests
+on — and it is the same design logic as the BBH format gradient, applied within one task.
+
+**Pre-registered directional prediction:**
+
+> `interaction(hash) > interaction(phrase) ≈ 0`
+
+i.e. the `precision × scoring` interaction is larger under an arbitrary marker than a natural
+one, and near zero under the natural one. **The difference between those two interactions is a
+three-way interaction that directly instantiates the compliance mechanism.** A near-null on
+`phrase` is therefore a **confirmed prediction**, not a disappointing primary result.
+
+Both levels enter the same Holm–Bonferroni family. **Because neither is designated primary,
+this is not a licence to report whichever level gives the larger effect** — the directional
+prediction above is what is being tested, and it is recorded before any data exists.
+
+`gsm8k` additionally makes **Anchor C** (arXiv:2601.14277) reproducible.
+
+Scope cost: +1,319 × 15 ≈ **19,785 generations**, ~20% above the `EXECUTOR-TASKS.md` §2.2
+matrix. Approved by the user 2026-08-23.
+
+**Rung 1b — `strict_last`.** The *same* strict regex with `group_select: -1`, i.e. the **last**
+match instead of the first.
+
+Added because rung 1 vs rung 2 confounds two distinct things. Neither strict regex sets
+`group_select`, so both take the **first** match, while `flexible-extract` sets `-1` and takes
+the **last**. Self-correction is common in chain-of-thought (*"The answer is 6. Wait — The
+answer is 8."*), so part of any measured strict-vs-permissive gap is **which candidate was
+selected**, not how strict the pattern was. Verified: on that string rung 1 returns `6.` and
+scores wrong, while rung 2 returns `8` and scores right — with no strictness involved.
+
+The ladder therefore decomposes as:
+
+| step | isolates |
+|---|---|
+| 1 → 1b | **position-selection** effect (first vs last match) |
+| 1b → 2 | **strictness** effect (pattern rigidity) |
+
+Pure re-scoring, zero extra generation. **Rung 1 remains verbatim** — 1b is an addition for
+decomposition, never a replacement, and the headline rung-1-vs-rung-2 contrast is still
+reported as such, now with its two components separated. For `arc_challenge_chat` rung 1b is
+identical to rung 1 by construction (no regex, so no match position to select).
 
 **Rung 2 — `permissive`.** Deterministic, documented, ordered. Applied in this order; the
 first rule that yields a candidate wins:
@@ -397,13 +598,22 @@ fixed before `A13` and reported in the paper: `engine` and version, `tensor_para
 `temperature=0`, `add_bos_token`, `max_model_len`, `max_num_seqs`, `dtype`, GPU model, CUDA
 and driver versions.
 
-`max_num_seqs` is set to the **largest value shown bitwise-reproducible across repeats by
-the `A7` audit on this hardware** (swept over {8, 16, 32, 64}), rather than to a value
-inherited from a third-party issue report. It is then **frozen and identical across all
-arms**. Both the selected value and the full frontier are reported. Choosing it by
-measurement rather than assumption is a throughput decision, not an analysis decision, and
-it is pre-registered here only so that it is on record as having been fixed before results
-existed.
+`max_num_seqs` is set by **measurement, not assumption**. §3.3's value of 8 comes from vLLM
+issue #51187 observed on *other* hardware; it is also our largest throughput cost, since it
+deliberately starves GPU concurrency.
+
+**Pre-registered selection rule:**
+- Swept over `{8, 16, 32, 64}` inside the `A7` determinism audit, which already runs 3
+  identical repeats per format, using the **same probe set throughout**.
+- The selected value is the **largest value that is bitwise-stable across all 3 repeats for
+  EVERY format** — i.e. a **minimum over formats**, because §3.3 requires one value identical
+  across all arms. A value that is stable for bf16 but not GPTQ is not eligible.
+- Then **frozen before `A13`** and identical across every arm thereafter.
+- **The full frontier table is reported in the paper** — largest bitwise-stable batch size per
+  quantization format. This is direct evidence for H8 at zero additional cost, and strictly
+  more informative than reporting one inherited number.
+- **If no value above 8 is stable, that is a finding, not a failed sweep**, and it is reported
+  as such.
 
 **H7 framing, pre-committed.** For each published degradation figure cited, compute the 95%
 CI implied by that paper's own eval size and state whether the reported delta clears it.
@@ -447,8 +657,13 @@ arguing around it.
 
 Anything not specified above. In particular, and labelled as exploratory in the paper if
 reported at all: any subgroup analysis not named here, any post-hoc task subsetting, any
-alternative parser rule added after the freeze, and any analysis of the `TRUNC_STOPSEQ`
-class beyond the descriptive rate reported under §4.
+alternative parser rule added after the freeze, any per-BBH-subtask contrast beyond the three
+pre-specified format-gradient levels of §3a, and the stratum competence contrast for any
+(model, task) cell whose stratum falls below the 50% threshold of §1.1.
+
+**Now confirmatory, and no longer exploratory** (both were added before any generations
+existed): the `TRUNC_STOPSEQ` differential-by-precision test of §4, and the `answer_marker`
+three-way interaction of §2.
 
 ---
 

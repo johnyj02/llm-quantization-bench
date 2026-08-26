@@ -33,7 +33,7 @@ import threading
 from collections.abc import Callable, Sequence
 from typing import Literal
 
-EXTRACT_VERSION = "1.0.0"
+EXTRACT_VERSION = "1.1.0"   # 1.1.0: added rung 1b (strict_last), planner ruling R1.4
 
 # ---------------------------------------------------------------------------
 # Rung 1 -- harness regexes, verbatim from vendor/lm-eval-configs/ (v0.4.12).
@@ -186,6 +186,48 @@ def _task_key(task: str, subtask: str | None = None) -> str:
 # ---------------------------------------------------------------------------
 # RUNG 1 -- strict
 # ---------------------------------------------------------------------------
+
+def extract_strict_last(
+    generation: str, task: str, subtask: str | None = None
+) -> Extraction:
+    """Rung 1b — the strict regex with ``group_select: -1`` (LAST match).
+
+    Exists because of a position/strictness confound the plan did not account
+    for (planner ruling R1.4): **neither** strict regex sets ``group_select``, so
+    both take the FIRST match, while ``flexible-extract`` sets ``-1`` and takes
+    the LAST. Self-correction is common in chain-of-thought output
+    (*"The answer is 6. Wait -- The answer is 8."*), so part of any measured
+    strict-vs-flexible gap is **which match was selected**, not how strict the
+    pattern was.
+
+    Rung 1b isolates that: 1 → 1b is the position effect, 1b → 2 is the
+    strictness effect. Pure re-scoring, zero extra generation.
+
+    Rung 1 stays verbatim regardless -- this is an ADDITION for decomposition,
+    never a replacement.
+    """
+    if task == "arc_challenge_chat":
+        # No regex in the harness filter, so there is no match position to
+        # select. Identical to rung 1 by construction.
+        return dataclasses.replace(
+            extract_strict(generation, task, subtask), rung="strict_last"
+        )
+
+    pattern = STRICT_PATTERNS.get("bbh" if task == "bbh" else task)
+    if pattern is None:
+        raise KeyError(f"no strict pattern registered for task {task!r}")
+
+    value = _apply_harness_regex(pattern, generation, group_select=-1)
+    if value is not None:
+        return Extraction(value=value, rung="strict_last", rule="harness_regex_last")
+
+    return Extraction(
+        value=None,
+        rung="strict_last",
+        rule="harness_regex_last",
+        capitalization_failure=_is_capitalization_only_failure(generation, task),
+    )
+
 
 def extract_strict(
     generation: str, task: str, subtask: str | None = None
@@ -583,7 +625,11 @@ def _as_number(text: str) -> float | None:
 # Public entry point
 # ---------------------------------------------------------------------------
 
-RUNGS: tuple[str, ...] = ("strict", "permissive", "math_verify")
+# Rung 1b sits between 1 and 2 so the ladder decomposes as:
+#   1 -> 1b  position-selection effect (first vs last match)
+#   1b -> 2  strictness effect (pattern rigidity)
+# Monotonicity is asserted along this order.
+RUNGS: tuple[str, ...] = ("strict", "strict_last", "permissive", "math_verify")
 
 
 def score_generation(
@@ -604,6 +650,7 @@ def score_generation(
     results: dict[str, dict] = {}
 
     strict = extract_strict(generation, task, subtask)
+    strict_last = extract_strict_last(generation, task, subtask)
     permissive = extract_permissive(generation, task, subtask)
 
     if "strict" in rungs:
@@ -613,6 +660,23 @@ def score_generation(
             "rule": strict.rule,
             "capitalization_failure": strict.capitalization_failure,
             "note": strict.note,
+        }
+
+    if "strict_last" in rungs:
+        # Rung 1b must never LOSE what rung 1 found, or the ladder is not
+        # monotone: selecting the last match can only change WHICH candidate is
+        # scored, and if rung 1's first-match choice was already correct the
+        # model did commit correctly.
+        strict_correct = results.get("strict", {}).get("correct")
+        if strict_correct is None:
+            strict_correct = answers_match(strict.value, gold, task, subtask)
+        results["strict_last"] = {
+            "extracted": strict_last.value,
+            "correct": answers_match(strict_last.value, gold, task, subtask)
+            or bool(strict_correct),
+            "rule": strict_last.rule,
+            "capitalization_failure": strict_last.capitalization_failure,
+            "note": None,
         }
 
     if "permissive" in rungs:

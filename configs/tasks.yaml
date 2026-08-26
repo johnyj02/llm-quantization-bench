@@ -32,9 +32,20 @@ budget_levels: ["1x", "2x", "4x"]
 tasks:
 
   gsm8k:
-    # 5-shot, NON-CoT. strict-match regex is `#### (...)`, which chat models
-    # essentially never emit. Required for Anchor C (arXiv:2601.14277).
-    # PRIMARY-vs-secondary status is an OPEN decision: notes/harness-configs.md §3.
+    # answer_marker = HASH level (planner ruling R1.1).
+    #
+    # ⚠️ CORRECTION, verified 2026-08-25: this task is NOT non-CoT. It has
+    # `fewshot_split: train` with `doc_to_target: "{{answer}}"`, and GSM8K train
+    # answers are multi-step worked solutions with <<...>> calculator
+    # annotations ending in "#### N". Confirmed by fetching train rows. So its
+    # 5 exemplars ARE chain-of-thought and demonstrate `####` five times.
+    # An earlier note here claiming otherwise was wrong; so is
+    # EXECUTOR-PLAN.md 2.1's "instruction-tuned models essentially never emit
+    # ####" as applied to THIS task.
+    #
+    # Its role: the ARBITRARY-marker level of the answer_marker factor, and the
+    # pairing arXiv:2601.14277 measured (so Anchor C is reproducible).
+    answer_marker: hash
     lm_eval_task: gsm8k
     dataset_path: openai/gsm8k
     dataset_name: main
@@ -58,9 +69,13 @@ tasks:
     answer_type: numeric
 
   gsm8k_cot:
+    # answer_marker = PHRASE level (planner ruling R1.1).
+    #
     # 8-shot CoT, exemplars HARDCODED in the YAML (sampler: first_n) so the
     # prompt is fully determined with no sampling seed. strict-match regex is
-    # `The answer is (...)`, which the exemplars explicitly demonstrate.
+    # `The answer is (...)`, a NATURAL-LANGUAGE marker the exemplars explicitly
+    # demonstrate -- so a well-behaved chat model can satisfy it.
+    answer_marker: phrase
     lm_eval_task: gsm8k_cot
     dataset_path: openai/gsm8k
     dataset_name: main
@@ -99,7 +114,15 @@ tasks:
     num_fewshot: 3
     fewshot_source: hardcoded_in_yaml
     doc_to_text: "Q: {{input}}\nA: Let's think step by step.\n"
-    n_items_per_subtask: 150
+    # Per-subtask counts, NOT a flat 150 (planner ruling R1.3). The format
+    # gradient's three levels are: 4 free-form subtasks POOLED (n=600), then
+    # boolean_expressions ALONE, then logical_deduction_five_objects ALONE.
+    # At n=150 a single-subtask level cannot detect anything under ~7.2pp
+    # (paired binary, 80% power, p_d=0.10), so two of the three gradient levels
+    # would be unpowered. The two single-subtask CONTRAST levels are therefore
+    # raised to the full 250 available; the four pooled free-form stay at 150.
+    # +8,400 generations (~6%), targeted precisely. Do NOT add subtasks.
+    n_items_default: 150
     subsample_seed: 20260823
     max_gen_toks:
       1x: 1024
@@ -108,25 +131,82 @@ tasks:
     until: ["</s>", "Q", "\n\n"]
     strict_regex: '(?<=the answer is )(.*)(?=.)'
     strict_regex_case_sensitive: true        # log every capitalization-variant failure
+    # ⚠️ VERIFIED DEFECT (2026-08-25): this regex is greedy with a MANDATORY
+    # trailing lookahead `(?=.)`, so it DROPS THE FINAL CHARACTER whenever the
+    # generation ends exactly at the answer:
+    #   "the answer is 42"   -> "4"
+    #   "So the answer is False" -> "Fals"
+    #   "the answer is (B)"  -> "(B"
+    # Correct only when trailing punctuation supplies the lookahead character.
+    # This fires in practice because `until` contains a bare "Q" and "\n\n",
+    # either of which can end the text right at the answer. Rung 1 stays
+    # VERBATIM -- we measure the defect, we do not patch it. Rung 2 recovers it,
+    # and the gap is the measured artifact. Tested in tests/test_extract.py.
+    strict_regex_drops_final_char: true
     subtasks:
       - name: word_sorting
         format_class: free_form
+        n_items: 150
+        gradient_role: pooled_free_form
       - name: dyck_languages
         format_class: free_form
+        n_items: 150
+        gradient_role: pooled_free_form
       - name: multistep_arithmetic_two
         format_class: free_form
         answer_type: numeric
+        n_items: 150
+        gradient_role: pooled_free_form
       - name: object_counting
         format_class: free_form
         answer_type: numeric
+        n_items: 150
+        gradient_role: pooled_free_form
       - name: boolean_expressions
         format_class: boolean
+        n_items: 250                        # RAISED per R1.3 -- single-subtask contrast level
+        gradient_role: contrast_level
       - name: logical_deduction_five_objects
         format_class: multiple_choice
+        n_items: 250                        # RAISED per R1.3 -- single-subtask contrast level
+        gradient_role: contrast_level
+
+  # -------------------------------------------------------------------------
+  # H6 NEGATIVE CONTROL — THREE arms, not two (planner ruling R4).
+  #
+  # EXECUTOR-TASKS.md 2.2 claimed "the gap between the modes IS the extraction
+  # cost, measured directly". It was not: the two harness tasks differ in PROMPT
+  # CONTENT and ANSWER SPACE, not just in scoring mode. arc_challenge is
+  # "Question: ...\nAnswer:" scored over answer TEXTS; arc_challenge_chat is a
+  # full A/B/C/D instruction scored on a generated LETTER.
+  #
+  # (An earlier note here claimed the confound was SHOT COUNT. That was wrong:
+  # arc_easy.yaml has no num_fewshot field at all, so BOTH arms are 0-shot.
+  # Verified 2026-08-25 -- grep returns 0 occurrences.)
+  #
+  # Arm 1 vs arm 2 is a BYTE-IDENTICAL-PROMPT contrast where the only thing
+  # varying is whether the answer is generated-then-extracted or read off a
+  # likelihood ranking. THAT is the extraction cost, measured directly.
+  # Arm 2 costs NO generation -- 4 single-token scorings on a computed prefix.
+  # -------------------------------------------------------------------------
+
+  arc_challenge_ll_matched:
+    # ARM 2. Byte-identical prompt to arm 1; log-likelihood over the four
+    # option letters. Extraction surface ABSENT.
+    arc_arm: 2
+    prompt_source: arc_challenge_chat        # MUST be byte-identical to arm 1
+    scoring_mode: loglikelihood
+    continuations: [" A", " B", " C", " D"]
+    n_items: 500
+    item_ids_shared_with: arc_challenge_chat
+    max_gen_toks: null                       # no generation at all
+    role: "extraction surface absent — the counterfactual for arm 1"
 
   arc_challenge:
-    # H6 NEGATIVE CONTROL, mode 1 of 2: log-likelihood scoring.
-    # Same 500 item IDs as arc_challenge_chat. G3 cross-validation target.
+    # ARM 3. Harness-verbatim log-likelihood over answer TEXTS. Kept for
+    # comparability with published ARC-C numbers, NOT as the H6 counterfactual.
+    # G3 cross-validation target (our acc/acc_norm within 0.5pp of lm-eval's).
+    arc_arm: 3
     lm_eval_task: arc_challenge
     dataset_path: allenai/ai2_arc
     dataset_name: ARC-Challenge
@@ -141,9 +221,10 @@ tasks:
     max_gen_toks: null                        # not a generative task
 
   arc_challenge_chat:
-    # H6 NEGATIVE CONTROL, mode 2 of 2: generative scoring, SAME 500 items.
-    # The gap between the two modes IS the extraction cost, measured directly.
-    # NOTE: num_fewshot is 0 BY DESIGN in the harness (llama-tagged task).
+    # ARM 1. Generative scoring: extraction surface PRESENT.
+    # num_fewshot is 0 BY DESIGN in the harness (llama-tagged task) -- as is
+    # arm 3, so the mode contrast is NOT confounded with shot count.
+    arc_arm: 1
     lm_eval_task: arc_challenge_chat
     dataset_path: allenai/ai2_arc
     dataset_name: ARC-Challenge
@@ -155,6 +236,14 @@ tasks:
     n_items: 500
     subsample_seed: 20260823
     item_ids_shared_with: arc_challenge       # MUST be the identical 500 IDs
+    # ⚠️ The chat template hard-codes A-D:
+    #   {% if choices.text|length > 3 %}\nD. {{choices.text[3]}}{% endif %}
+    # so a 5-choice ARC-C item SILENTLY LOSES its fifth choice, and if the gold
+    # IS the dropped choice the item is unanswerable -- guaranteed wrong for
+    # every arm, which would show up as a fake competence effect.
+    # RESTRICT the 500-item sample to 4-choice items and REPORT the exclusions.
+    restrict_to_n_choices: 4
+    report_choice_count_exclusions: true
     max_gen_toks:
       1x: 100
       2x: 200
@@ -176,6 +265,30 @@ tasks:
 # ---------------------------------------------------------------------------
 scoring_held_fixed_across_prompt_variants: true
 
+# ---------------------------------------------------------------------------
+# H5 — WIDENED per planner ruling R3. As originally specified H5 was
+# UNINTERPRETABLE, and the reason is worse than the metric-normalization issue
+# above. Comparing the two BBH templates:
+#
+#                     _cot_fewshot (v4.0)   _cot_zeroshot (v3.0)
+#   max_gen_toks      1024                  ABSENT -> default 256   <-- 4x GAP
+#   until             ["</s>","Q","\n\n"]   ["</s>","Q:","<|im_end|>"]
+#   filter_list       get-answer regex      NONE AT ALL
+#   metric            ignore_case off       ignore_case on + 5 regexes_to_ignore
+#
+# So BOTH truncation mechanisms differed between the H5 arms -- and the
+# generation budget is H1's OWN INDEPENDENT VARIABLE. H5 would have measured
+# prompt format + budget + stop sequences + metric normalization at once.
+#
+# FIX: hold everything except prompt text fixed across the two variants.
+# ---------------------------------------------------------------------------
+h5_held_fixed:
+  max_gen_toks_from: fewshot          # 1024 for BBH, not the zero-shot 256
+  until_from: fewshot                 # the few-shot stop list for both
+  rungs: all_four_identical
+  only_prompt_text_varies: true
+  documented_deviation: "zero-shot arm departs from harness-verbatim scoring AND generation config; enumerated in the appendix"
+
 prompt_variants:
   fewshot_cot:
     reference: true
@@ -184,11 +297,56 @@ prompt_variants:
     applies_to: [gsm8k_cot, bbh]              # H5 arm, 9 cells x 1400 items
 
 # ---------------------------------------------------------------------------
+# Chat template — FIXED, not a factor (planner ruling R1.2).
+#
+# arXiv:2601.14277 reports F16 GSM8K strict 24.64 vs flexible 77.63 DESPITE
+# 5-shot exemplars that demonstrate ####. The likely cause is
+# --apply_chat_template, which wraps the whole few-shot block into ONE user turn
+# and makes instruction-tuned models revert to their own prose format.
+#
+# We do NOT add chat_template as a factor -- that is another ~2x. We fix it ON,
+# single-turn, for every arm, state it with the citation, and run one small
+# probe with it OFF to quantify what we held fixed.
+# ---------------------------------------------------------------------------
+chat_template:
+  apply: true
+  mode: single_turn                   # entire few-shot block in one user turn
+  is_a_factor: false
+  cite: "arXiv:2601.14277"
+  # ⚠️ add_bos_token=true + a chat template = DOUBLE BOS. Red Hat's
+  # add_bos_token tip is for NON-template use. A silent double BOS shifts
+  # scores and would confound every arm.
+  # MANDATORY: log the final token IDs of one rendered prompt per model and
+  # ASSERT exactly one leading BOS. Gate G2 checks this.
+  assert_single_leading_bos: true
+  off_probe:
+    # Pre-empts "why didn't your strict scores collapse like theirs?"
+    enabled: true
+    model: qwen2.5-3b
+    precisions: [bf16, gptq-4bit]
+    task: gsm8k
+    n_items: 500
+    apply_chat_template: false
+    approx_generations: 2000
+
+# ---------------------------------------------------------------------------
 # Item counts per cell (EXECUTOR-TASKS.md §2.2)
 #   Reference:  gsm8k 1319 + bbh 900 + arc 500(x2 modes) = 2719 generative
 #   Sweep/0shot: gsm8k 500 + bbh 900                     = 1400
 # ---------------------------------------------------------------------------
+# Revised per planner ruling R6. Supersedes the EXECUTOR-TASKS.md 2.6 table.
+# A6's MEASURED throughput supersedes this in turn.
+#   99,000  2.6 baseline
+#  +19,785  D6 second GSM8K variant (answer_marker factor)
+#   +8,400  R1.3 BBH contrast subtasks 150 -> 250
+#   +2,000  R1.2 chat-template off-probe
+#       +0  R4 ARC arm 2 (log-likelihood, no generation)
+#       +0  R1.4 rung 1b and R3 stop-seq analysis (pure re-scoring)
+#  =======
+# ~129,000
 item_counts:
   reference_generative_per_cell: 2719
   sweep_per_cell: 1400
   zeroshot_per_cell: 1400
+  revised_total_estimate: 129000
+  supersedes: "EXECUTOR-TASKS.md 2.6 table (99,000)"
