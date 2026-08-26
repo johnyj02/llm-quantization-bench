@@ -329,3 +329,7 @@ G6 does not depend on Overleaf.
 | Pricing API without `regionCode` | Returned the SageMaker rate ($2.8035) as EC2's ($2.2421). |
 | `run-instances` without `--subnet-id` | Tries one AZ and gives up. Iterate all of them. |
 | Re-asking settled questions | `B2`/`B4` are the user's and closed (D12). Don't raise them. |
+| `GPTQModifier(group_size=…, desc_act=…)` | Neither is a keyword in llmcompressor 0.12.0.1 — pydantic `extra_forbidden`. `group_size` lives in the preset scheme; `desc_act` became `actorder`. `notes/compute.md` §10. |
+| Omitting `actorder` | **Silently gives static activation reordering.** `GPTQModifier.actorder` defaults to `Sentinel("static")`, which fills in `STATIC` whenever the scheme's is `None`. Only an explicit `actorder=None` means `desc_act: false`. llmcompressor's own example omits it, so the tutorial recipe is *not* what Anchor A compares against. |
+| Smoking one arm | GPTQ and AWQ use different llmcompressor APIs (`AWQModifier` is a *function* returning two modifiers). A green GPTQ smoke says nothing about AWQ. `--smoke` now runs one arm per method. |
+| Believing a `%` comment in a `.bib` | BibTeX has no top-level comment char: it ignores everything but `@`, so an `@` in a comment starts an entry. And inside an entry `%` is parsed as a field name. Both drop citations **silently** while the PDF still builds. |
