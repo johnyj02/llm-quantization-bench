@@ -52,16 +52,29 @@ specs, calibration = load_specs(CONFIGS / "quant.yaml")
 arms = [key for key, spec in specs.items() if not spec.in_flight]
 
 if SMOKE:
-    # One model, one arm, and a tiny calibration set — proves the whole code path
-    # (dataset fetch, llmcompressor recipe, weight write, checkpoint sync) in
-    # minutes rather than hours. With one job slot and a queue, this rehearsal is
-    # the cheapest insurance available.
+    # One model, a tiny calibration set, but ONE ARM PER METHOD — proves the whole
+    # code path (dataset fetch, llmcompressor recipe, weight write, checkpoint
+    # sync) in minutes rather than hours.
+    #
+    # ⚠️ BOTH gptq AND awq, and that is not padding. The first smoke ran gptq only
+    # and caught a real recipe bug; had it passed, AWQ would still have failed nine
+    # arms into the real job, because in llmcompressor 0.12.0.1 the two methods use
+    # genuinely different APIs — `AWQModifier` is not even a class, but a function
+    # returning two modifiers. A smoke that exercises one method does not clear the
+    # other. Cover every distinct code path or the rehearsal is theatre.
     import dataclasses
 
     models = {"qwen2.5-3b": models["qwen2.5-3b"]}
-    arms = ["gptq-4bit"]
+    seen_methods: set[str] = set()
+    smoke_arms = []
+    for key in arms:
+        if specs[key].method not in seen_methods:
+            seen_methods.add(specs[key].method)
+            smoke_arms.append(key)
+    arms = smoke_arms
     calibration = dataclasses.replace(calibration, num_samples=8, max_seq_length=256)
-    print("SMOKE MODE: 1 model x 1 arm, calibration 8 x 256")
+    print(f"SMOKE MODE: 1 model x {len(arms)} arm(s) covering methods "
+          f"{sorted(seen_methods)}, calibration 8 x 256")
     print("  ⚠️ smoke weights are NOT usable for the study — the calibration budget")
     print("     is deliberately wrong. They exist only to prove the path runs.")
 

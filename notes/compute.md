@@ -375,3 +375,81 @@ spending a queue slot on `verify` alone.
 `ml.g6e.2xlarge` quota of **1 is account-level**, so a concurrent job from them contends with
 ours for the only slot. Nothing was in flight when job 1 was submitted, but this is a real
 scheduling hazard and an argument for submitting promptly whenever the slot is free.
+
+---
+
+## 10. `llmcompressor` 0.12.0.1 recipe API — verified against the pinned tag
+
+The first `quantize` smoke run (196 billable seconds, ~$0.15) failed with:
+
+```
+ValidationError: 2 validation errors for GPTQModifier
+group_size   Extra inputs are not permitted [input_value=128]
+desc_act     Extra inputs are not permitted [input_value=False]
+```
+
+Everything before quantization worked: model fetch (434 weights), `ultrachat_200k` download,
+8-example calibration map. **This is the smoke run paying for itself** — the same failure in the
+real job would have cost a 3.5-hour queue-and-run cycle.
+
+All of the below was read from the source at tag **`0.12.0.1`** (and
+`compressed-tensors` **`0.17.1`**), not inferred.
+
+### Where `group_size` actually lives
+
+Neither modifier takes it. It is inside the preset scheme:
+
+| preset | resolved weight args |
+|---|---|
+| `W4A16` | `num_bits=4, type=int, strategy=group, group_size=128, symmetric=True` |
+| `W8A16` | `num_bits=8, type=int, strategy=group, group_size=128, symmetric=True` |
+| `W4A16_ASYM` | as `W4A16` but `symmetric=False` |
+
+Those happen to match `configs/quant.yaml` exactly — but the values we *hash* into
+`quant_config_hash` come from our YAML, so a future `compressed-tensors` could change what
+`W4A16` means and the weights would change while the hash did not. `assert_preset_matches_spec`
+therefore resolves the preset and **asserts** it equals the config.
+
+### 🚨 `desc_act` does not exist, and its replacement fails SILENTLY
+
+The nearest equivalent is `actorder`, and there are **two** of them with **different defaults**:
+
+| | default |
+|---|---|
+| `QuantizationArgs.actorder` (in the scheme) | `None` |
+| `GPTQModifier.actorder` (the modifier) | **`Sentinel("static")`** |
+
+`resolve_quantization_config` treats the sentinel as *deferential*: it injects
+`ActivationOrdering.STATIC` whenever the scheme's actorder is `None`. Since "explicitly `None`"
+and "never set" are indistinguishable to it, **omitting `actorder` yields static activation
+reordering** — which is neither `desc_act: false` nor the `desc_act: true` we reject.
+
+`llmcompressor`'s own W4A16 example omits `actorder`, so **the canonical tutorial recipe
+produces static-actorder weights.** Anchor A is a *blocking* gate comparing our accuracy against
+Qwen's official `desc_act: false` checkpoint, so inheriting that default would have quietly
+invalidated it with every test still green. `gptq_actorder()` therefore always passes `actorder`
+explicitly, and `None` is the only value meaning `desc_act: false`.
+
+Semantics: `ActivationOrdering.GROUP` (alias `"dynamic"`) is classic `desc_act=True` with a
+runtime group index; `STATIC` is an alias for `WEIGHT`, a statically applied permutation.
+
+Passing `actorder` on *both* the modifier and the scheme raises `ValueError` if they differ, so
+it is set in exactly one place: the modifier.
+
+### `AWQModifier` is not a class
+
+In 0.12.0.1 `llmcompressor.modifiers.awq.AWQModifier` is a **compatibility function** that splits
+its kwargs and returns `[AWQTransformModifier(...), QuantizationModifier(...)]`. It routes
+`config_groups`, `targets`, `ignore`, `scheme`, `kv_cache_scheme` and observer options to the
+quantization half. `build_recipe` therefore returns a **list** for every method, so callers never
+depend on which arm produced how many modifiers.
+
+Non-deprecated import paths at this tag: `llmcompressor.modifiers.gptq` (the
+`modifiers.quantization.gptq` path is a warning shim) and `llmcompressor.modifiers.transform.awq`.
+
+### Process correction: a smoke must cover every code path
+
+The first smoke ran `gptq-4bit` only. GPTQ and AWQ use genuinely different APIs here, so a
+green GPTQ smoke would have said nothing about AWQ — which would then have failed nine arms into
+the real job. `sm_quantize.py --smoke` now selects **one arm per method** and asserts it covers
+every offline method present in the config.

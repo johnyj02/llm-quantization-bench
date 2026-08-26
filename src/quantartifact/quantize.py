@@ -209,35 +209,151 @@ def assert_no_forbidden_packages() -> None:
 # The recipe
 # ---------------------------------------------------------------------------
 
-def build_recipe(spec: QuantSpec):
-    """Map a QuantSpec to an `llmcompressor` modifier.
+def assert_preset_matches_spec(spec: QuantSpec) -> dict[str, Any]:
+    """Resolve the named preset scheme and assert it equals what `quant.yaml` says.
+
+    🚨 **This function is why `group_size` is trustworthy.** In
+    `llmcompressor` 0.12.0.1 neither modifier accepts `group_size` as a keyword;
+    it lives inside the preset scheme (`W4A16` → `num_bits=4, type=int,
+    strategy=group, group_size=128, symmetric=True`). So the only honest options
+    are to hand-build `config_groups` or to use the preset **and check it**.
+
+    We check it. The study's central claim is a normalised quantization
+    configuration, and `quant_config_hash` hashes the values in `quant.yaml` — so
+    if a future `compressed-tensors` changed what `W4A16` means, the weights would
+    change while the hash did not. That is the one failure this project cannot
+    tolerate, and it is silent by construction. Hence an assertion rather than a
+    comment.
+
+    Returns the resolved weight args for the record.
+    """
+    from compressed_tensors.quantization import (  # noqa: PLC0415 - box-only dependency
+        preset_name_to_scheme,
+    )
+
+    scheme = preset_name_to_scheme(spec.scheme, ["Linear"])
+    weights = scheme.weights
+    if weights is None:
+        raise QuantConfigError(f"preset {spec.scheme!r} declares no weight quantization")
+
+    # `use_enum_values=True` on QuantizationScheme means these may be plain
+    # strings or enum members depending on construction path; compare on value.
+    strategy = getattr(weights.strategy, "value", weights.strategy)
+    resolved = {
+        "num_bits": weights.num_bits,
+        "group_size": weights.group_size,
+        "symmetric": bool(weights.symmetric),
+        "strategy": strategy,
+        "type": getattr(weights.type, "value", weights.type),
+    }
+
+    problems: list[str] = []
+    if weights.num_bits != spec.bits:
+        problems.append(f"num_bits {weights.num_bits} != configured bits {spec.bits}")
+    if weights.group_size != spec.group_size:
+        problems.append(
+            f"group_size {weights.group_size} != configured {spec.group_size}. "
+            f"The preset no longer means what configs/quant.yaml assumes, and "
+            f"quant_config_hash would NOT change to reflect it."
+        )
+    if bool(weights.symmetric) != spec.symmetric:
+        problems.append(
+            f"symmetric {weights.symmetric} != configured {spec.symmetric}. "
+            f"llmcompressor's AWQ example uses W4A16_ASYM; normalising both arms "
+            f"to symmetric is deliberate and must hold."
+        )
+    if strategy != "group":
+        problems.append(
+            f"strategy {strategy!r} is not 'group' — group_size would be ignored"
+        )
+
+    if problems:
+        raise QuantConfigError(
+            f"preset {spec.scheme!r} does not match configs/quant.yaml for "
+            f"{spec.key}:\n  - " + "\n  - ".join(problems)
+        )
+    return resolved
+
+
+def gptq_actorder(spec: QuantSpec):
+    """Translate `desc_act` into `llmcompressor`'s `actorder`, explicitly.
+
+    🚨 **`actorder` MUST be passed even when it is None.** `GPTQModifier.actorder`
+    defaults to `Sentinel("static")`, and `resolve_quantization_config` treats
+    that sentinel as *deferential*: it injects `ActivationOrdering.STATIC`
+    whenever the scheme's own actorder is `None`. Since "explicitly None" and
+    "never set" are indistinguishable there, **omitting this argument silently
+    yields static activation reordering** — which is neither `desc_act: false`
+    (what `quant.yaml` requires, matching Qwen's official checkpoint) nor the
+    `desc_act: true` we explicitly reject.
+
+    `llmcompressor`'s own W4A16 example omits `actorder`, so the canonical
+    tutorial recipe produces static-actorder weights. Anchor A is a **blocking**
+    gate comparing our self-quantized accuracy against Qwen's official
+    `desc_act: false` checkpoint, so inheriting that default would have quietly
+    invalidated it.
+
+    `ActivationOrdering.GROUP` is the classic `desc_act=True` (runtime group
+    index); `STATIC` is an alias for `WEIGHT`, a statically applied permutation.
+    Neither is what `desc_act: false` means, and only `None` is.
+    """
+    if not spec.desc_act:
+        return None
+
+    from compressed_tensors.quantization import (  # noqa: PLC0415 - box-only dependency
+        ActivationOrdering,
+    )
+
+    return ActivationOrdering.GROUP
+
+
+def build_recipe(spec: QuantSpec) -> list:
+    """Map a QuantSpec to a list of `llmcompressor` modifiers.
 
     Imported lazily and only here, so the module is importable (and testable) in
     an environment with no `llmcompressor` — which is every environment except
     ``venv-quant`` on the GPU box.
+
+    ⚠️ **Always a LIST, even for GPTQ, and not merely for tidiness.** In 0.12.0.1
+    `llmcompressor.modifiers.awq.AWQModifier` is not a class at all: it is a
+    compatibility function that splits its keyword arguments and returns
+    ``[AWQTransformModifier(...), QuantizationModifier(...)]``. Returning a
+    uniform list means the caller never has to know which arm produced how many
+    modifiers, and `oneshot(recipe=...)` accepts a list either way.
+
+    ⚠️ **No `group_size=` or `desc_act=` keyword on either modifier.** Passing
+    them raises pydantic `extra_forbidden` — which is how the smoke run caught
+    this before the real job. See `assert_preset_matches_spec` for where
+    `group_size` actually lives and `gptq_actorder` for `desc_act`.
     """
     if spec.method == "gptq":
-        from llmcompressor.modifiers.quantization import (  # noqa: PLC0415
-            GPTQModifier,
-        )
+        # Non-deprecated path. `llmcompressor.modifiers.quantization.gptq` is a
+        # shim that warns and re-exports from here.
+        from llmcompressor.modifiers.gptq import GPTQModifier  # noqa: PLC0415
 
-        return GPTQModifier(
-            targets="Linear",
-            scheme=spec.scheme,
-            ignore=["lm_head"],
-            group_size=spec.group_size,
-            desc_act=spec.desc_act,
-        )
+        assert_preset_matches_spec(spec)
+        return [
+            GPTQModifier(
+                targets="Linear",
+                scheme=spec.scheme,
+                ignore=["lm_head"],
+                actorder=gptq_actorder(spec),
+            )
+        ]
 
     if spec.method == "awq":
         from llmcompressor.modifiers.awq import AWQModifier  # noqa: PLC0415
 
-        return AWQModifier(
+        assert_preset_matches_spec(spec)
+        # `scheme` is routed to the QuantizationModifier half; the AWQ transform
+        # half infers its layer mappings from the model. Normalised to symmetric
+        # W4A16, NOT the example's W4A16_ASYM -- asserted just above.
+        result = AWQModifier(
             targets="Linear",
-            scheme=spec.scheme,   # normalised to W4A16, NOT the example's W4A16_ASYM
+            scheme=spec.scheme,
             ignore=["lm_head"],
-            group_size=spec.group_size,
         )
+        return list(result) if isinstance(result, (list, tuple)) else [result]
 
     if spec.method == "bitsandbytes":
         raise QuantConfigError(
