@@ -1,70 +1,388 @@
-% Use this file for citations not found in the ACL Anthology (contained in "anthology.bib").
+% Bibliography for QuantArtifact.
+%
+% PROVENANCE: every entry below was fetched from the arXiv API (or the ACL
+% Anthology) rather than written from memory, on 2026-08-26. Titles, author
+% lists and venues are verbatim. This matters more than usual here: task `C1`
+% turns on differentiating precisely against these papers, and a
+% mischaracterised neighbour is the failure mode that gets the paper rejected.
+%
+% Where a paper is preprint-only with no venue, that is recorded honestly rather
+% than dressed up -- `EXECUTOR-TASKS.md` C1 requires being "generous and
+% factual, not dismissive" about the weaker neighbours.
+%
+% ⚠️ TWO RULES ABOUT COMMENTS IN THIS FILE. Both were learned the hard way, and
+% both fail SILENTLY -- tectonic reports only "errors were issued by BibTeX, but
+% were ignored" and still emits a PDF with citations quietly missing. Always
+% check the rendered entry count, never just that the build succeeded.
+%
+% 1. Commentary goes OUTSIDE an entry, never between its braces. Inside an
+%    entry a percent sign is not a comment: BibTeX reads the text as a field
+%    name, says "You're missing a field name", and skips the rest of the entry.
+%
+% 2. NEVER put an at-sign in a comment. BibTeX has no comment character at the
+%    top level -- it ignores everything except an at-sign, which always begins a
+%    new entry. A line here reading "keep notes above the <at-sign>" was itself
+%    parsed as an entry and swallowed the next real one.
 
-@book{Aho:72,
-    author  = {Alfred V. Aho and Jeffrey D. Ullman},
-    title   = {The Theory of Parsing, Translation and Compiling},
-    year    = "1972",
-    volume  = "1",
-    publisher = {Prentice-Hall},
-    address = {Englewood Cliffs, NJ}
+
+% ===========================================================================
+% THE LIVE CONTRADICTION on whether quantization lengthens chain-of-thought.
+% Neither side swept the generation cap. That is the puzzle H1 resolves.
+% ===========================================================================
+
+% Verbatim claim: "INT4/INT3 quantization can preserve accuracy but increase
+% reasoning-token usage". Proposes the CoT Token Inflation Ratio.
+@article{lian2026inflates,
+  title        = {Quantization Inflates Reasoning: Token Inflation as a Hidden
+                  Cost of Low-Bit Reasoning Models},
+  author       = {Lian, Xinyu and Krichene, Walid and Huang, Beichen and
+                  Tanaka, Masahiro and Ruwase, Olatunji and Zhang, Li and
+                  Zhang, Minjia},
+  journal      = {arXiv preprint arXiv:2606.25519},
+  year         = {2026},
+  eprint       = {2606.25519},
+  archivePrefix= {arXiv}
 }
 
-@book{APA:83,
-    author  = {{American Psychological Association}},
-    title   = {Publications Manual},
-    year    = "1983",
-    publisher = {American Psychological Association},
-    address = {Washington, DC}
+% THE 52% RECOVERABLE-FAILURE FINDING, verbatim: "in as many as 52% of
+% quantized-model failures, models reach the right answer in intermediate
+% reasoning steps but do not output it as a final answer." This is H2's
+% antecedent. Mechanism they give: over-sampling of overthinking markers
+% ("wait", "but", "alternatively") at high-entropy positions; a logit penalty
+% cuts CoT length 12-23%.
+@article{lotfi2026longer,
+  title        = {Quantized Reasoning Models Think They Need to Think Longer,
+                  but They Do Not},
+  author       = {Lotfi, Sanae and Kirichenko, Polina and Li, Steven and
+                  Liu, Zechun},
+  journal      = {arXiv preprint arXiv:2606.00206},
+  year         = {2026},
+  eprint       = {2606.00206},
+  archivePrefix= {arXiv}
 }
 
-@article{Chandra:81,
-	author = {Ashok K. Chandra and Dexter C. Kozen and Larry J. Stockmeyer},
-	year = "1981",
-	title = {Alternation},
-	journal = {Journal of the Association for Computing Machinery},
-	volume = "28",
-	number = "1",
-	pages = "114--133",
-	doi = "10.1145/322234.322243",
+% The other side of the contradiction, verbatim: "Contrary to expectations,
+% quantized models do not exhibit increased output lengths."
+@inproceedings{liu2025quantization,
+  title        = {Quantization Hurts Reasoning? An Empirical Study on Quantized
+                  Reasoning Models},
+  author       = {Liu, Ruikang and Sun, Yuxuan and Zhang, Manyi and Bai, Haoli
+                  and Yu, Xianzhi and Yu, Tiezheng and Yuan, Chun and Hou, Lu},
+  booktitle    = {Conference on Language Modeling (COLM)},
+  year         = {2025},
+  eprint       = {2504.04823},
+  archivePrefix= {arXiv}
 }
 
-@inproceedings{andrew2007scalable,
-  title={Scalable training of {L1}-regularized log-linear models},
-  author={Andrew, Galen and Gao, Jianfeng},
-  booktitle={Proceedings of the 24th International Conference on Machine Learning},
-  pages={33--40},
-  year={2007},
+
+% ===========================================================================
+% ALREADY PUBLISHED "degradation was overstated". Cite EARLY and prominently --
+% do not let a reviewer discover it (EXECUTOR-TASKS.md C1).
+%
+% Attributes overstated degradation to UNTUNED QUANTIZATION HYPERPARAMETERS.
+% We supply an orthogonal mechanism (the measurement protocol), which is why
+% our claim is the residual AFTER their correction.
+% ===========================================================================
+
+@inproceedings{kurtic2025bf16,
+  title        = {``Give Me BF16 or Give Me Death''? Accuracy-Performance
+                  Trade-Offs in LLM Quantization},
+  author       = {Kurtic, Eldar and Marques, Alexandre and Pandit, Shubhra and
+                  Kurtz, Mark and Alistarh, Dan},
+  booktitle    = {Proceedings of the 63rd Annual Meeting of the Association for
+                  Computational Linguistics (ACL)},
+  year         = {2025},
+  eprint       = {2411.02355},
+  archivePrefix= {arXiv}
 }
 
-@book{Gusfield:97,
-    author  = {Dan Gusfield},
-    title   = {Algorithms on Strings, Trees and Sequences},
-    year    = "1997",
-    publisher = {Cambridge University Press},
-    address = {Cambridge, UK}
+
+% ===========================================================================
+% THE FIELD'S CENTRE OF GRAVITY RUNS AGAINST US: benchmarks UNDERSTATE
+% quantization damage. This belongs in the INTRODUCTION, not the Limitations.
+% ===========================================================================
+
+% OWNS "flips". We must NOT claim to be first to show accuracy hides
+% behavioural divergence in compressed models.
+@inproceedings{dutta2024accuracy,
+  title        = {Accuracy is Not All You Need},
+  author       = {Dutta, Abhinav and Krishnan, Sanjeev and Kwatra, Nipun and
+                  Ramjee, Ramachandran},
+  booktitle    = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year         = {2024},
+  eprint       = {2407.09141},
+  archivePrefix= {arXiv}
 }
 
-@article{rasooli-tetrault-2015,
-    author    = {Mohammad Sadegh Rasooli and Joel R. Tetreault},
-    title     = {Yara Parser: {A} Fast and Accurate Dependency Parser},
-    journal   = {Computing Research Repository},
-    volume    = {arXiv:1503.06733},
-    year      = {2015},
-    url       = {http://arxiv.org/abs/1503.06733},
-    note    = {version 2}
+% A 1.7% automatic drop in Japanese was 16.0% to human raters.
+@inproceedings{marchisio2024multilingual,
+  title        = {How Does Quantization Affect Multilingual LLMs?},
+  author       = {Marchisio, Kelly and Dash, Saurabh and Chen, Hongyu and
+                  Aumiller, Dennis and {\"U}st{\"u}n, Ahmet and Hooker, Sara
+                  and Ruder, Sebastian},
+  booktitle    = {Findings of the Association for Computational Linguistics:
+                  EMNLP 2024},
+  year         = {2024},
+  eprint       = {2407.03211},
+  archivePrefix= {arXiv}
 }
 
-@article{Ando2005,
-	Acmid = {1194905},
-	Author = {Ando, Rie Kubota and Zhang, Tong},
-	Issn = {1532-4435},
-	Issue_Date = {12/1/2005},
-	Journal = {Journal of Machine Learning Research},
-	Month = dec,
-	Numpages = {37},
-	Pages = {1817--1853},
-	Publisher = {JMLR.org},
-	Title = {A Framework for Learning Predictive Structures from Multiple Tasks and Unlabeled Data},
-	Volume = {6},
-	Year = {2005}
+
+% ===========================================================================
+% LENIENT EXTRACTION OVER-CREDITS TOO. Frames our contribution as CALIBRATING
+% extraction, not loosening it -- a paper that only argues "be more lenient"
+% walks straight into this literature.
+%
+% 8.2-44.1% of answers graded correct are reached by shortcut hacking.
+% ===========================================================================
+
+@article{ren2026shortcut,
+  title        = {Right Answer, Wrong Method: Shortcut Hacking Misleads the
+                  Evaluation of LLM Reasoning on Frontier Science Benchmarks},
+  author       = {Ren, Xuan and Zhai, Weiqi and Pu, Tianle and Zhu, Yihua and
+                  Wei, Hu and Zhao, Bing},
+  journal      = {arXiv preprint arXiv:2608.02442},
+  year         = {2026},
+  eprint       = {2608.02442},
+  archivePrefix= {arXiv},
+  note         = {Work in progress}
+}
+
+
+% ===========================================================================
+% THE STRONGEST COUNTERARGUMENT: quantization disrupts instruction-following.
+% Our compliance/competence split is the direct answer.
+% ===========================================================================
+
+@inproceedings{lee2025tradeoffs,
+  title        = {Exploring the Trade-Offs: Quantization Methods, Task
+                  Difficulty, and Model Size in Large Language Models From Edge
+                  to Giant},
+  author       = {Lee, Jemin and Park, Sihyeong and Kwon, Jinse and Oh, Jihun
+                  and Kwon, Yongin},
+  booktitle    = {Proceedings of the Thirty-Fourth International Joint
+                  Conference on Artificial Intelligence (IJCAI)},
+  year         = {2025},
+  eprint       = {2409.11055},
+  archivePrefix= {arXiv}
+}
+
+
+% ===========================================================================
+% WE ARE STRUCTURALLY THE SEQUEL. Engage the MATH null result honestly.
+%
+% Their MATH null (0.9593 vs 0.9647) is because MATH extraction already uses
+% sympy symbolic equivalence. Well-engineered verifiers ARE already robust, so
+% a blanket "extraction is fragile" claim is vulnerable. Our task choice must
+% be justified on exactly that basis.
+% ===========================================================================
+
+@inproceedings{hua2025flaw,
+  title        = {Flaw or Artifact? Rethinking Prompt Sensitivity in Evaluating
+                  LLMs},
+  author       = {Hua, Andong and Tang, Kenan and Gu, Chenhe and Gu, Jindong
+                  and Wong, Eric and Qin, Yao},
+  booktitle    = {Proceedings of the 2025 Conference on Empirical Methods in
+                  Natural Language Processing (EMNLP)},
+  year         = {2025},
+  eprint       = {2509.01790},
+  archivePrefix= {arXiv}
+}
+
+
+% ===========================================================================
+% THE SERVING AXIS IS A CONFOUND TO PIN, NOT A NOVELTY AXIS.
+% ===========================================================================
+
+% Backend choice alone moves scores up to 16.6 pp.
+@article{pape2026silent,
+  title        = {The Silent Hyperparameter: Quantifying the Impact of Inference
+                  Backends on LLM Reproducibility},
+  author       = {Pape, David and Evertz, Jonathan and Sch{\"o}nherr, Lea},
+  journal      = {arXiv preprint arXiv:2605.19537},
+  year         = {2026},
+  eprint       = {2605.19537},
+  archivePrefix= {arXiv}
+}
+
+% Backend explains ~39% of out-of-the-box variance.
+@article{masoudian2026sideeffect,
+  title        = {What We Observe as LLM Behavior Can Be a Side-effect of
+                  Inference Backend},
+  author       = {Masoudian, Shahed and Shafaei, Passant and Swain, Monorama
+                  and Schedl, Markus},
+  journal      = {arXiv preprint arXiv:2608.04714},
+  year         = {2026},
+  eprint       = {2608.04714},
+  archivePrefix= {arXiv}
+}
+
+
+% ===========================================================================
+% ADJACENT QUANTIZATION EVALUATIONS. Each is differentiated in Related Work
+% rather than merely listed.
+% ===========================================================================
+
+% Published strict-vs-flexible GSM8K numbers (f16: 24.64 strict / 77.63
+% flexible) WITHOUT interpreting the gap, and reports gaps of 41-64 points
+% across 14 llama.cpp quantizations. Be generous and factual: the numbers are
+% the observation our paper explains. Anchor C reproduces them.
+@article{kurt2026which,
+  title        = {Which Quantization Should I Use? A Unified Evaluation of
+                  llama.cpp Quantization on Llama-3.1-8B-Instruct},
+  author       = {Kurt, Uygar},
+  journal      = {arXiv preprint arXiv:2601.14277},
+  year         = {2026},
+  eprint       = {2601.14277},
+  archivePrefix= {arXiv}
+}
+
+@article{vonrad2026unicomp,
+  title        = {UniComp: A Unified Evaluation of Large Language Model
+                  Compression via Pruning, Quantization and Distillation},
+  author       = {von Rad, Jonathan and Cao, Yong and Geiger, Andreas},
+  journal      = {arXiv preprint arXiv:2602.09130},
+  year         = {2026},
+  eprint       = {2602.09130},
+  archivePrefix= {arXiv}
+}
+
+% Peer-reviewed. Nearest neighbour on the model band.
+@article{wang2025slmquant,
+  title        = {SLMQuant: Benchmarking Small Language Model Quantization for
+                  Practical Deployment},
+  author       = {Wang, Jiacheng and Zeng, Yejun and Guo, Jinyang and Ma,
+                  Yuqing and Liu, Aishan and Liu, Xianglong},
+  journal      = {arXiv preprint arXiv:2511.13023},
+  year         = {2025},
+  eprint       = {2511.13023},
+  archivePrefix= {arXiv},
+  doi          = {10.1145/3746262.3761973}
+}
+
+% Has "Factorial" in the title. We must NOT claim to be the first factorial
+% quantization evaluation. Different OUTCOME DOMAIN (safety alignment under
+% sampling temperature), which is the legitimate differentiation.
+@article{prasad2026factorial,
+  title        = {The Joint Effect of Quantization and Sampling Temperature on
+                  LLM Safety Alignment: A Factorial Analysis},
+  author       = {Prasad, Hari and Pal, Ritam},
+  journal      = {arXiv preprint arXiv:2606.29581},
+  year         = {2026},
+  eprint       = {2606.29581},
+  archivePrefix= {arXiv}
+}
+
+% Unrefereed, 0 citations, and tests ONLY FP32/FP16/NF4 -- so it supports no
+% GPTQ/AWQ claim. Cite factually for the taxonomy framing only.
+@article{oladri2026silent,
+  title        = {Silent Failures in Quantized LLM Reasoning: A Taxonomy-Based
+                  Analysis of Hollow Convergence and Failure Mode Shifts},
+  author       = {Oladri, Renuka and Varadaraju Priya, Mohan Vamsi and Wu, Jerry},
+  journal      = {arXiv preprint arXiv:2607.09999},
+  year         = {2026},
+  eprint       = {2607.09999},
+  archivePrefix= {arXiv}
+}
+
+@article{rasmussen2026calibration,
+  title        = {When Calibration Depends on the Scoring Rule: Quantized
+                  Biomedical LLM Classification},
+  author       = {Rasmussen, Anton and Qin, Hong},
+  journal      = {arXiv preprint arXiv:2608.03854},
+  year         = {2026},
+  eprint       = {2608.03854},
+  archivePrefix= {arXiv}
+}
+
+
+% ===========================================================================
+% EVALUATION-PROTOCOL / MEASUREMENT LITERATURE. The methodological lineage.
+% ===========================================================================
+
+@inproceedings{sclar2024formatspread,
+  title        = {Quantifying Language Models' Sensitivity to Spurious Features
+                  in Prompt Design or: How I learned to start worrying about
+                  prompt formatting},
+  author       = {Sclar, Melanie and Choi, Yejin and Tsvetkov, Yulia and
+                  Suhr, Alane},
+  booktitle    = {International Conference on Learning Representations (ICLR)},
+  year         = {2024},
+  eprint       = {2310.11324},
+  archivePrefix= {arXiv}
+}
+
+% METHODOLOGICAL TEMPLATE: a headline effect reattributed to the measurement
+% instrument. Cite the citation count with the index NAMED or not at all.
+@inproceedings{schaeffer2023mirage,
+  title        = {Are Emergent Abilities of Large Language Models a Mirage?},
+  author       = {Schaeffer, Rylan and Miranda, Brando and Koyejo, Sanmi},
+  booktitle    = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year         = {2023},
+  eprint       = {2304.15004},
+  archivePrefix= {arXiv}
+}
+
+% The lm-evaluation-harness paper. Our instrument.
+@article{biderman2024lessons,
+  title        = {Lessons from the Trenches on Reproducible Evaluation of
+                  Language Models},
+  author       = {Biderman, Stella and Schoelkopf, Hailey and Sutawika, Lintang
+                  and Gao, Leo and Tow, Jonathan and Abbasi, Baber and
+                  Aji, Alham Fikri and Ammanamanchi, Pawan Sasanka and
+                  Black, Sidney and Clive, Jordan and DiPofi, Anthony and
+                  Etxaniz, Julen and Fattori, Benjamin and
+                  Forde, Jessica Zosa and Foster, Charles and Hsu, Jeffrey and
+                  Jaiswal, Mimansa and Lee, Wilson Y. and Li, Haonan and
+                  Lovering, Charles and Muennighoff, Niklas and
+                  Pavlick, Ellie and Phang, Jason and Skowron, Aviya and
+                  Tan, Samson and Tang, Xiangru and Wang, Kevin A. and
+                  Winata, Genta Indra and Yvon, Fran{\c c}ois and Zou, Andy},
+  journal      = {arXiv preprint arXiv:2405.14782},
+  year         = {2024},
+  eprint       = {2405.14782},
+  archivePrefix= {arXiv}
+}
+
+
+% ===========================================================================
+% ANSWER VERIFIERS / LLM JUDGES. We must NOT claim to be first to combine an
+% LLM judge with quantization evaluation -- at least four papers predate us.
+% ===========================================================================
+
+% Our primary judge (rung 4). CC-BY-NC-ND: run and report numbers only,
+% NEVER redistribute the weights or a derivative. Cited from Method (C3).
+@article{chen2025xverify,
+  title        = {xVerify: Efficient Answer Verifier for Reasoning Model
+                  Evaluations},
+  author       = {Chen, Ding and Yu, Qingchen and Wang, Pengyuan and
+                  Hu, Mengting and Zhang, Wentao and Wang, Zhengren and
+                  Tang, Bo and Xiong, Feiyu and Li, Xinchi and Wang, Chao and
+                  Yang, Minchuan and Li, Zhiyu},
+  journal      = {arXiv preprint arXiv:2504.10481},
+  year         = {2025},
+  eprint       = {2504.10481},
+  archivePrefix= {arXiv}
+}
+
+@inproceedings{yu2025xfinder,
+  title        = {xFinder: Large Language Models as Automated Evaluators for
+                  Reliable Evaluation},
+  author       = {Yu, Qingchen and Zheng, Zifan and Song, Shichao and
+                  Li, Zhiyu and Xiong, Feiyu and Tang, Bo and Chen, Ding},
+  booktitle    = {International Conference on Learning Representations (ICLR)},
+  year         = {2025},
+  eprint       = {2405.11874},
+  archivePrefix= {arXiv}
+}
+
+@article{jo2025finding,
+  title        = {Finding Answers in Thought Matters: Revisiting Evaluation on
+                  Large Language Models with Reasoning},
+  author       = {Jo, Hwiyeol and Lee, Joosung and Lee, Jaehone and
+                  Lee, Sang-Woo and Park, Joonsuk and Yoo, Kang Min},
+  journal      = {arXiv preprint arXiv:2510.14773},
+  year         = {2025},
+  eprint       = {2510.14773},
+  archivePrefix= {arXiv}
 }

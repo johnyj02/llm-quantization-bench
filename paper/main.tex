@@ -64,9 +64,108 @@ Decomposing Accuracy Loss into Competence, Compliance, and Truncation}
 % EXECUTOR-PLAN.md 11 names the related-work squeeze as *the* elevated
 % rejection risk, and calls it "a writing problem, which is the most
 % controllable kind." Full differentiation list: EXECUTOR-TASKS.md C1.
-% Open with the LIVE CONTRADICTION (2606.25519 vs Liu et al. COLM 2025
-% 2504.04823 on whether quantization lengthens CoT; neither swept the
-% generation cap). Three claims we must NOT make: see EXECUTOR-TASKS.md C1.
+%
+% THREE CLAIMS THIS SECTION MUST NEVER MAKE (each is already owned):
+%   1. first to combine an LLM judge with quantization eval  -- >=4 predate us
+%   2. first factorial quantization evaluation               -- prasad2026factorial
+%   3. first to show accuracy hides behavioural divergence   -- dutta2024accuracy
+% Every citation below was verified against the arXiv API on 2026-08-26; see
+% the provenance header in custom.bib.
+
+\paragraph{A live contradiction about generation length.}
+Whether low-bit quantization lengthens chain-of-thought output is currently
+disputed. \citet{lian2026inflates} report that INT4/INT3 quantization can
+preserve accuracy while \emph{increasing} reasoning-token usage, and propose a
+CoT Token Inflation Ratio to quantify it; \citet{lotfi2026longer} likewise find
+that aggressive post-training quantization lengthens CoT. \citet{liu2025quantization}
+report the opposite: ``contrary to expectations, quantized models do not exhibit
+increased output lengths.'' We take no position on which generator behaviour is
+correct, because the disagreement has a consequence that neither side measures.
+Under a \emph{fixed} generation cap, a model that emits longer traces is scored
+wrong more often whenever its answer falls beyond the cap --- a scoring outcome,
+not a competence one. No study on either side of this dispute sweeps the
+generation cap, so no study can separate the two. That separation is our H1.
+
+\paragraph{Degradation has already been partly explained --- by other causes.}
+\citet{kurtic2025bf16} show that reported quantization degradation was
+overstated, and attribute the excess to untuned quantization-side
+hyperparameters. We treat that result as established and \emph{prior}, not as a
+target: our claim concerns the residual that remains after quantization-side
+tuning, and our mechanism is orthogonal to theirs. \citet{lotfi2026longer}
+supply the most direct antecedent for the present work, finding that in as many
+as 52\% of quantized-model failures the model reaches the correct answer in an
+intermediate step but does not emit it as the final answer. Their interest is in
+fixing the generator, via a logit penalty on overthinking markers; ours is in
+what such failures do to a reported accuracy delta when they are left in place.
+
+\paragraph{The centre of gravity runs the other way.}
+The dominant finding in this literature is that benchmarks \emph{understate}
+quantization damage, not overstate it. \citet{marchisio2024multilingual} find a
+1.7\% automatic drop in Japanese corresponds to 16.0\% by human judgement, and
+\citet{dutta2024accuracy} show that models matched on accuracy still diverge
+behaviourally --- the ``flips'' framing, which is theirs and which we do not
+claim. We regard both directions as simultaneously true: an accuracy delta can
+over-penalise formatting \emph{and} under-detect behavioural change, because
+these are different quantities. Our contribution is to the first, and it does
+not license any conclusion about the second.
+
+\paragraph{Calibrating extraction, not loosening it.}
+An argument that evaluation should simply be more permissive is already
+refuted. \citet{ren2026shortcut} find that 8.2--44.1\% of answers graded correct
+are reached by shortcut hacking, so lenient extraction over-credits as surely as
+strict extraction under-credits. We therefore treat the strict/permissive
+contrast as a measurement instrument to be characterised rather than a knob to
+be turned in one direction, and we report both rungs throughout.
+
+\paragraph{Prompt- and protocol-sensitivity.}
+\citet{hua2025flaw} ask whether prompt sensitivity is a genuine model property
+or an artifact of evaluation, and we are structurally the sequel: they vary the
+prompt, we vary the scorer, and both ask whether a reported effect survives the
+instrument. Their null result on MATH deserves emphasis rather than a footnote
+--- extraction there already uses symbolic equivalence, so a well-engineered
+verifier leaves little for a protocol effect to explain. This bounds our claim
+rather than supporting it, and it is why our task selection targets benchmarks
+whose canonical extractors are regular expressions.
+\citet{sclar2024formatspread} establish that spurious formatting choices move
+scores substantially, and \citet{jo2025finding} and \citet{yu2025xfinder} show
+that answer extraction from reasoning traces is itself an unreliable step.
+\citet{schaeffer2023mirage} provide the methodological template we follow: a
+headline effect reattributed, in part, to the measurement instrument.
+The lm-evaluation-harness \citep{biderman2024lessons} is our instrument, and its
+canonical filters are the object of study rather than an implementation detail.
+
+\paragraph{Serving configuration is a confound we pin, not an axis we explore.}
+\citet{pape2026silent} find that inference-backend choice alone moves benchmark
+scores by up to 16.6 points, and \citet{masoudian2026sideeffect} attribute
+roughly 39\% of out-of-the-box variance to it. We read this as a reason to
+freeze the engine, version, and every decoding parameter across all arms, which
+we do and report; a floating serving configuration would make precision effects
+unidentifiable. We claim no novelty on this axis.
+
+\paragraph{Adjacent evaluations.}
+Broad compression benchmarks \citep{vonrad2026unicomp,wang2025slmquant} and
+task-difficulty studies \citep{lee2025tradeoffs} establish the accuracy
+landscape we work inside; \citet{lee2025tradeoffs} in particular report that
+quantization disrupts instruction-following, which is the strongest available
+objection to our framing and which our compliance/competence split is designed
+to address directly rather than deflect. \citet{prasad2026factorial} run a
+factorial quantization analysis, so factorial design is not our contribution;
+their outcome domain is safety alignment under sampling temperature, which is
+disjoint from ours. \citet{kurt2026which} report the observation this paper
+sets out to explain --- strict-versus-flexible GSM8K gaps of 41 to 64 points
+across fourteen \texttt{llama.cpp} quantizations --- without interpreting the
+gap; we reproduce their numbers as an external anchor.
+\citet{oladri2026silent} and \citet{rasmussen2026calibration} report related
+failure-mode and scoring-rule effects, the former over FP32/FP16/NF4 only and
+so without bearing on GPTQ or AWQ.
+
+\paragraph{What is new here.}
+Permissive extraction is well known to raise absolute scores. What has not been
+established is whether it changes the quantization \emph{difference}: an
+artifact in a level need not be an artifact in a delta, and the two are
+routinely conflated. We decompose the measured strict delta into competence,
+compliance, and truncation components, pre-register the decomposition before any
+generation exists, and report the residual precision effect that survives it.
 
 %---------------------------------------------------------------------------
 \section{Method}
@@ -176,10 +275,8 @@ Self-contained result nobody has reported; may become a headline.}
 \label{sec:ack}
 
 %---------------------------------------------------------------------------
-% \nocite{*} keeps the stub's bibliography non-empty until real \cite calls
-% exist (an empty thebibliography is a hard LaTeX error). Remove it once
-% Related Work cites anything.
-\nocite{*}
+% \nocite{*} removed: Related Work now cites real work, so the bibliography is
+% no longer empty and every entry that appears is one we actually engage.
 \bibliography{custom}
 
 \appendix
