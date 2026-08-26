@@ -89,9 +89,21 @@ def run_uuid() -> str:
 
 
 def job_name(stage: str) -> str:
-    """D11 naming. "QA" is initials only and is never expanded."""
+    """D11 naming: ``johnyj02-QA-v<x-x>-<date>-<uuid>-<stage>``.
+
+    ⚠️ **Dots become dashes.** SageMaker training-job names must match
+    ``[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}`` — no dots allowed — so ``v0.1`` is
+    rendered ``v0-1``. Submitting with the dot fails with a ValidationException at
+    ``CreateTrainingJob``. S3 prefixes keep the dotted form, which is legal there.
+
+    Also bounded at 63 characters by that pattern; the current form is ~40.
+    """
     date = datetime.now(UTC).strftime("%Y%m%d")
-    return f"johnyj02-QA-{qa_version()}-{date}-{run_uuid()}-{stage}"
+    version = qa_version().replace(".", "-")
+    name = f"johnyj02-QA-{version}-{date}-{run_uuid()}-{stage}"
+    if len(name) > 63:
+        raise SystemExit(f"job name too long for SageMaker ({len(name)} > 63): {name}")
+    return name
 
 
 def refresh_conduit_credentials(profile: str) -> None:

@@ -49,9 +49,9 @@ profile: qa-gpu
 # scripts/submit_job.py refreshes correctly before submitting instead.
 auto_refresh_credentials: false
 
-# Verified present in 654654594225. NOT `SageMakerExecutionRole` -- that name is
-# from SMInterface's own example, which targeted the previous account.
-role: arn:aws:iam::654654594225:role/AmazonSageMakerAdminIAMExecutionRole
+# The role MedLLMSafety uses successfully in this same account. Note the
+# `service-role/` PATH -- a plain list-roles scan misses it. AmazonSageMakerAdminIAMExecutionRole does NOT work: its trust policy omits sagemaker.amazonaws.com.
+role: arn:aws:iam::654654594225:role/service-role/SageMaker-ExecutionRole-20240222T160995
 
 output_path: s3://sagemaker-us-east-1-654654594225/johnyj02/QA/v0.1/
 
