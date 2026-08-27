@@ -453,3 +453,54 @@ The first smoke ran `gptq-4bit` only. GPTQ and AWQ use genuinely different APIs 
 green GPTQ smoke would have said nothing about AWQ — which would then have failed nine arms into
 the real job. `sm_quantize.py --smoke` now selects **one arm per method** and asserts it covers
 every offline method present in the config.
+
+### Job 1, attempt 1: 5 of 9 arms, then GPU OOM — one process per arm
+
+`johnyj02-QA-v0-1-20260826-33b4267e-quantize`, 4546 s (76 min, ~$3.54). **Not a timeout**:
+`max_run` is 21600 s and only 4546 s was used.
+
+Produced (and persisted to S3, 14.55 GB): `qwen2.5-3b` × {gptq-8bit, gptq-4bit, awq-4bit},
+`phi-3.5-mini` × {gptq-8bit, gptq-4bit}. Failed with `OutOfMemoryError: Sequential pipeline ran
+out of memory`: `phi-3.5-mini/awq-4bit` and all three `llama-3.1-8b` arms.
+
+**The checkpointing earned its keep.** All five successful arms survived in
+`checkpoint_s3_uri`, are restored on the next run, and are skipped by recipe hash — so the retry
+does 4 arms, not 9.
+
+#### It was a leak, not a capacity limit
+
+The log reported `Accelerator 0 | usage: 95.70% | total memory: 47.7 Gb`. A *fresh* Llama-8B GPTQ
+pass should need roughly **10 GB** of that 47.7 GB card:
+
+| | |
+|---|---|
+| one decoder layer, bf16 | ~436 MB (8.03 B params − 2 × 525 M embedding, over 32 layers) |
+| Hessians for that layer | ~1.2 GB (6 × 4096² + 14336², float32) |
+| cached calibration activations | ~8.6 GB (512 × 2048 × 4096, bf16) |
+
+So 96% was accumulated state from earlier arms. The failure *order* confirms it: every arm fine,
+then phi's AWQ (the most memory-hungry), then Llama's 8-bit got partway, then the last two failed
+within seconds — the signature of a monotonic leak, not of a model that is simply too big.
+
+Python cannot reliably release it: `del model` leaves torch's caching allocator holding blocks,
+llmcompressor installs hooks on the model, and one arm had already logged
+`Exception during finalizing modifier: Failed to compress 7 modules`, so the next arm inherits a
+poisoned lifecycle. **Process exit is the only teardown that always works.**
+
+`sm_determinism.py` and `sm_throughput.py` already used one-process-per-cell for exactly this
+reason. Applying that to vLLM but not to llmcompressor was an inconsistency, and it cost 76
+minutes and four arms.
+
+⚠️ **Deliberately did NOT set `sequential_targets="Linear"`**, which the error message suggests.
+That changes the granularity at which GPTQ accumulates Hessians within a decoder layer, and so
+potentially the weights. Process isolation is semantically neutral; a granularity change is not,
+and the recipe is frozen and reported in the paper.
+
+#### Two smaller fixes the same failure exposed
+
+- **Subprocess output is INHERITED, not captured.** `capture_output=True` buffers until the child
+  exits, so a 30-minute arm would emit nothing to CloudWatch and look like a hang — and a killed
+  job would lose the child's output entirely, which is the diagnostic that found this bug.
+- **`--smoke` never skips.** A previous rehearsal had already written those exact hashes, so
+  normal resume semantics would have skipped every arm, reported success, and proven nothing —
+  worse than not running, because it looks like a pass.

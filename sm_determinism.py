@@ -298,15 +298,20 @@ def run_probe_cell(
         env["VLLM_DISABLED_KERNELS"] = disabled_kernels
 
     print(f"[run ] {tag}  {REPEATS} repeats x {len(items)} items")
+    # Output INHERITED, not captured. `capture_output=True` buffers until exit, so a
+    # multi-hour cell would emit nothing to CloudWatch and look like a hang -- and
+    # vLLM's engine-startup logs, the ones worth watching during a long load, are
+    # exactly what would be withheld. The traceback lands in CloudWatch instead.
+    sys.stdout.flush()
     started = time.monotonic()
     proc = subprocess.run(
         [sys.executable, "-c", PROBE_SCRIPT, str(payload_path)],
-        env=env, capture_output=True, text=True, timeout=14400,
+        env=env, timeout=14400,
     )
     elapsed = time.monotonic() - started
     if proc.returncode != 0:
-        print(f"       FAILED after {elapsed / 60:.1f} min")
-        print("       " + (proc.stderr or proc.stdout)[-1500:].replace("\n", "\n       "))
+        print(f"       FAILED after {elapsed / 60:.1f} min, exit {proc.returncode} "
+              f"(traceback above)")
         return None
 
     raw = json.loads(raw_path.read_text())

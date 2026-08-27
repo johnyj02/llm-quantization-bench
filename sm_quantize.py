@@ -24,6 +24,8 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -34,7 +36,6 @@ from quantartifact.quantize import (  # noqa: E402
     config_hash,
     load_specs,
     output_dir,
-    quantize_model,
 )
 
 CHECKPOINT_DIR = Path(os.environ.get("SM_CHECKPOINT_DIR", "/opt/ml/checkpoints"))
@@ -129,6 +130,103 @@ if _blocked:
     sys.exit(1)
 print()
 
+# 🚨 ONE SUBPROCESS PER ARM. This is why the first real run only got 5 of 9.
+#
+# Running all nine arms in one process leaked GPU memory monotonically: the arms
+# succeeded in order, then phi's AWQ (the most memory-hungry) died, then Llama's
+# 8-bit got partway, then the last two failed within seconds — with the log
+# reporting `Accelerator 0 | usage: 95.70%`. A *fresh* Llama-8B GPTQ pass needs
+# roughly 10 GB of the 47.7 GB card (≈436 MB of layer weights, ≈1.2 GB of
+# Hessians, ≈8.6 GB of cached calibration activations), so 96% was accumulated
+# state from previous arms, not a genuine requirement.
+#
+# Python cannot reliably give it back: `del model` leaves torch's caching
+# allocator holding blocks, llmcompressor installs hooks on the model, and one arm
+# had already logged "Exception during finalizing modifier: Failed to compress 7
+# modules" — so the next arm starts from a poisoned lifecycle. Process exit is the
+# only teardown that always works.
+#
+# This is the pattern `sm_determinism.py` and `sm_throughput.py` already use for
+# exactly this reason. Applying it to vLLM but not to llmcompressor was an
+# inconsistency, and it cost 76 minutes and four arms.
+#
+# ⚠️ Deliberately NOT changing `sequential_targets` to "Linear", which the error
+# message suggests. That alters the granularity at which GPTQ accumulates Hessians
+# within a decoder layer, and therefore potentially the weights themselves. Process
+# isolation is semantically neutral; a granularity change is not, and the recipe is
+# frozen and reported in the paper.
+ARM_SCRIPT = r"""
+import json, sys
+sys.path.insert(0, "/opt/ml/code/src")
+from pathlib import Path
+from quantartifact.quantize import load_specs, quantize_model
+import dataclasses
+
+payload = json.loads(Path(sys.argv[1]).read_text())
+specs, calibration = load_specs(Path(payload["configs"]) / "quant.yaml")
+if payload["calibration_override"]:
+    calibration = dataclasses.replace(calibration, **payload["calibration_override"])
+
+path = quantize_model(
+    payload["model_repo"], payload["model_revision"], payload["model_key"],
+    specs[payload["arm"]], calibration, Path(payload["checkpoint_dir"]),
+)
+print(f"__ARM_OK__ {path}")
+"""
+
+
+def quantize_arm_subprocess(
+    model_repo: str, model_revision: str, model_key: str, arm: str,
+    digest: str, destination: Path,
+) -> Path:
+    """Quantize ONE arm in a child process, so its GPU memory dies with it.
+
+    Raises on failure, so the caller's existing per-arm error handling is
+    unchanged and one bad arm still does not cost the arms after it.
+    """
+    payload = {
+        "model_repo": model_repo,
+        "model_revision": model_revision,
+        "model_key": model_key,
+        "arm": arm,
+        "configs": str(CONFIGS),
+        "checkpoint_dir": str(CHECKPOINT_DIR),
+        # The parent may have shrunk the calibration budget for --smoke; the child
+        # re-reads quant.yaml, so that override has to travel explicitly or the
+        # smoke would silently run the FULL 512x2048 budget.
+        "calibration_override": (
+            {"num_samples": calibration.num_samples,
+             "max_seq_length": calibration.max_seq_length}
+            if SMOKE else None
+        ),
+    }
+    payload_path = CHECKPOINT_DIR / f"payload_{model_key}__{arm}__{digest}.json"
+    payload_path.write_text(json.dumps(payload))
+
+    # ⚠️ Output is INHERITED, not captured. `capture_output=True` buffers until the
+    # child exits, so a 30-minute arm would emit nothing to CloudWatch and look like
+    # a hang -- and if the job were killed we would lose the child's output entirely,
+    # which is exactly the diagnostic that found this bug. Inheriting streams
+    # llmcompressor's per-layer progress live. The traceback therefore lands in
+    # CloudWatch rather than in this exception, which is where we read it anyway.
+    sys.stdout.flush()
+    result = subprocess.run(
+        [sys.executable, "-c", ARM_SCRIPT, str(payload_path)],
+        timeout=10800,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"arm subprocess exited {result.returncode} "
+            f"(traceback is above, in this job's CloudWatch log)"
+        )
+    if not (destination / "config.json").exists():
+        raise RuntimeError(
+            f"arm subprocess reported success but {destination} has no config.json"
+        )
+    payload_path.unlink(missing_ok=True)
+    return destination
+
+
 report: dict = {
     "stage": "quantize",
     "smoke": SMOKE,
@@ -145,6 +243,18 @@ for model_key, model in models.items():
         destination = output_dir(CHECKPOINT_DIR, model_key, spec, digest)
 
         label = f"{model_key}/{arm}"
+
+        # ⚠️ SMOKE NEVER SKIPS. A rehearsal exists to exercise the code path, and a
+        # previous smoke has already written these exact hashes into the smoke
+        # prefix -- so with normal resume semantics a re-run would skip every arm,
+        # report success, and prove nothing. That would be worse than not running
+        # it, because it looks like a pass. Discard the prior smoke artifact (it is
+        # deliberately unusable junk, in the smoke-only prefix) and redo the work.
+        if SMOKE and destination.exists():
+            assert CHECKPOINT_DIR in destination.parents, destination
+            shutil.rmtree(destination)
+            print(f"[smoke] discarded previous rehearsal artifact at {destination.name}")
+
         # Resume: an arm produced by THIS exact recipe is already done. The hash
         # covers spec + calibration + model revision, so a changed recipe yields a
         # different path and cannot be mistaken for a completed one.
@@ -159,9 +269,8 @@ for model_key, model in models.items():
         print(f"[run ] {label}  hash={digest}")
         started = time.monotonic()
         try:
-            path = quantize_model(
-                model["repo"], model["revision"], model_key, spec, calibration,
-                CHECKPOINT_DIR,
+            path = quantize_arm_subprocess(
+                model["repo"], model["revision"], model_key, arm, digest, destination,
             )
             elapsed = time.monotonic() - started
             size_gb = sum(f.stat().st_size for f in path.rglob("*") if f.is_file()) / 1e9
