@@ -692,3 +692,103 @@ ordering confirmation and the model-generality probe. **Update `configs/tasks.ya
 23,000 rather than treating the overrun as drift**, and note in the prereg that the sweep's level
 count is **conditional on the 64-level result**, so it reads as a pre-specified contingency rather
 than a post-hoc expansion.
+
+## R14 — Serving config: four BI coverage gaps, and assert the ENGINE not the intent
+
+Raised after the first determinism smoke's engine log exposed what vLLM 0.26.0 actually does
+versus what `configs/models.yaml` declares. Three questions, and the answer upgrades H8.
+
+### R14.1 Disable flashinfer autotune — and measure the contrast on GPTQ-4bit, not bf16
+
+**Disabling is correct on the merits, independent of the confound.** BI mode's premise is a
+*fixed, known* kernel set; an autotuner selects kernels by **startup benchmark**, i.e. by a noisy
+timing measurement, so the configuration is not identical across runs **by construction**. That
+violates §4.6's "reproducibility holds only within an identical configuration."
+
+**My proposed contrast arm was wrong.** I suggested bf16 to "isolate cleanly"; the ruling is
+**GPTQ-4bit**, because it is the arm H8's claim is *about* — no BI guard, keeps Marlin. If GPTQ-4
+is stable with autotune off and unstable with it on, that is a crisp quotable result:
+*kernel autotuning alone is sufficient to break bitwise reproducibility.* Marginal cost **1,500**
+(3 × 500 for the autotune-ON condition; autotune-OFF is already the sweep).
+
+⚠️ **Bounding note that limits the damage either way:** autotune variance can only *inflate*
+measured instability, never manufacture false stability. **Any arm that comes out stable is
+genuinely stable** regardless of how this resolves.
+
+`cudagraph_mode=FULL_AND_PIECEWISE` is fine and expected — CUDA graphs became BI-compatible in
+PR #27660, which is why `enforce_eager` stays off. But it belongs in the frozen list and must be
+**asserted, not assumed**.
+
+### R14.2 `VLLM_USE_FLASHINFER_SAMPLER=0` — register it, and it is a FINDING
+
+My reading confirmed on both grounds, plus **a third I had missed and which is the strongest**:
+**sampling is the last step before the token is chosen.** At `temperature=0` the argmax and its
+**tie-breaking on equal logits** are implementation-specific, so an unguarded sampler converts any
+upstream numerical near-tie *directly* into a different token. That makes it arguably **more
+load-bearing than the attention backend**.
+
+Goes in the prereg frozen list and the Method. Also record that **our image lacks `nvcc`**, so our
+results are conditional on the PyTorch-native sampler path — someone with the toolkit gets
+flashinfer by default and may get different determinism properties. One sentence, real
+reproducibility content.
+
+#### 🔬 THE FRAMING UPGRADE: H8 is now a four-gap claim, not two
+
+`VLLM_BATCH_INVARIANT` coverage gaps, **all undocumented**:
+
+1. `auto_awq.py` **has** a guard ("Marlin kernels are not batch invariant")
+2. `auto_gptq.py` / `choose_mp_linear_kernel()` have **none**
+3. the **sampler** path is unguarded (R14.2)
+4. **kernel autotuning** is unguarded (R14.1)
+
+> *"A beta reproducibility feature ships with at least four undocumented coverage gaps, and
+> published quantization deltas inherit all of them."*
+
+**Restructure the H8 write-up around the enumerated gap list.** This is materially stronger than
+the two-gap version.
+
+### R14.3 Assert the ENGINE'S REPORTED STATE, not the value we passed
+
+All three declared-vs-enforced failures share one shape: **we knew what we passed and never read
+back what the engine did.** So the rule is to assert on what the engine reports.
+
+My four (dtype as loaded, attention backend as selected, prefix caching as reported, quantization
+method chosen) confirmed, **plus seven**:
+
+1. **`VLLM_BATCH_INVARIANT` actually took effect** — that kernels were *substituted*, not merely
+   that the env var is set. *"The single most important assertion in the study: no substitution ⇒
+   H8 dead and every delta untrustworthy."* Check the **patched op registry**, not the environment.
+2. **Triton actually compiled a kernel this run.** A silent fallback is the catastrophic case. The
+   verify job proved the toolchain once; assert it **per run**.
+3. **The selected linear kernel class per arm.** Load-bearing, not hygiene:
+   `quantization=compressed-tensors` is the *format*, while **Marlin vs Machete vs fallback** is
+   the variable H8's claim is about — and `VLLM_DISABLED_KERNELS` is **unverifiable** unless the
+   chosen kernel can be observed. My item 4 was necessary but insufficient.
+4. **Model revision SHA as LOADED**, not as requested — the HF cache can serve a different
+   revision than the pin.
+5. **Engine-reported `max_num_seqs` and KV-cache blocks.** If `max_model_len` outruns the cache,
+   vLLM **silently reduces concurrency** — corrupting the exact quantity A7 freezes.
+6. **`temperature` and `seed` as they reached `SamplingParams`** — identical failure shape to
+   `async_scheduling`.
+7. **Single-BOS on every generation** (first token id), not once per model at G2. Cheap, and a
+   known-live failure on Llama.
+
+#### The structural fix, which matters more than any single assertion
+
+My new test catches "field exists and is forwarded" — that prevents instance four of *this* shape
+but not the next shape. The generative fix: make the frozen config **ONE MANIFEST** that is
+(i) declared once, (ii) forwarded programmatically, (iii) **read back from the engine**, (iv)
+written into every generation record, and (v) **asserted equal across all three**. §7.1 already
+puts `batch_invariant` / `max_num_seqs` / `disabled_kernels` on the record — extend to the whole
+frozen set.
+
+Then **generate the paper's config table from the manifest** rather than hand-writing it.
+Declared-vs-enforced-vs-reported drift becomes unshippable, and the Method cannot silently
+misreport a value the way it would have for `async_scheduling`.
+
+**One-time audit, now:** for every key in `models.yaml`, `quant.yaml`, `tasks.yaml`,
+`scoring.yaml`, confirm a code path consumes it. **Any orphan is decoration.** Finds instance four
+before it costs generations.
+
+`sm_pilot`'s refusal to run until A7 freezes `max_num_seqs` is endorsed as **the template for
+anything not yet determined**.
