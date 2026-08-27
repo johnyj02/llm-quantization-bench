@@ -103,6 +103,16 @@ environment:
   VLLM_BATCH_INVARIANT: "1"
   VLLM_ENABLE_V1_MULTIPROCESSING: "0"
   VLLM_ATTENTION_BACKEND: "FLASH_ATTN"
+  # 🚨 Without this the determinism job CRASHES, and with it the pipeline is more
+  # correct. vLLM 0.26 routes sampling through flashinfer, which JIT-compiles a CUDA
+  # module at runtime and so needs `nvcc` — our image has the CUDA runtime from
+  # torch's cu130 wheels but not the toolkit, so it died with "Could not find nvcc".
+  # Same trap as Triton needing build-essential: vLLM compiles at RUNTIME.
+  #
+  # And vLLM's own comment says disabling it "forces the PyTorch-native (Triton for
+  # bs>=8) path" — which is what VLLM_BATCH_INVARIANT substitutes kernels into. The
+  # flashinfer sampler is a separate CUDA path batch invariance does NOT cover.
+  VLLM_USE_FLASHINFER_SAMPLER: "0"
   # Single GPU on this instance type anyway, but pinned and asserted regardless:
   # a 4-GPU instance is where the TP>1 mistake happens, and this is the habit.
   CUDA_VISIBLE_DEVICES: "0"

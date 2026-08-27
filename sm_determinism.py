@@ -615,6 +615,9 @@ def main() -> int:
                 n_disagreeing=len(items), disagreement_rate=1.0,
                 max_distinct_outputs=repeats, bitwise_stable=False,
                 disabled_kernels=fallback,
+                # Synthetic: fails the selection closed, but must NOT be read as a
+                # measurement. The first smoke printed this as "bf16 100.0000%".
+                measured=False,
             )
         (results if collect is None else collect).append(result)
         return result
@@ -746,6 +749,11 @@ def main() -> int:
     print("=" * 70)
     print(f"{'format':12} {'max_seqs':>9} {'disagree':>10} {'distinct':>9}  kernels")
     for row in report["rows"]:
+        if not row.get("measured", True):
+            print(f"{row['format']:12} {row['max_num_seqs']:>9} "
+                  f"{'NOT MEASURED (cell failed)':>26}  "
+                  f"{row['disabled_kernels'] or '-'}")
+            continue
         print(f"{row['format']:12} {row['max_num_seqs']:>9} "
               f"{row['n_disagreeing']:>4}/{row['n_items']:<5} "
               f"{row['max_distinct_outputs']:>9}  {row['disabled_kernels'] or '-'}")
@@ -771,6 +779,10 @@ def main() -> int:
         print("  frontier   : monotone (no smaller level was less stable) — R12.3.1 OK")
 
     floor = report["differential_noise_floor"]
+    excluded = floor.get("n_unmeasured_cells_excluded", 0)
+    if excluded:
+        print(f"noise floor  : {excluded} unmeasured cell(s) EXCLUDED — the numbers "
+              f"below cover only cells that actually ran")
     print(f"noise floor  : bf16 {floor['bf16_disagreement']:.4%}")
     print(f"  vs bf16    : {floor['differential_vs_bf16']}")
     if floor["differential_noise_exists"]:

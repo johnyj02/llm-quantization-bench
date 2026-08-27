@@ -50,6 +50,23 @@ from quantartifact.records import (
 REQUIRED_ENV: dict[str, str] = {
     "VLLM_BATCH_INVARIANT": "1",
     "VLLM_ENABLE_V1_MULTIPROCESSING": "0",
+    # 🚨 Required for TWO reasons, and the second is the important one.
+    #
+    # 1. Without it the job CRASHES. vLLM 0.26 routes sampling through
+    #    `flashinfer.sampling.top_k_top_p_sampling_from_logits`, which JIT-compiles a
+    #    CUDA module at runtime and therefore needs `nvcc`. Our image has the CUDA
+    #    *runtime* (from torch's cu130 wheels) but not the toolkit, so it dies with
+    #    "Could not find nvcc and default cuda_home='/usr/local/cuda' doesn't exist".
+    #    Exactly the same class of trap as Triton needing `build-essential`: vLLM
+    #    compiles things at RUNTIME, and a missing compiler is invisible until then.
+    #
+    # 2. It is the setting this study should want anyway. vLLM's own comment on the
+    #    flag says disabling it "forces the PyTorch-native (Triton for bs>=8) path" --
+    #    and `VLLM_BATCH_INVARIANT=1` works precisely by substituting batch-invariant
+    #    **Triton** kernels. The flashinfer sampler is a separate CUDA path that batch
+    #    invariance does NOT cover, so leaving it on would put an unguarded kernel
+    #    inside the pipeline whose reproducibility we are trying to establish.
+    "VLLM_USE_FLASHINFER_SAMPLER": "0",
 }
 
 
@@ -81,6 +98,17 @@ class EngineSpec:
     enforce_eager: bool = False        # CUDA graphs are BI-compatible since PR #27660
     add_bos_token: bool = True         # quantized models are BOS-sensitive
     disabled_kernels: str | None = None
+    # ⚠️ MUST be passed to the engine, not merely declared. `configs/models.yaml` has
+    # said `async_scheduling: false` all along, but nothing forwarded it -- and the
+    # first real engine log read "Asynchronous scheduling is enabled", because vLLM's
+    # own default won. Same failure as GPTQ's `actorder`: a value we declare, do not
+    # enforce, and would then have reported in the paper as though it held.
+    #
+    # It selects AsyncScheduler over Scheduler, which changes WHEN requests are
+    # batched -- and batch composition is the entire mechanism behind
+    # batch-invariance failures, so it is not a setting to leave floating in a study
+    # about reproducibility.
+    async_scheduling: bool = False
 
 
 def preflight(spec: EngineSpec, *, strict: bool = True) -> list[str]:
@@ -123,6 +151,14 @@ def preflight(spec: EngineSpec, *, strict: bool = True) -> list[str]:
 
     if spec.seed != 0:
         problems.append(f"seed={spec.seed}, must be 0")
+
+    if spec.async_scheduling:
+        problems.append(
+            "async_scheduling=True -- it selects a different scheduler and so changes "
+            "WHEN requests are batched, and batch composition is the mechanism behind "
+            "batch-invariance failures. configs/models.yaml declares it false; the "
+            "first engine log showed vLLM's default had silently overridden that."
+        )
 
     if len(spec.model_revision) < 7:
         problems.append(
@@ -231,6 +267,8 @@ class VLLMRunner:
                 "gpu_memory_utilization": self.spec.gpu_memory_utilization,
                 "seed": self.spec.seed,
                 "enforce_eager": self.spec.enforce_eager,
+                # Declared in configs/models.yaml and now actually ENFORCED.
+                "async_scheduling": self.spec.async_scheduling,
             }
             if self.spec.quant_method == "bitsandbytes":
                 # NF4 is quantized IN-FLIGHT by vLLM rather than loaded from a

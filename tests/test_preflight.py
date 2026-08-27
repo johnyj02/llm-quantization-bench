@@ -13,12 +13,19 @@ tripped past by habit is not a gate.
 
 from __future__ import annotations
 
+import dataclasses
+import inspect
+import os
+from pathlib import Path
+
 import pytest
+import yaml
 
 from quantartifact.generate import (
     REQUIRED_ENV,
     EngineSpec,
     PreflightError,
+    VLLMRunner,
     build_parser,
     main,
     preflight,
@@ -172,3 +179,76 @@ def test_confirmation_flag_exists_and_is_not_defaulted_on():
     parser = build_parser()
     args = parser.parse_args(["--cell", "c", "--task", "gsm8k_cot", "--run-id", "r"])
     assert args.i_have_confirmation is False
+
+
+# ---------------------------------------------------------------------------
+# DECLARED-BUT-UNENFORCED settings. This class of bug has now bitten twice:
+#
+#   * GPTQ's `desc_act: false` was in configs/quant.yaml but llmcompressor's
+#     `actorder` default silently overrode it.
+#   * `async_scheduling: false` was in configs/models.yaml but nothing forwarded it,
+#     and the first real engine log read "Asynchronous scheduling is enabled".
+#
+# Both would have been REPORTED IN THE PAPER as though they held. So every serving
+# value the config declares must be a real EngineSpec field, forwarded to the engine,
+# and asserted by preflight.
+# ---------------------------------------------------------------------------
+
+def test_flashinfer_sampler_is_required_off():
+    """Crashes without it (needs nvcc, which the image has no toolkit for), AND
+    batch invariance only substitutes Triton kernels -- the flashinfer sampler is a
+    separate CUDA path it does not cover."""
+    assert REQUIRED_ENV["VLLM_USE_FLASHINFER_SAMPLER"] == "0"
+
+
+def test_async_scheduling_defaults_off_and_is_asserted():
+    spec = EngineSpec(model_repo="m", model_revision="a" * 40)
+    assert spec.async_scheduling is False
+    problems = preflight(
+        EngineSpec(model_repo="m", model_revision="a" * 40, async_scheduling=True),
+        strict=False,
+    )
+    assert any("async_scheduling" in p for p in problems)
+
+
+def test_async_scheduling_is_forwarded_to_the_engine():
+    """Declaring it is not enough -- it has to reach LLM(). Source-inspected because
+    constructing a real engine needs a GPU, and this is exactly the gap that let
+    vLLM's default win on the real box."""
+    source = inspect.getsource(VLLMRunner)
+    assert '"async_scheduling": self.spec.async_scheduling' in source
+
+
+def test_every_required_env_var_is_asserted_by_preflight():
+    """A new REQUIRED_ENV entry must actually gate the run, not just sit in a dict."""
+    for name in REQUIRED_ENV:
+        saved = os.environ.get(name)
+        os.environ[name] = "definitely-wrong"
+        try:
+            problems = preflight(
+                EngineSpec(model_repo="m", model_revision="a" * 40), strict=False
+            )
+            assert any(name in p for p in problems), f"{name} is not enforced"
+        finally:
+            if saved is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = saved
+
+
+def test_models_yaml_serving_keys_that_are_engine_settings_exist_on_EngineSpec():
+    """Anything configs/models.yaml declares under `serving:` and that names an
+    engine knob must be a real EngineSpec field, or it is decoration that the paper
+    would nonetheless report as frozen."""
+    configs = Path(__file__).resolve().parents[1] / "configs"
+    serving = yaml.safe_load((configs / "models.yaml").read_text())["serving"]
+    fields = {f.name for f in dataclasses.fields(EngineSpec)}
+    # Keys that are engine constructor knobs (as opposed to env vars, sampling
+    # params, or audit bookkeeping).
+    engine_knobs = {
+        "tensor_parallel_size", "enable_prefix_caching", "max_model_len",
+        "max_num_seqs", "gpu_memory_utilization", "seed", "enforce_eager",
+        "async_scheduling", "dtype",
+    }
+    for key in engine_knobs & set(serving):
+        assert key in fields, f"models.yaml declares serving.{key} but EngineSpec has no such field"

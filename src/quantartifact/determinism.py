@@ -259,6 +259,12 @@ class DisagreementResult:
     max_distinct_outputs: int
     bitwise_stable: bool
     disabled_kernels: str | None = None
+    # False when the cell CRASHED and was recorded as maximally unstable so the
+    # selection fails closed. Without this flag the synthetic 100% disagreement rate
+    # prints identically to a real measurement, and the first determinism smoke did
+    # exactly that -- reporting "bf16 100.0000%" as a noise floor when nothing had
+    # actually been measured. Failing closed is right; presenting it as data is not.
+    measured: bool = True
     first_divergence_examples: list[str] = dataclasses.field(default_factory=list)
 
     def to_row(self) -> dict[str, Any]:
@@ -270,6 +276,7 @@ class DisagreementResult:
             "disagreement_rate": round(self.disagreement_rate, 6),
             "max_distinct_outputs": self.max_distinct_outputs,
             "bitwise_stable": self.bitwise_stable,
+            "measured": self.measured,
             "disabled_kernels": self.disabled_kernels or "",
         }
 
@@ -374,11 +381,13 @@ def differential_noise_floor(results: Sequence[DisagreementResult]) -> dict[str,
     (`analysis/preregistration.md` §9). This is the quantity that makes H8
     consequential rather than merely curious.
     """
+    # ⚠️ UNMEASURED cells are excluded. They carry a synthetic 1.0 rate so the
+    # selection fails closed, and averaging that into a noise floor would report a
+    # crash as a 100% disagreement finding.
+    measured = [r for r in results if r.measured]
     by_format: dict[str, float] = {}
-    for fmt in sorted({result.fmt for result in results}):
-        rates = [
-            result.disagreement_rate for result in results if result.fmt == fmt
-        ]
+    for fmt in sorted({result.fmt for result in measured}):
+        rates = [r.disagreement_rate for r in measured if r.fmt == fmt]
         by_format[fmt] = max(rates) if rates else 0.0
 
     bf16_rate = by_format.get("bf16", 0.0)
@@ -393,6 +402,7 @@ def differential_noise_floor(results: Sequence[DisagreementResult]) -> dict[str,
         "bf16_disagreement": round(bf16_rate, 6),
         "differential_vs_bf16": differential,
         "differential_noise_exists": any(value > 0 for value in differential.values()),
+        "n_unmeasured_cells_excluded": sum(1 for r in results if not r.measured),
         "implication": (
             "any precision contrast involving a format with a positive "
             "differential cannot claim an effect smaller than that differential"

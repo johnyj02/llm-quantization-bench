@@ -605,3 +605,64 @@ But if quantization is itself nondeterministic, then "we self-quantized with ide
 does not imply anyone re-running gets our weights — a reproducibility caveat that bears on every
 published quantization comparison, and adjacent to H8. **Routed to the planner**, since whether to
 measure and report it is a scientific-scope decision, not an executor one.
+
+### Job 2 smoke, attempt 1: `nvcc` missing — vLLM JITs at runtime, again
+
+`johnyj02-QA-v0-1-20260827-33b4267e-determinism-smoke`, 482 s (~$0.37). Got capacity, loaded the
+GPTQ-4bit checkpoint, then died on the first `generate()`:
+
+```
+RuntimeError: Could not find nvcc and default cuda_home='/usr/local/cuda' doesn't exist
+  flashinfer/jit/cpp_ext.py:61  get_cuda_path
+  flashinfer/sampling.py:68     get_sampling_module      <- JIT-compiles at RUNTIME
+  vllm/v1/sample/ops/topk_topp_sampler.py:506  flashinfer_sample
+  vllm/v1/worker/gpu/sample/sampler.py:246
+```
+
+**The same class of trap as Triton needing `build-essential`**, with a different compiler. Our
+image has the CUDA *runtime* (from torch's cu130 wheels) but not the *toolkit*, so there is no
+`nvcc`. vLLM compiles things at runtime, and a missing compiler is invisible until it does.
+
+Fix: **`VLLM_USE_FLASHINFER_SAMPLER=0`**, added to `REQUIRED_ENV` so `preflight()` asserts it.
+
+⚠️ **This is the correct setting on the merits, not merely a workaround.** vLLM's own comment on
+the flag says disabling it *"forces the PyTorch-native (Triton for bs>=8) path"* — and
+`VLLM_BATCH_INVARIANT=1` works by substituting batch-invariant **Triton** kernels. The flashinfer
+sampler is a separate CUDA path that batch invariance does **not** cover, so leaving it on would
+have placed an unguarded kernel inside the very pipeline whose reproducibility this study is
+trying to establish.
+
+#### 🚨 The more important finding: a declared setting was not enforced
+
+The engine log read **`Asynchronous scheduling is enabled`** — while `configs/models.yaml` has
+declared `async_scheduling: false` from the start. Nothing forwarded it, so vLLM's default won.
+
+**This is the third instance of the same bug shape**, and the pattern is now explicit:
+
+| declared in | silently overridden by | consequence |
+|---|---|---|
+| `quant.yaml: desc_act: false` | llmcompressor's `actorder` sentinel default | Anchor A compared against a different recipe |
+| `models.yaml: async_scheduling: false` | vLLM's own default | the paper reports a config that did not run |
+| `models.yaml: max_num_seqs: 8` | (guarded — `sm_pilot` refuses until A7 freezes it) | — |
+
+A value we declare but do not enforce is decoration, **and the paper reports it as though it
+held**. `async_scheduling` is now an `EngineSpec` field, forwarded to `LLM()`, and asserted by
+`preflight()`. Tests now check that every `REQUIRED_ENV` entry actually gates the run and that
+every engine knob in `models.yaml:serving` exists as an `EngineSpec` field.
+
+#### Reporting integrity: a crashed cell must not print as a measurement
+
+The run also printed `noise floor: bf16 100.0000%` and `20/20 disagree` — for cells that never
+executed. The fail-closed default (record a crashed cell as maximally unstable) is right, and the
+job did print `UNMEASURED CELLS` and exit non-zero. But a reader skimming the table would have
+read a 100% disagreement rate as a finding. `DisagreementResult.measured` now distinguishes them:
+unmeasured cells still fail the selection closed, are printed as `NOT MEASURED (cell failed)`, and
+are excluded from the noise floor.
+
+#### Still open, and it belongs to the planner
+
+The engine log also shows `enable_flashinfer_autotune=True` and
+`cudagraph_mode=FULL_AND_PIECEWISE`. Autotuning selects kernels by benchmarking, so it could vary
+run to run — which would register in A7 as arm nondeterminism whose real cause is autotuning, not
+the `auto_gptq.py`/`auto_awq.py` guard asymmetry H8 is about. That is a **confound for H8**, not
+an ops detail, so it goes to the planner rather than being silently disabled.

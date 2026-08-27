@@ -378,3 +378,36 @@ def test_confirmation_reuses_the_sweep_pass():
 
     plan = sweep_plan(["bf16", "gptq-4bit", "awq-4bit", "gptq-8bit", "bnb-nf4"], 500, 3)
     assert plan["confirmation_generations"] == 5000
+
+
+# ---------------------------------------------------------------------------
+# A crashed cell is recorded as maximally unstable so the selection fails closed.
+# That is right. Printing its synthetic 1.0 rate as a noise floor is not -- the first
+# determinism smoke reported "bf16 100.0000%" when nothing had been measured at all.
+# ---------------------------------------------------------------------------
+
+def test_unmeasured_cells_are_excluded_from_the_noise_floor():
+    crashed = make_result("bf16", 8, False, 1.0)
+    crashed.measured = False
+    real = make_result("gptq-4bit", 8, False, 0.02)
+    floor = differential_noise_floor([crashed, real])
+    assert floor["n_unmeasured_cells_excluded"] == 1
+    # bf16 never ran, so it must not appear with a 100% rate.
+    assert floor["bf16_disagreement"] == 0.0
+    assert floor["per_format_worst_disagreement"].get("bf16") is None
+
+
+def test_unmeasured_cells_still_fail_the_selection_closed():
+    """Excluding them from the noise floor must NOT make them look eligible."""
+    crashed = make_result("bf16", 64, False, 1.0)
+    crashed.measured = False
+    ok = make_result("gptq-4bit", 64, True)
+    selection = select_max_num_seqs([crashed, ok])
+    assert selection["selected_max_num_seqs"] is None
+    assert "bf16" in selection["formats_with_no_stable_value"]
+
+
+def test_measured_defaults_true_and_reaches_the_row():
+    result = make_result("bf16", 8, True)
+    assert result.measured is True
+    assert result.to_row()["measured"] is True
