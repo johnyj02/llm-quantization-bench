@@ -19,6 +19,15 @@ scope/schedule in `EXECUTOR-TASKS.md`; decisions in `notes/decisions.md`. This f
 3. **SMInterface is the ONLY compute path** (D14, overriding `EXECUTOR-TASKS.md` O4).
    EC2 is withdrawn; `scripts/box_*.sh` are retained for provenance only — **do not run them**.
 4. **Never delete anything of the user's without asking.**
+4a. **Log every terminal job to `notes/RUNLOG.md`** — the append-only ledger of what ran, what it
+    cost, and what it taught us. Use the script so the numbers come from the API, never recall:
+    ```bash
+    bash scripts/logrun.sh <job-name> "one-line outcome"   # appends status/seconds/cost
+    bash scripts/logrun.sh                                  # running total only
+    ```
+    Then fill in the `TODO` line with what changed as a result. Do this **as soon as a job reaches
+    a terminal state**, not at the end of a session — the details that matter (which check failed,
+    what the log said) are the ones that evaporate first.
 5. **Route questions to the planner**, not the user: `./ask-planner "..."` (D13). Batch them;
    each call re-sends its whole context. `FORK=1` for throwaway questions.
 
