@@ -163,9 +163,21 @@ python scripts/submit_job.py --stage verify --plan-only
 export HF_TOKEN=$(grep '^HF_TOKEN=' ~/workspaces/MedLLMSafety/.env | cut -d= -f2-)
 python scripts/submit_job.py --stage verify --i-have-confirmation
 
-# Status
-sm-interface status johnyj02-QA-v0.1-<date>-<uuid>-verify
+# Watch to completion, then print why it ended. Resolves the newest job itself.
+bash scripts/watch_job.sh                    # newest johnyj02-QA-* job
+bash scripts/watch_job.sh <job-name> 30      # a specific one, 30s interval
+
+# Read the log with the JSON dump and the tqdm spam stripped out
+bash scripts/job_log.sh <job-name>           # last 60 useful lines
+bash scripts/job_log.sh <job-name> 200 head  # FIRST 200 (preflight, config echo)
 ```
+
+⚠️ **Job names embed the UTC date, and UTC rolls over mid-session.** Never hardcode it in a
+polling loop — a stale date matches nothing, `--training-job-name` gets an empty argument, and
+the watcher dies instantly while the job runs unobserved. `watch_job.sh` resolves the name.
+
+⚠️ **Credentials expire after ~1 h.** A loop that does `2>/dev/null || continue` swallows
+`ExpiredTokenException` and reports a stale status forever. `watch_job.sh` refreshes and retries.
 
 Stages, in order: `verify` → `throughput` → `quantize` → `determinism`. All four have entry
 points and submit cleanly.
