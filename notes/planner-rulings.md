@@ -501,3 +501,113 @@ tokenizer is BPE or SentencePiece, and it needs no per-family special-casing.
 R11's substantive ruling is **unaffected** — we still score the continuation the generative arm
 would actually emit (space + letter). Only the mechanism for obtaining its token ids changes, and
 the recorded per-model ids in the manifest now become the evidence that it was done right.
+
+## R12 — Job 1 complete; calibration reporting, the AWQ reproducibility finding, job 2 scope
+
+Asked after job 1 finished 9/9. Four rulings.
+
+### R12.0 Calibration tokens — report MEASURED, per model, and prove corpus identity
+
+Confirmed: report the measured count, not `num_samples × max_seq_length`. *"The product describes
+a ceiling, not a corpus."* The prereg is not frozen until Sep 2, so this is a **pre-freeze
+correction, not an amendment**. Registered phrasing:
+
+> 512 sequences from `ultrachat_200k` `train_sft`, `max_seq_length` 2048, no padding,
+> seed 20260823 → N tokens (55.3% of the 512×2048 ceiling, since sequences shorter than 2048
+> contribute their own length). Identical corpus for the GPTQ and AWQ arms of each model.
+
+Two requirements, because §2.5's normalisation claim rests on them:
+
+1. **Report per MODEL, not as a range.** My 579,588–581,138 spread is across *tokenizers*, not
+   methods — same text, different models. A range reads as calibration drift between arms.
+2. **Assert corpus identity, don't infer it from the seed.** Hash the realised tokenized
+   sequences and assert equality across the GPTQ and AWQ arms *within* each model. *"Seed
+   equality implies it; a hash proves it, and this is the exact claim the '8× budget difference'
+   warning exists to protect."*
+
+### R12.1 AWQ non-reproducibility is a MAIN-TEXT finding — fund it, and widen it
+
+Run the replicate. *"Both outcomes are results"*: inherent AWQ nondeterminism is novel and
+adjacent to H8; attribution to `offload_device` is sharper still, since *"a pure data-movement
+flag changing published weights is a striking claim about llmcompressor."*
+
+Four changes to what I proposed:
+
+- **Add a GPTQ-4bit Qwen replicate too** (~10 min). A one-method finding invites *"is this just
+  AWQ?"*; two methods makes it a claim about the practice.
+- **Emit per-file SHA-256 from inside the job** from now on. ETag + sampled windows already
+  settle that the existing pair differs; new runs should be exact.
+- **"The bytes differ" is NOT the reportable quantity.** 6/13 differing windows does not
+  distinguish last-bit float noise from the grid search picking *different scale values*. Report
+  max and median relative difference in the scale tensors and in the dequantized weights —
+  *"that distinction is the entire scientific content."*
+- **Answer whether it moves ACCURACY, for free.** The superseded `qwen2.5-3b/awq-4bit` is still
+  in S3, so add it to the pilot as a 16th cell beside the current one, 300 items each
+  (+600 generations). *"Weights differ, scores agree within the noise floor"* is reassuring and
+  valuable; *"weights differ and scores differ"* is significant. Either beats a byte diff with no
+  accuracy consequence attached.
+
+**Placement: a subsection of the main-text determinism contribution — not Limitations, not an
+appendix.** It makes H8 two-part: is the *artifact* reproducible, and is *inference on it*
+reproducible. Numeric tables to the appendix. Scope explicitly to the models and methods measured.
+
+### R12.2 Hashing `offload_device` was right — but the taxonomy I used was wrong
+
+Keep it. The recipe-vs-resource frame is the wrong partition; the right one is **output-affecting
+vs provably-NOT-output-affecting**, and `offload_device` is not in the second class: *"Moving
+tensors between host and device changes reduction order, and reduction order changes
+floating-point results. A 'pure data-movement setting' is not provably output-neutral on
+floating-point hardware."*
+
+The consequences are asymmetric: hashing unnecessarily costs a rebuild (~$12, already paid); not
+hashing when it matters puts two different weight sets under one identifier in a released
+artifact — an **unrecoverable provenance error**. Applying it to all three AWQ arms was also
+correct, since otherwise Phi would differ from Qwen and Llama in an uncontrolled way on exactly
+the arm whose architecture is already the outlier.
+
+Follow-ons: **ship a human-readable manifest of which parameters enter the hash**, so a reader
+sees the decision rather than reverse-engineering it. And **if the replicates show `offload_device`
+is not the driver, do NOT un-hash it** — over-conservative and harmless beats another rebuild.
+
+One sentence for the paper: **R12.2 and H8 are the same phenomenon.** Batch composition is
+nominally "just scheduling" and changes inference output; `offload_device` is nominally "just data
+movement" and changes quantization output.
+
+### R12.3 Job 2 scope confirmed, with three additions
+
+Confirmed as designed: probe composition (*"BBH inclusion is what surfaces #48271's RMSNorm
+leak"*), descending sweep with early exit, floor always measured, Marlin-disabled fallback only
+where an arm proved unstable. Descending is explicitly endorsed as **better than the ascending
+version the plan originally specified** — it finds the highest usable value first and self-adapts.
+
+1. **If early exit fires at 64, still measure 32.** *"Stable at 64, unstable at 32"* would be a
+   non-monotonicity that invalidates the frontier framing, and it is cheap to rule out. Otherwise
+   the frontier is two points and the H8 contribution is thin.
+2. **10 repeats at the chosen value before freezing.** Three repeats *picks* the value; ten
+   *confirms* it. Everything downstream depends on this one number.
+   ⚠️ **This EXTENDS R8, which as recorded specifies 3 repeats and does not mention 10.** Not a
+   contradiction — select-then-confirm is coherent — but noted rather than silently merged.
+3. **One model establishes the MECHANISM, not the RATES — add a Phi-3.5-mini confirmation probe.**
+   My source-level argument is accepted and is what the write-up should lead with. The hole:
+   #48271's leak depends on token count and block-size selection, which are model-dependent, and
+   Phi's fused 3072→16384 gate+up projection — *the same architectural quirk that broke the AWQ
+   memory budget* — could take a different kernel path. Run bf16 + one 4-bit arm at the frozen
+   `max_num_seqs`, 3 repeats: 2 × 500 × 3 = **3,000 generations**, ~30–40 min. Phi over Llama
+   deliberately: the architectural outlier is the higher-information second point.
+
+H8 can then be stated honestly: mechanism from vLLM's source (architecture-general), rates from
+L40S/SM89 (architecture-scoped), model-generality checked on the outlier.
+
+### R12.4 Sequencing under 1 slot and 20 min–2.5 h queue waits
+
+The Q1 requantizes need the **llmcompressor image**, so they cannot ride inside the vLLM
+determinism job (§4's two-image split).
+
+| order | job | why here |
+|---|---|---|
+| **next** | **Job 2 — determinism**: Qwen 5 arms × sweep, + the 32-level check, + 10-repeat confirmation, + Phi 2-arm confirmation | Blocks everything: freezes `max_num_seqs`, delivers G4 and the tight estimate |
+| **then** | **Job 3 — pilot**, +2 cells (superseded and current `qwen/awq-4bit`) | Answers R12.1's accuracy question with no extra job; closes G3, Anchor A, the `TRUNC_STOPSEQ` trigger |
+| **opportunistic** | **Job 1b — two requantizes** (AWQ + GPTQ replicates, quant image, ~30 min) | Attribution only. **Off the critical path** — slot it whenever the queue is free |
+
+This gets R12.1's most valuable component (does it move accuracy?) without spending a queue wait
+on it, and keeps the Sep 2 freeze dependent only on jobs 2 and 3.
