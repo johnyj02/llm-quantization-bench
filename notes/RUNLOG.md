@@ -201,3 +201,20 @@ RuntimeError: Could not find nvcc and default cuda_home='/usr/local/cuda' doesn'
   the engine's own reported ids match the artifact. A config audit found a
   correctness bug in every generation, which is the argument for doing such audits
   before generations exist rather than after.
+
+## determinism-smoke-r3 · Stopped · 0 s · $0.00
+
+`johnyj02-QA-v0-1-20260827-33b4267e-determinism-smoke-r3`
+
+- Stopped while Pending ($0) — superseded by the batch-invariance and engine read-back assertions, which needed rehearsing before their first run.
+- Stopped deliberately while `Pending`, so $0. Third consecutive stop-and-resubmit,
+  each free and each testing strictly more — but worth naming as a pattern: the queue
+  wait is the cost, not the GPU time, and there is a real risk of never converging.
+- The changes it made way for are guards that CAN FAIL SPURIOUSLY:
+  `assert_batch_invariance_engaged()` reads vLLM's PRIVATE `_batch_invariant_MODE` and
+  `torch.bmm.__name__`. If those misread an engine where BI *is* engaged, the job dies
+  on a false alarm — so their first execution belongs in a $0.50 rehearsal, not a
+  multi-hour run. That is the same reasoning that justified every earlier smoke.
+- **This is the last change to the generation path before a smoke result.** Everything
+  else outstanding from R14 (the config manifest, the prereg and Method updates) does
+  not alter what runs.
