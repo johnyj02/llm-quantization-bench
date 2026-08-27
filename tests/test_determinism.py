@@ -17,10 +17,9 @@ from __future__ import annotations
 import pytest
 
 from quantartifact.determinism import (
-    CONFIRM_REPEATS,
     MAX_NUM_SEQS_SWEEP,
+    ORDERING_SEEDS,
     PROBE_COMPOSITION,
-    REPEATS,
     DisagreementResult,
     RepeatOutputs,
     compute_disagreement,
@@ -254,14 +253,12 @@ def test_sweep_plan_reports_best_and_worst_case():
 
     plan = sweep_plan(["bf16", "gptq-4bit", "awq-4bit", "gptq-8bit", "bnb-nf4"], 500, 3)
     assert plan["generations_per_level"] == 7500
-    # THREE levels best case, not two: the stable level, the level below it for the
-    # non-monotonicity check (planner ruling R12.3.1), and the floor.
-    assert plan["best_case_generations"] == 22500
+    # TWO levels best case (R13.2): the stable level plus the one below it for the
+    # non-monotonicity check. The floor is skipped when something above it is stable.
+    assert plan["best_case_generations"] == 15000
     assert plan["worst_case_generations"] == 30000
     assert plan["exhaustive_would_cost"] == 30000
     assert plan["order"] == [64, 32, 16, 8], "must be DESCENDING"
-    # Charged separately: 10 repeats at the selected value only (R12.3.2).
-    assert plan["confirmation_generations"] == 25000
 
 
 def test_sweep_starts_at_the_largest_value():
@@ -282,10 +279,19 @@ def test_sweep_stops_early_when_the_top_level_is_stable_everywhere():
     assert next_sweep_level(tested, ["bf16", "gptq-4bit"]) == 32, "R12.3.1 check"
 
     tested += [make_result("bf16", 32, True), make_result("gptq-4bit", 32, True)]
-    assert next_sweep_level(tested, ["bf16", "gptq-4bit"]) == 8, "floor for the table"
+    # R13.2: the floor is NOT measured once something above it is stable -- its only
+    # purpose was to guarantee SOME value is stable, and that is now known.
+    assert next_sweep_level(tested, ["bf16", "gptq-4bit"]) is None, "floor skipped"
 
-    tested += [make_result("bf16", 8, True), make_result("gptq-4bit", 8, True)]
-    assert next_sweep_level(tested, ["bf16", "gptq-4bit"]) is None
+
+def test_floor_is_still_reached_when_nothing_above_it_is_stable():
+    """R13.2's other half: if 64/32/16 all fail, the walk-down must reach 8."""
+
+    tested = []
+    for level in (64, 32, 16):
+        tested += [make_result("bf16", level, False, 0.02),
+                   make_result("gptq-4bit", level, False, 0.02)]
+    assert next_sweep_level(tested, ["bf16", "gptq-4bit"]) == 8
 
 
 def test_sweep_descends_when_one_format_fails():
@@ -353,8 +359,22 @@ def test_marlin_fallback_cells_are_excluded():
     assert non_monotonic_levels(results, ["gptq-4bit"]) == []
 
 
-def test_confirm_repeats_exceeds_selection_repeats():
-    """Three repeats pick the value; ten confirm it (R12.3.2)."""
+def test_confirmation_varies_ordering_not_repeat_count():
+    """R13.1: batch COMPOSITION is the mechanism, so vary ORDER, not repeats.
 
-    assert CONFIRM_REPEATS == 10
-    assert CONFIRM_REPEATS > REPEATS
+    Ten repeats of the same items in the same order re-present the scheduler with
+    nearly the same batches. A different order means different co-residency, which
+    is what vLLM #51187 actually reported.
+    """
+    assert len(ORDERING_SEEDS) == 3
+    # Ordering 0 is the natural probe order, already run by the sweep, so it is
+    # reused rather than regenerated -- that is what makes this cost 5,000 not 25,000.
+    assert ORDERING_SEEDS[0] == 0
+    assert len(set(ORDERING_SEEDS)) == 3, "seeds must be distinct or orderings repeat"
+
+
+def test_confirmation_reuses_the_sweep_pass():
+    """Only the extra orderings are charged: 5 arms x 2 passes x 500 = 5,000."""
+
+    plan = sweep_plan(["bf16", "gptq-4bit", "awq-4bit", "gptq-8bit", "bnb-nf4"], 500, 3)
+    assert plan["confirmation_generations"] == 5000

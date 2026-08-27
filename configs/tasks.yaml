@@ -428,4 +428,17 @@ item_counts:
   sweep_per_cell: 1400
   zeroshot_per_cell: 1400
   revised_total_estimate: 133500
+  # Determinism audit (job 2 / A7), recorded per planner ruling R13.7 rather than
+  # left to drift. §2.6's original ~13,500 was too low: it predated the
+  # non-monotonicity level (R12.3.1), the ordering confirmation (R13.1) and the
+  # model-generality probe (R12.3.3).
+  #
+  # The spread is CONDITIONAL, which is the point: the sweep costs 2 levels when the
+  # top value is stable and up to 4 when it is not, so the audit is cheap when the
+  # answer is good news and expensive only when the frontier is genuinely
+  # informative. Pre-specified as a contingency in analysis/preregistration.md, so it
+  # reads as a plan rather than a post-hoc expansion.
+  determinism_audit_best: 23000     # sweep 15,000 + ordering 5,000 + Phi 3,000
+  determinism_audit_worst: 45500    # sweep 30,000 + ordering 5,000 + Phi 3,000 + Marlin 7,500
+  determinism_audit_supersedes: "EXECUTOR-TASKS.md 2.6's ~13,500 estimate"
   supersedes: "EXECUTOR-TASKS.md 2.6 table (99,000)"

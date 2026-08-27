@@ -32,16 +32,19 @@ could not *measure*.
 the largest stable value, so testing 64 first answers it in one level instead of
 four. Every cell is checkpointed, so a timeout costs one cell rather than the job.
 
-**Three additions from planner ruling R12.3**, each closing a specific hole:
+**Three additions from planner rulings R12.3 and R13**, each closing a specific hole:
 
 * **R12.3.1 — the level BELOW the stable one is always measured.** "Stable at 64
   but unstable at 32" would be a non-monotonicity, and the frontier framing assumes
   stability is monotone in batch size. Without it the frontier is two points and
   the H8 contribution — telling others what they can safely get away with — is thin.
-* **R12.3.2 — 10 repeats CONFIRM the selected value** before it is frozen. Three
-  repeats *pick* it; everything downstream depends on this one number. If ten
-  repeats reject what three accepted, that is itself an H8 result: the 3-repeat
-  frontier overstates reproducibility.
+* **R13.1 — the confirmation varies item ORDERING, not repeat count.** My first
+  version ran 10 repeats at the selected value; that measures the wrong axis.
+  Batch-invariance failures happen because batch *composition* changes float
+  reduction order, and repeating the same items in the same order re-presents the
+  scheduler with nearly the same batches. A different order means different
+  co-residency, which is what vLLM #51187 reported. Ordering 0 is the sweep's own
+  pass, reused from disk, so this costs 5,000 generations rather than 25,000.
 * **R12.3.3 — a model-generality probe on Phi-3.5-mini.** One model establishes the
   *mechanism* (it lives in vLLM's kernel-dispatch source, so it is
   architecture-general) but not the *rates*. vLLM #48271's leak depends on token
@@ -50,10 +53,20 @@ four. Every cell is checkpointed, so a timeout costs one cell rather than the jo
   budget — could take a different kernel path. Phi over Llama deliberately: the
   architectural outlier is the higher-information second point.
 
+**R13.2 makes the level count conditional on the finding.** The floor existed to
+guarantee that *some* value is stable; once a level is stable that purpose is served,
+so the floor is skipped. 64-stable costs 2 levels; 64-unstable walks down and costs
+up to 4 — cheap when the answer is good news, expensive only when the frontier is
+genuinely interesting. **23,000 generations best case, 45,500 worst.**
+
 The three write SEPARATE artifacts. Only the sweep defines the frontier, and
-`select_max_num_seqs` must see only 3-repeat single-model cells — folding in a
-10-repeat cell (more chances to diverge, so more likely to look unstable) would let
-the confirmation veto the value it exists to confirm.
+`select_max_num_seqs` must see only its own single-ordering 3-repeat cells — folding
+in a different measurement would let the confirmation veto the value it exists to
+confirm.
+
+**A6's deliverable falls out of this job** (R13.5): per-pass wall time and
+generations/hour are logged for every cell, so measured throughput ± the SM89
+batch-invariance overhead does not need a separate job.
 """
 
 from __future__ import annotations
@@ -71,8 +84,8 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 import yaml  # noqa: E402
 
 from quantartifact.determinism import (  # noqa: E402
-    CONFIRM_REPEATS,
     DISABLED_KERNELS_FALLBACK,
+    ORDERING_SEEDS,
     PROBE_COMPOSITION,
     REPEATS,
     SWEEP_FLOOR,
@@ -137,21 +150,26 @@ def cell_tag(
     *,
     model_key: str = AUDIT_MODEL,
     repeats: int = REPEATS,
+    ordering_seed: int = 0,
 ) -> str:
     """Filesystem-safe identity for one probe cell. Also its resume key.
 
-    ⚠️ **MODEL and REPEATS both belong in the tag.** The tag is the resume key, so
-    anything that changes what a cell measures must change its name or a later cell
-    silently inherits an earlier cell's answer:
+    ⚠️ **MODEL, REPEATS and ORDERING all belong in the tag.** The tag is the resume
+    key, so anything that changes what a cell measures must change its name, or a
+    later cell silently inherits an earlier cell's answer:
 
-    * The Phi-3.5-mini confirmation probe (R12.3.3) runs the same arms at the same
-      level as the Qwen audit, so without the model key ``bf16_at_8`` would collide
-      and Phi would report Qwen's numbers.
-    * The 10-repeat confirmation (R12.3.2) runs the same arm at the same level as
-      the sweep's 3-repeat cell. Without the repeat count it would resume from the
-      3-repeat result and "confirm" nothing at all.
+    * The Phi-3.5-mini model-generality probe (R12.3.3) runs the same arms at the
+      same level as the Qwen audit, so without the model key ``bf16_at_8`` would
+      collide and Phi would report Qwen's numbers.
+    * The ordering confirmation (R13.1) runs the same arm at the same level as the
+      sweep. Without the ordering seed it would resume the sweep's result and
+      "confirm" nothing at all.
+    * The repeat count is in there for the same reason — a 1-pass ordering cell and
+      a 3-repeat sweep cell are different measurements.
     """
     parts = [model_key, arm, f"at{max_num_seqs}", f"r{repeats}"]
+    if ordering_seed:
+        parts.append(f"ord{ordering_seed}")
     if disabled_kernels:
         parts.append("fallback")
     return "__".join(parts)
@@ -268,16 +286,26 @@ def resolve_model_path(
 
 
 PROBE_SCRIPT = r"""
-import json, os, sys
+import json, os, random, sys, time
 sys.path.insert(0, "/opt/ml/code/src")
 from quantartifact.generate import EngineSpec, VLLMRunner
 
 payload = json.loads(open(sys.argv[1]).read())
 spec = EngineSpec(**payload["spec"])
+started = time.monotonic()
 runner = VLLMRunner(spec)          # preflight() asserts every BI invariant here
+load_s = time.monotonic() - started
 
-items = payload["items"]
-out = {"repeats": [], "hardware": runner.hardware}
+items = list(payload["items"])
+# ORDERING (R13.1). Seed 0 is the natural probe order used by the sweep. A non-zero
+# seed shuffles the items, which changes which sequences are CO-RESIDENT in each
+# batch -- the actual mechanism behind batch-invariance failures, and the thing
+# vLLM #51187 reported. Shuffled BEFORE grouping so the order changes inside each
+# vLLM call, not merely between calls.
+if payload.get("ordering_seed"):
+    random.Random(payload["ordering_seed"]).shuffle(items)
+
+out = {"repeats": [], "hardware": runner.hardware, "engine_load_s": round(load_s, 1)}
 for repeat_idx in range(payload["repeats"]):
     texts = {}
     # Group by (max_gen_toks, until) so each vLLM call is a single homogeneous
@@ -286,12 +314,19 @@ for repeat_idx in range(payload["repeats"]):
     groups = {}
     for item in items:
         groups.setdefault((item["max_gen_toks"], tuple(item["until"])), []).append(item)
+    pass_started = time.monotonic()
     for (max_toks, until), group in sorted(groups.items()):
         results = runner.generate([g["prompt"] for g in group], max_toks, list(until))
         for g, r in zip(group, results):
             texts[g["item_id"]] = r["text"]
+    elapsed = time.monotonic() - pass_started
     out["repeats"].append(texts)
-    print(f"  repeat {repeat_idx}: {len(texts)} outputs", flush=True)
+    # Per-pass wall time is how A6's deliverable (measured generations/hour on SM89)
+    # falls out of this job instead of needing its own (R13.5).
+    out.setdefault("pass_seconds", []).append(round(elapsed, 1))
+    rate = len(texts) / elapsed * 3600 if elapsed else 0
+    print(f"  pass {repeat_idx}: {len(texts)} outputs in {elapsed / 60:.1f} min "
+          f"(~{rate:,.0f} gen/h)", flush=True)
 
 open(payload["out_path"], "w").write(json.dumps(out))
 """
@@ -308,6 +343,7 @@ def run_probe_cell(
     disabled_kernels: str | None,
     model_key: str = AUDIT_MODEL,
     repeats: int = REPEATS,
+    ordering_seed: int = 0,
 ) -> DisagreementResult | None:
     """Run one (arm, max_num_seqs) cell: `REPEATS` passes over the probe.
 
@@ -322,7 +358,8 @@ def run_probe_cell(
     repeats from contaminating each other.
     """
     tag = cell_tag(arm, max_num_seqs, disabled_kernels,
-                   model_key=model_key, repeats=repeats)
+                   model_key=model_key, repeats=repeats,
+                   ordering_seed=ordering_seed)
     result_path = PROBE_DIR / f"{tag}.json"
 
     # A rehearsal must actually rehearse. Resuming from a previous smoke's cached
@@ -348,6 +385,7 @@ def run_probe_cell(
         },
         "items": items,
         "repeats": repeats,
+        "ordering_seed": ordering_seed,
         "out_path": str(raw_path),
     }
     payload_path = PROBE_DIR / f"payload_{tag}.json"
@@ -408,6 +446,73 @@ def run_probe_cell(
     )
     print(f"       {elapsed / 60:.1f} min — {verdict}")
     return result
+
+
+def confirm_ordering(
+    arm: str,
+    level: int,
+    items: list[dict],
+    specs: dict,
+    model: dict,
+    resolved: dict[str, tuple[str, str | None]],
+    model_key: str = AUDIT_MODEL,
+) -> DisagreementResult | None:
+    """Does this arm's output depend on the ORDER the probe was submitted in?
+
+    Three passes at the same `max_num_seqs`, differing only in item order. Ordering 0
+    is read back from the sweep's own run at this level rather than regenerated —
+    that reuse is what makes this cost 5,000 generations instead of 25,000.
+
+    Returns None if the sweep's pass is missing, since without it there is nothing to
+    compare the shuffled orderings against.
+
+    ⚠️ The comparison is order-INSENSITIVE by construction: outputs are dicts keyed by
+    `item_id`, so shuffling the submission order cannot by itself register as
+    disagreement. Only a genuinely different generation for the same item does.
+    """
+    baseline_tag = cell_tag(arm, level, model_key=model_key, repeats=REPEATS)
+    baseline_raw = PROBE_DIR / f"raw_{baseline_tag}.json"
+    if not baseline_raw.exists():
+        print(f"[skip] ordering {arm}@{level}: no sweep pass at this level to compare "
+              f"against ({baseline_raw.name})")
+        return None
+
+    passes = [
+        RepeatOutputs(
+            fmt=arm, max_num_seqs=level, repeat_idx=0,
+            outputs=json.loads(baseline_raw.read_text())["repeats"][0],
+        )
+    ]
+
+    path, _ = resolved[arm]
+    method, bits = arm_engine_fields(arm, specs)
+    for index, seed in enumerate(ORDERING_SEEDS[1:], start=1):
+        result = run_probe_cell(
+            arm, path, model["revision"], quant_method=method, bits=bits,
+            max_num_seqs=level, items=items, disabled_kernels=None,
+            model_key=model_key, repeats=1, ordering_seed=seed,
+        )
+        if result is None:
+            return None
+        raw = PROBE_DIR / (
+            "raw_"
+            + cell_tag(arm, level, model_key=model_key, repeats=1, ordering_seed=seed)
+            + ".json"
+        )
+        passes.append(
+            RepeatOutputs(
+                fmt=arm, max_num_seqs=level, repeat_idx=index,
+                outputs=json.loads(raw.read_text())["repeats"][0],
+            )
+        )
+
+    combined = compute_disagreement(passes)
+    verdict = "order-INVARIANT" if combined.bitwise_stable else (
+        f"{combined.n_disagreeing}/{combined.n_items} items changed with order "
+        f"({combined.disagreement_rate:.3%})"
+    )
+    print(f"       {arm}: {verdict}")
+    return combined
 
 
 def main() -> int:
@@ -542,26 +647,38 @@ def main() -> int:
         print()
 
     # ---------------------------------------------------------------------
-    # R12.3.2 — CONFIRM the selected value with 10 repeats before freezing it.
-    # Three repeats pick the value; ten confirm it, and everything downstream
-    # depends on this one number.
+    # R13.1 — CONFIRM the selected value by varying ITEM ORDERING, not repeats.
     #
-    # Kept OUT of `results`, deliberately. `select_max_num_seqs` must see only the
-    # 3-repeat sweep cells, or it would compare probes of different repeat counts
-    # and a 10-repeat cell (more chances to diverge, so more likely to look
-    # unstable) could veto the very value it was meant to confirm.
+    # Batch-invariance failures happen because batch COMPOSITION changes float
+    # reduction order. Repeating the same items in the same order re-presents the
+    # scheduler with nearly the same batches, so repeat count is a weak way to
+    # explore the failure surface. A different ORDER means different co-residency,
+    # which is what vLLM #51187 actually reported.
+    #
+    # Ordering 0 is the natural order the sweep already ran at this level, so it is
+    # REUSED from disk. Only the extra orderings cost generations.
+    #
+    # Kept OUT of `results`: `select_max_num_seqs` is defined over the 3-repeat
+    # single-ordering sweep cells, and folding in a different measurement would let
+    # the confirmation veto the value it exists to confirm.
     # ---------------------------------------------------------------------
     confirmation: list[DisagreementResult] = []
     selected = select_max_num_seqs(results)["selected_max_num_seqs"]
     confirm_level = selected if selected is not None else SWEEP_FLOOR
     if not SMOKE:
-        print(f"=== confirmation: max_num_seqs={confirm_level}, "
-              f"{CONFIRM_REPEATS} repeats (R12.3.2) ===")
+        print(f"=== ordering confirmation: max_num_seqs={confirm_level}, "
+              f"orderings {list(ORDERING_SEEDS)} (R13.1) ===")
         if selected is None:
             print("    ⚠️ no value was stable for every arm — confirming at the floor,")
             print("       which is itself the reportable H8 result.")
         for arm in arms:
-            measure(arm, confirm_level, repeats=CONFIRM_REPEATS, collect=confirmation)
+            result = confirm_ordering(
+                arm, confirm_level, items, specs, model, resolved,
+            )
+            if result is None:
+                unmeasured.add(f"ordering:{arm}@{confirm_level}")
+            else:
+                confirmation.append(result)
         print()
 
     # ---------------------------------------------------------------------
@@ -650,24 +767,26 @@ def main() -> int:
 
     if confirmation:
         print()
-        print(f"=== confirmation at max_num_seqs={confirm_level}, "
-              f"{CONFIRM_REPEATS} repeats ===")
+        print(f"=== ordering confirmation at max_num_seqs={confirm_level} "
+              f"(orderings {list(ORDERING_SEEDS)}) ===")
         held = [r for r in confirmation if r.bitwise_stable]
         for result in confirmation:
-            verdict = "stable" if result.bitwise_stable else (
-                f"{result.n_disagreeing}/{result.n_items} disagree")
+            verdict = "order-invariant" if result.bitwise_stable else (
+                f"{result.n_disagreeing}/{result.n_items} changed "
+                f"({result.disagreement_rate:.3%})")
             print(f"  {result.fmt:12} {verdict}")
         if len(held) == len(confirmation):
-            print(f"  ✅ {confirm_level} CONFIRMED over {CONFIRM_REPEATS} repeats — "
+            print(f"  ✅ {confirm_level} survives ITEM REORDERING for every arm — "
                   f"freeze it")
         else:
             broke = [r.fmt for r in confirmation if not r.bitwise_stable]
-            print(f"  🚨 {confirm_level} did NOT survive {CONFIRM_REPEATS} repeats "
-                  f"for {broke}.")
-            print("     Three repeats picked a value ten repeats rejects, which is "
-                  "itself an H8 result:")
-            print("     the 3-repeat frontier OVERSTATES reproducibility. Do not "
-                  "freeze this value without a planner ruling.")
+            print(f"  🚨 {confirm_level} is NOT order-invariant for {broke}.")
+            print("     Repeating the identical order agreed while REORDERING did "
+                  "not, which is the")
+            print("     mechanism itself: batch composition, not repetition, is what "
+                  "moves the output.")
+            print("     The single-ordering frontier OVERSTATES reproducibility. Do "
+                  "not freeze without a planner ruling.")
 
     if phi_results:
         print()

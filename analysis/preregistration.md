@@ -705,6 +705,40 @@ deliberately starves GPU concurrency.
 - **If no value above 8 is stable, that is a finding, not a failed sweep**, and it is reported
   as such.
 
+**Pre-specified contingency on the level count** (planner ruling R13.2 — registered here so the
+number of levels measured is a plan, not a post-hoc choice). The sweep runs **descending**,
+because the quantity wanted is the *largest* usable value:
+
+- The first level stable for every format is selected, and **the level immediately below it is
+  then also measured**, to rule out a non-monotonicity. "Stable at 64 but unstable at 32" would
+  mean stability is not monotone in batch size, so "the largest stable value" would not be a
+  well-defined threshold and the frontier would have to be reported as a **set** rather than a
+  cut-off. That outcome is reported if it occurs.
+- **The floor (8) is measured only when nothing above it was stable.** Its purpose is to
+  guarantee that some value is stable; once a higher level is stable, that is established.
+- Consequently the audit costs 2 levels when the top value is stable and up to 4 when it is not.
+  This is a deliberate asymmetry: cheap when the answer is unremarkable, expensive only when the
+  frontier is genuinely informative.
+
+**Confirmation of the selected value varies ITEM ORDERING, not repeat count** (R13.1). Repeating
+an identical probe in an identical order re-presents the scheduler with nearly the same batches,
+so repeat count explores the failure surface weakly. Batch-invariance failures arise from batch
+*composition*, so the selected value is confirmed with **three orderings of the same 500-item
+probe** — ordering 0 being the sweep's own pass, and two independent shuffles at published seeds
+(`20260827`, `20260828`). The probe **size is held at 500 throughout**, so disagreement rates
+remain comparable between the sweep and the confirmation, and the confirmation is reported as a
+**rate** rather than a pass/fail. If the value is stable under repetition but not under
+reordering, the single-ordering frontier **overstates** reproducibility, and that is reported.
+
+**Model generality** (R12.3.3). The *mechanism* is read from vLLM's kernel-dispatch source and is
+therefore architecture-general; the *rates* are specific to this hardware and model. A
+confirmation probe on **Phi-3.5-mini** (bf16 and one 4-bit arm, at the frozen value) tests whether
+the rates transfer, chosen over Llama-3.1-8B deliberately because its fused gate+up projection
+makes it the architectural outlier and therefore the higher-information second point.
+
+**Registered generation budget for the audit: 23,000 best case, 45,500 worst** — superseding
+§2.6's ~13,500, which predated the three additions above.
+
 **H7 framing, pre-committed.** For each published degradation figure cited, compute the 95%
 CI implied by that paper's own eval size and state whether the reported delta clears it.
 Also report our own minimum detectable effect at 80% power. Wording is scrupulously

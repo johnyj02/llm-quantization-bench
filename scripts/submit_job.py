@@ -65,7 +65,13 @@ STAGES: dict[str, dict] = {
     "determinism": {
         "entry_point": "sm_determinism.py",
         "description": "A7/H8: per-format bitwise disagreement + max_num_seqs frontier",
-        "max_run": 86400,
+        # 48 h, per planner ruling R13.4. ⚠️ A GENEROUS CAP IS FREE — SageMaker bills
+        # time USED, not the cap, so there is no reason to run this close to the wire.
+        # 48 h is generous enough that a timeout is unlikely at any plausible
+        # generation rate, and short enough that a HANG caps exposure at ~$134 rather
+        # than the ~$336 a 5-day cap (SageMaker's maximum) would allow. Per-cell
+        # checkpointing already makes a timeout cost a queue wait rather than work.
+        "max_run": 172800,
     },
 }
 

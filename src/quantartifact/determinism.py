@@ -87,18 +87,24 @@ def sweep_plan(formats: Sequence[str], n_probe: int, repeats: int) -> dict[str, 
     per_level = len(formats) * repeats * n_probe
     return {
         "order": list(SWEEP_ORDER),
-        "floor_always_measured": SWEEP_FLOOR,
         "generations_per_level": per_level,
-        # Best case is now THREE levels, not two: the stable one, the level below it
-        # for the non-monotonicity check (R12.3.1), and the floor.
-        "best_case_generations": per_level * 3,
+        # R13.2: the level count is CONDITIONAL on the finding. Top level stable ->
+        # that level plus the one below it for the non-monotonicity check, and the
+        # floor is skipped. Top level unstable -> walk all the way down.
+        "best_case_levels": 2,
+        "worst_case_levels": len(SWEEP_ORDER),
+        "best_case_generations": per_level * 2,
         "worst_case_generations": per_level * len(SWEEP_ORDER),
         "exhaustive_would_cost": per_level * len(MAX_NUM_SEQS_SWEEP),
-        # Charged separately because it happens once, at the selected value only.
-        "confirmation_generations": len(formats) * CONFIRM_REPEATS * n_probe,
+        # Charged separately: happens once, at the selected value, and reuses
+        # ordering 0 from the sweep so only the extra orderings cost anything.
+        "confirmation_generations": (
+            len(formats) * (len(ORDERING_SEEDS) - 1) * n_probe
+        ),
         "note": (
-            "descending: stop at the first level stable for EVERY format, then also "
-            "measure the level BELOW it (non-monotonicity, R12.3.1) and the floor"
+            "descending: stop at the first level stable for EVERY format, then "
+            "measure the level BELOW it (non-monotonicity, R12.3.1). The floor is "
+            "measured only when nothing above it was stable (R13.2)."
         ),
     }
 
@@ -122,25 +128,23 @@ def next_sweep_level(
         if not all(fmt in seen for fmt in formats):
             return level  # incomplete at this level -> test it
         if all(seen[fmt] for fmt in formats):
-            # Largest stable level found. Two more levels are still required.
+            # Largest stable level found. Exactly ONE more level is required: the one
+            # immediately BELOW it (planner ruling R12.3.1). "Stable at 64 but
+            # unstable at 32" is a non-monotonicity that would invalidate the whole
+            # frontier framing, and it is cheap to rule out. Without it the frontier
+            # is two points and the H8 contribution -- telling other people what they
+            # can safely get away with -- is thin.
             #
-            # 1. THE LEVEL IMMEDIATELY BELOW IT (planner ruling R12.3.1). "Stable at
-            #    64 but unstable at 32" is a non-monotonicity that would invalidate
-            #    the whole frontier framing, and it is cheap to rule out. Without
-            #    this the frontier is two points and the H8 contribution -- telling
-            #    other people what they can safely get away with -- is thin.
-            # 2. The floor, so the table is complete against §3.3's pre-audit value.
+            # ⚠️ The floor is NOT measured unconditionally (R13.2). Its purpose was to
+            # guarantee we know SOME value is stable; once a level is stable that
+            # purpose is already served. So 64-stable costs 2 levels, while
+            # 64-unstable walks down and costs up to 4 -- cheap when the answer is
+            # good news, expensive only when the frontier is genuinely interesting.
             index = SWEEP_ORDER.index(level)
-            required = []
             if index + 1 < len(SWEEP_ORDER):
-                required.append(SWEEP_ORDER[index + 1])
-            if SWEEP_FLOOR not in required:
-                required.append(SWEEP_FLOOR)
-
-            for want in required:
-                measured = by_level.get(want, {})
-                if not all(fmt in measured for fmt in formats):
-                    return want
+                below = SWEEP_ORDER[index + 1]
+                if not all(fmt in by_level.get(below, {}) for fmt in formats):
+                    return below
             return None
 
     return None
@@ -196,20 +200,30 @@ DISABLED_KERNELS_FALLBACK = "MarlinLinearKernel,MacheteLinearKernel"
 
 REPEATS = 3
 
-# Planner ruling R12.3.2: three repeats PICK the value, ten CONFIRM it, and
-# everything downstream depends on this one number.
+# 🚨 THE CONFIRMATION VARIES ITEM ORDERING, NOT REPEAT COUNT (planner ruling R13.1).
 #
-# ⚠️ This EXTENDS R8, which as recorded specifies 3 repeats and does not mention 10.
-# Select-then-confirm is coherent rather than contradictory, so it is applied — but
-# the difference is recorded in notes/planner-rulings.md rather than merged silently.
+# My first version ran 10 repeats at the selected value. That measures the wrong
+# axis. Batch-invariance failures happen because **batch composition** changes float
+# reduction order — and ten repeats of the same 500 items in the same order
+# re-presents the scheduler with nearly the same batches every time. Continuous-batch
+# timing jitter means it is not a pure no-op, but per generation spent, repeat count
+# is a weak way to explore the failure surface, and it cost 22,500 generations.
 #
-# ⚠️ The ten repeats CANNOT be stitched from the sweep's three plus seven more. What
-# A7 measures is whether repeated identical requests to a *running* engine return
-# identical text; combining repeats from two engine instances would measure
-# cross-instance variation instead, which is a different quantity. So the
-# confirmation is its own cell with its own engine, and the sweep's three repeats at
-# that level are not reused.
-CONFIRM_REPEATS = 10
+# Item ORDERING is the axis that moves the mechanism: a different order means
+# different co-residency, which is exactly what vLLM #51187 reported (44 co-resident
+# sequences diverging where 8 did not).
+#
+# Ordering 0 is the natural probe order, already run by the sweep at the chosen
+# level, so it is REUSED rather than regenerated. Only orderings 1 and 2 cost
+# anything: 5 arms x 2 passes x 500 items = 5,000 generations.
+#
+# The seeds are published because the whole claim is reproducibility.
+#
+# ⚠️ The probe SIZE stays 500 across sweep and confirmation. Shrinking it would cut
+# the sequence-length diversity that carries the signal (#48271's RMSNorm leak is
+# token-count dependent) while keeping the redundancy that does not — and it would
+# make the disagreement rates non-comparable between the two stages.
+ORDERING_SEEDS: tuple[int, ...] = (0, 20260827, 20260828)
 
 # The A7 probe: 500 items spanning all three answer formats, so a
 # format-dependent nondeterminism cannot hide.
