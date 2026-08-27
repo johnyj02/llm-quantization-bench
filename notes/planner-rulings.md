@@ -611,3 +611,84 @@ determinism job (§4's two-image split).
 
 This gets R12.1's most valuable component (does it move accuracy?) without spending a queue wait
 on it, and keeps the Sep 2 freeze dependent only on jobs 2 and 3.
+
+## R13 — Job 2 budget: none of my four options. The confirmation was testing the wrong axis.
+
+I costed R12.3 at 50,500–65,500 generations (38–49% of the study's 133,500) and offered four
+trims. All rejected, for a reason that is better science *and* cheaper.
+
+### R13.1 The 10-repeat confirmation measures the wrong thing — vary ORDERING, not repeats
+
+Batch-invariance failures happen because **batch composition** changes float reduction order. *"Ten
+repeats of the same 500 items in the same order re-presents the scheduler with nearly the same
+batches every time."* Timing jitter in continuous batching means it is not a pure no-op, but **per
+generation spent, repeat count is a weak way to explore the failure surface** — and it was the axis
+I was buying 22,500 generations of.
+
+The axis that varies the mechanism is **item ordering**: different order → different co-residency →
+exactly what #51187 was about (44 co-resident sequences diverging where 8 did not).
+
+> **5 arms × 3 ORDERINGS × 500 items.** Ordering 1 is the sweep pass already run at the chosen
+> level; orderings 2–3 are independently shuffled, **seeds published**. Marginal cost **5,000**,
+> not 25,000.
+
+Sequence-length diversity matters for the same reason (#48271's RMSNorm leak is token-count
+dependent), which is also **a second argument against my option B**: shrinking 500 → 200 items
+*"cuts the diversity that carries the signal and keeps the redundancy that doesn't."* Probe size
+stays 500 throughout, so the rate-comparability concern dissolves and this is reported **as a
+rate**, not as a pass/fail.
+
+### R13.2 Make the level count CONDITIONAL on the finding
+
+The floor exists so that if 64 is unstable we know *some* value is stable. If 64 is stable that
+purpose is already served, so the floor is no longer unconditional:
+
+* **64 stable** → measure 32 for the non-monotonicity check, **skip 8**. 2 levels = 15,000.
+* **64 unstable** → walk down 32/16/8 as designed. Up to 4 levels = 30,000 — *"and in that world
+  the frontier is genuinely informative, so the spend is earned."*
+
+*"Cost becomes cheap when the answer is good news and expensive only when it's interesting. That's
+the right shape for a gating audit."*
+
+### R13.3 Revised job 2 budget
+
+| stage | best | worst |
+|---|---|---|
+| sweep (2 or 4 levels) | 15,000 | 30,000 |
+| ordering confirmation (marginal) | 5,000 | 5,000 |
+| Phi model-generality | 3,000 | 3,000 |
+| Marlin fallback (only if unstable) | 0 | 7,500 |
+| **total** | **23,000** | **45,500** |
+
+**17% of the study best case**, down from 38–49%. *"Coverage is not reduced — redundancy is."*
+
+### R13.4 `max_run` = 172,800 (48 h). A generous cap is FREE.
+
+My option C's justification was wrong: **you are billed for time used, not for the cap.** 48 h is
+generous enough that a timeout is unlikely at any plausible rate and short enough that a hang caps
+exposure at ~$134 rather than the ~$336 a 5-day cap allows. Per-cell checkpointing already makes a
+timeout cost a queue wait rather than work.
+
+### R13.5 Smoke first — but for a reason I did not cite
+
+**No generation cell has ever executed on this substrate.** Job 1 was quantization. Engine init
+under batch invariance on SM89, prompt materialization from the frozen artifact, JSONL writing and
+checkpoint resume are *all* unexercised on the real box. Read the crude gen/hour off the smoke —
+that is my option C's entire benefit for ~10 minutes of GPU on a step I owe anyway.
+
+**A6's deliverable falls out of job 2's own per-arm wall times. It does not need its own job.**
+
+### R13.6 The payoff is larger than I said
+
+If the sweep finds 64 stable, the ~110k remaining generations run on a decode-bound L40S at
+plausibly **3–5×** the throughput of `max_num_seqs=8` — *"roughly the difference between ~40 and
+~10 GPU-hours downstream."* Job 2 pays for itself several times over, *"which is exactly why it
+should be paid once, properly — and why I'm cutting redundancy rather than coverage."*
+
+### R13.7 Planner owns the estimate miss; record 23,000 as the honest number
+
+§2.6's ~13,500 was the planner's and *"was too low"* — it predated the non-monotonicity level, the
+ordering confirmation and the model-generality probe. **Update `configs/tasks.yaml` and §2.6 to
+23,000 rather than treating the overrun as drift**, and note in the prereg that the sweep's level
+count is **conditional on the 64-level result**, so it reads as a pre-specified contingency rather
+than a post-hoc expansion.
