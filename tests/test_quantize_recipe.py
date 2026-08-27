@@ -25,6 +25,11 @@ These run without llmcompressor installed: `gptq_actorder` only imports
 from __future__ import annotations
 
 import inspect
+import json
+import re
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -142,3 +147,60 @@ class TestNormalisationStillHolds:
                 f"{spec.key} uses preset {spec.scheme!r}, whose resolved args were "
                 f"not verified against compressed-tensors 0.17.1"
             )
+
+
+class TestArmSubprocessPlumbing:
+    """The child script that quantizes one arm must be wired correctly.
+
+    Job 1's first attempt lost 4 of 9 arms to a GPU memory leak across arms in one
+    process; the fix runs each arm in its own subprocess. That moved the arm's
+    arguments into a JSON payload, and a payload key mismatch or a bad `sys.path`
+    insert would not surface until a queued GPU job failed. This exercises the
+    child for real, locally, in about a second.
+
+    It cannot complete -- `datasets` and `llmcompressor` are GPU-box-only -- so the
+    assertion is that it reaches exactly that point and no earlier.
+    """
+
+    def _run_child(self, override):
+        source = (Path(__file__).resolve().parents[1] / "sm_quantize.py").read_text()
+        script = re.search(r'ARM_SCRIPT = r"""(.*?)"""', source, re.S).group(1)
+        # The only substitution: container path -> this repo.
+        script = script.replace(
+            '"/opt/ml/code/src"',
+            repr(str(Path(__file__).resolve().parents[1] / "src")),
+        )
+        tmp = Path(tempfile.mkdtemp())
+        payload = {
+            "model_repo": "Qwen/Qwen2.5-3B-Instruct",
+            "model_revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+            "model_key": "qwen2.5-3b",
+            "arm": "gptq-4bit",
+            "configs": str(CONFIGS),
+            "checkpoint_dir": str(tmp),
+            "calibration_override": override,
+        }
+        path = tmp / "payload.json"
+        path.write_text(json.dumps(payload))
+        result = subprocess.run(
+            [sys.executable, "-c", script, str(path)],
+            capture_output=True, text=True, timeout=180,
+        )
+        return result.stdout + result.stderr
+
+    GPU_ONLY = ("No module named 'datasets'", "No module named 'llmcompressor'")
+
+    def test_reaches_quantize_model_with_smoke_override(self):
+        out = self._run_child({"num_samples": 8, "max_seq_length": 256})
+        assert any(m in out for m in self.GPU_ONLY), out[-1500:]
+
+    def test_reaches_quantize_model_without_override(self):
+        """The real-job path. SMOKE exercises the override branch, not this one."""
+        out = self._run_child(None)
+        assert any(m in out for m in self.GPU_ONLY), out[-1500:]
+
+    def test_no_plumbing_errors(self):
+        """A KeyError/TypeError here is a payload contract break, not a missing GPU."""
+        out = self._run_child(None)
+        for bad in ("KeyError", "TypeError", "FileNotFoundError", "JSONDecodeError"):
+            assert bad not in out, f"{bad} in child output:\n{out[-1500:]}"
