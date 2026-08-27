@@ -301,7 +301,10 @@ payload = json.loads(open(sys.argv[1]).read())
 spec = EngineSpec(**payload["spec"])
 started = time.monotonic()
 runner = VLLMRunner(spec)          # preflight() asserts every BI invariant here
+_ = runner.llm                     # force init so the ENGINE read-back runs now
 load_s = time.monotonic() - started
+print(f"  batch invariance: {runner.batch_invariance}", flush=True)
+print(f"  engine state    : {runner.engine_state}", flush=True)
 
 items = list(payload["items"])
 # ORDERING (R13.1). Seed 0 is the natural probe order used by the sweep. A non-zero
@@ -312,7 +315,10 @@ items = list(payload["items"])
 if payload.get("ordering_seed"):
     random.Random(payload["ordering_seed"]).shuffle(items)
 
-out = {"repeats": [], "hardware": runner.hardware, "engine_load_s": round(load_s, 1)}
+out = {"repeats": [], "hardware": runner.hardware, "engine_load_s": round(load_s, 1),
+       # R14.3's structural fix in miniature: the engine's OWN reported state travels
+       # with the measurement, so a reviewer sees what ran rather than what we asked for.
+       "batch_invariance": runner.batch_invariance, "engine_state": runner.engine_state}
 for repeat_idx in range(payload["repeats"]):
     texts = {}
     # Group by (max_gen_toks, until) so each vLLM call is a single homogeneous

@@ -191,6 +191,165 @@ def preflight(spec: EngineSpec, *, strict: bool = True) -> list[str]:
     return problems
 
 
+def assert_batch_invariance_engaged() -> dict[str, Any]:
+    """Verify batch invariance was actually APPLIED, not merely requested.
+
+    🚨 **Planner ruling R14.3 item 1: the single most important assertion in the
+    study.** No substitution ⇒ H8 is dead and every precision delta is untrustworthy.
+    `preflight()` only checks that `VLLM_BATCH_INVARIANT=1` is *set*; that is a
+    request, and the whole `async_scheduling` lesson is that a request is not an
+    outcome. This reads the engine's state instead.
+
+    Must be called AFTER the engine is constructed, since vLLM applies the overrides
+    during initialisation.
+
+    **What is observable, and why these checks.** vLLM 0.26.0 exposes no
+    `vllm_is_batch_invariant()` accessor and keeps no registry of the ops it patched —
+    they are registered imperatively onto one `torch.library.Library("aten", "IMPL")`
+    handle. But `enable_batch_invariant_mode()` also *monkey-patches* `torch.bmm`, and
+    that is directly visible.
+
+    ⚠️ **Our SM89 L40S takes the Triton path**, which is why `build-essential` is
+    load-bearing. The branch is `is_device_capability_family(80)` — a FAMILY check
+    covering 8.0/8.6/8.9 alike — so we get Triton overrides of `aten::mm`,
+    `addmm`, `matmul` and `linear`, with vLLM's own comment that Ampere-family chips
+    "cannot rely on cuBLASLt-only determinism". **SM90/SM100 take a different path
+    entirely** (no matmul overrides; `CUBLAS_WORKSPACE_CONFIG=:16:8` instead), so this
+    study's mechanism claim is architecture-scoped and the paper must say so.
+    """
+    observed: dict[str, Any] = {}
+    problems: list[str] = []
+
+    import torch  # noqa: PLC0415 - GPU-box-only dependency
+
+    # 1. The monkey-patch. The most direct evidence the function ran at all.
+    bmm_name = getattr(torch.bmm, "__name__", "?")
+    observed["torch_bmm"] = bmm_name
+    if bmm_name != "bmm_batch_invariant":
+        problems.append(
+            f"torch.bmm is {bmm_name!r}, not 'bmm_batch_invariant' -- "
+            f"enable_batch_invariant_mode() did not run"
+        )
+
+    # 2. vLLM's own private flag. Private, but it is the authoritative state.
+    try:
+        from vllm.model_executor.layers import batch_invariant  # noqa: PLC0415
+
+        mode = getattr(batch_invariant, "_batch_invariant_MODE", None)
+        observed["_batch_invariant_MODE"] = mode
+        if mode is not True:
+            problems.append(f"vLLM's _batch_invariant_MODE is {mode!r}, expected True")
+    except Exception as exc:  # noqa: BLE001
+        problems.append(f"could not read vLLM's batch-invariant state: {exc}")
+
+    # 3. Reduced-precision reduction must be OFF -- enable_batch_invariant_mode sets
+    # it, so a truthy value here means our settings were overwritten afterwards.
+    for attr in ("allow_bf16_reduced_precision_reduction",
+                 "allow_fp16_reduced_precision_reduction"):
+        value = getattr(torch.backends.cuda.matmul, attr, None)
+        observed[attr] = value
+        if value:
+            problems.append(f"torch.backends.cuda.matmul.{attr}={value!r}, expected off")
+
+    # 4. Set by override_envs_for_invariance() before the overrides are applied.
+    observed["CUBLAS_WORKSPACE_CONFIG"] = os.environ.get("CUBLAS_WORKSPACE_CONFIG")
+    if not observed["CUBLAS_WORKSPACE_CONFIG"]:
+        problems.append(
+            "CUBLAS_WORKSPACE_CONFIG is unset -- override_envs_for_invariance() "
+            "did not run, so batch invariance was never initialised"
+        )
+
+    if problems:
+        raise PreflightError(
+            "BATCH INVARIANCE DID NOT ENGAGE -- refusing to generate. Every delta in "
+            "this study would be untrustworthy and H8 unanswerable:\n  - "
+            + "\n  - ".join(problems)
+            + f"\nobserved: {observed}"
+        )
+    return observed
+
+
+def read_back_engine_state(llm, spec: EngineSpec) -> dict[str, Any]:
+    """Compare what the engine REPORTS against what we asked for. R14.3.
+
+    The rule the three declared-but-unenforced failures produced: *assert on the
+    engine's reported state, not on the value we passed.* We knew what we passed
+    every time; what we never did was read back what the engine did with it.
+    """
+    observed: dict[str, Any] = {}
+    problems: list[str] = []
+
+    # ⚠️ An introspection FAILURE is not a config disagreement. vLLM moves this
+    # attribute between versions and I cannot exercise it locally (no GPU), so a
+    # missing path is reported loudly and does not kill the job -- whereas an actual
+    # mismatch below is fatal. Killing a queued multi-hour job because an attribute
+    # moved would be the wrong trade; silently skipping a real mismatch would be worse.
+    config = None
+    for path in ("llm_engine.vllm_config", "llm_engine.engine_core.vllm_config"):
+        probe = llm
+        for attr in path.split("."):
+            probe = getattr(probe, attr, None)
+            if probe is None:
+                break
+        if probe is not None:
+            config = probe
+            break
+    if config is None:
+        print("  ⚠️ engine state UNREADABLE on this vLLM version -- the read-back "
+              "assertions did not run. Values below are our REQUESTS, not the "
+              "engine's report.")
+        return {"read_back": "unavailable", "requested_max_num_seqs": spec.max_num_seqs}
+
+    model_cfg = getattr(config, "model_config", None)
+    cache_cfg = getattr(config, "cache_config", None)
+    sched_cfg = getattr(config, "scheduler_config", None)
+
+    # R14.3 item 5. If max_model_len outruns the KV cache, vLLM SILENTLY reduces
+    # concurrency -- which corrupts the exact quantity A7 exists to freeze.
+    if sched_cfg is not None:
+        observed["max_num_seqs"] = getattr(sched_cfg, "max_num_seqs", None)
+        if observed["max_num_seqs"] != spec.max_num_seqs:
+            problems.append(
+                f"engine reports max_num_seqs={observed['max_num_seqs']}, we asked for "
+                f"{spec.max_num_seqs}. A7 freezes this value; a silent reduction makes "
+                f"every arm incomparable."
+            )
+        observed["async_scheduling"] = getattr(sched_cfg, "async_scheduling", None)
+        if observed["async_scheduling"]:
+            problems.append("engine reports async_scheduling enabled")
+
+    if cache_cfg is not None:
+        observed["enable_prefix_caching"] = getattr(cache_cfg, "enable_prefix_caching", None)
+        if observed["enable_prefix_caching"]:
+            problems.append("engine reports prefix caching ENABLED (vLLM #39389)")
+        observed["num_gpu_blocks"] = getattr(cache_cfg, "num_gpu_blocks", None)
+
+    if model_cfg is not None:
+        # R14.3 item 4: the revision as LOADED. The HF cache can serve a different
+        # commit than the pin.
+        observed["revision"] = getattr(model_cfg, "revision", None)
+        if observed["revision"] and observed["revision"] != spec.model_revision:
+            problems.append(
+                f"engine loaded revision {observed['revision']}, we pinned "
+                f"{spec.model_revision}"
+            )
+        # torch reports "torch.bfloat16"; our spec says "bfloat16". Substring, so the
+        # comparison is real rather than the no-op it was on first writing.
+        observed["dtype"] = str(getattr(model_cfg, "dtype", ""))
+        if spec.dtype not in observed["dtype"]:
+            problems.append(
+                f"engine dtype {observed['dtype']!r} does not contain {spec.dtype!r}"
+            )
+        observed["quantization"] = getattr(model_cfg, "quantization", None)
+
+    if problems:
+        raise PreflightError(
+            "ENGINE STATE DISAGREES WITH THE FROZEN CONFIG -- refusing to generate:\n  - "
+            + "\n  - ".join(problems) + f"\nobserved: {observed}"
+        )
+    return observed
+
+
 def _check_triton_toolchain() -> list[str]:
     """Verify Triton can actually JIT-compile. THE landmine.
 
@@ -266,6 +425,9 @@ class VLLMRunner:
         self.spec = spec
         self._llm = None
         self.hardware = describe_hardware()
+        # Populated at engine init by the read-back assertions.
+        self.batch_invariance: dict[str, Any] = {}
+        self.engine_state: dict[str, Any] = {}
 
     @property
     def llm(self):
@@ -299,6 +461,11 @@ class VLLMRunner:
                 # on the bit-width difference -- a confound to STATE, not hide.
                 kwargs["quantization"] = "bitsandbytes"
             self._llm = LLM(**kwargs)
+            # R14.3 item 1, and it must be HERE: vLLM applies the batch-invariant
+            # overrides during engine init, so this is the first moment the engine's
+            # actual state can be read rather than our request for it.
+            self.batch_invariance = assert_batch_invariance_engaged()
+            self.engine_state = read_back_engine_state(self._llm, self.spec)
         return self._llm
 
     def generate(

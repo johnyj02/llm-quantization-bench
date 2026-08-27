@@ -26,9 +26,11 @@ from quantartifact.generate import (
     EngineSpec,
     PreflightError,
     VLLMRunner,
+    assert_batch_invariance_engaged,
     build_parser,
     main,
     preflight,
+    read_back_engine_state,
 )
 
 GOOD_SHA = "aa8e72537993ba99e69dfaafa59ed015b17504d1"
@@ -252,3 +254,75 @@ def test_models_yaml_serving_keys_that_are_engine_settings_exist_on_EngineSpec()
     }
     for key in engine_knobs & set(serving):
         assert key in fields, f"models.yaml declares serving.{key} but EngineSpec has no such field"
+
+
+# ---------------------------------------------------------------------------
+# R14.3 item 1 — "the single most important assertion in the study". Batch
+# invariance being REQUESTED is not batch invariance being APPLIED, which is the
+# whole async_scheduling lesson. These run without a GPU because the failure path
+# (nothing patched) is exactly the state a laptop is in.
+# ---------------------------------------------------------------------------
+
+def test_batch_invariance_assertion_fails_when_nothing_was_patched():
+    """On a machine where vLLM never ran, torch.bmm is unpatched -> must raise.
+
+    That is the same observable state as a GPU job where
+    enable_batch_invariant_mode() silently did not run, which is the case this
+    guards: no substitution => H8 dead and every delta untrustworthy.
+    """
+    pytest.importorskip("torch")
+    with pytest.raises(PreflightError, match="BATCH INVARIANCE DID NOT ENGAGE"):
+        assert_batch_invariance_engaged()
+
+
+def test_batch_invariance_assertion_names_what_it_checked():
+    """The error must be diagnosable from the log alone -- there is no rerunning a
+    queued multi-hour job to add print statements."""
+    pytest.importorskip("torch")
+    try:
+        assert_batch_invariance_engaged()
+    except PreflightError as exc:
+        message = str(exc)
+        assert "torch.bmm" in message
+        assert "observed:" in message
+    else:
+        pytest.skip("batch invariance is engaged in this environment")
+
+
+def test_read_back_survives_an_unreadable_engine():
+    """An introspection failure is NOT a config disagreement.
+
+    vLLM moves this attribute between versions and it cannot be exercised locally, so
+    a missing path must report loudly and let the job continue; only a real mismatch
+    is fatal. Killing a queued multi-hour job because an attribute moved is the wrong
+    trade.
+    """
+    class Bare:
+        pass
+
+    spec = EngineSpec(model_repo="m", model_revision=GOOD_SHA)
+    observed = read_back_engine_state(Bare(), spec)
+    assert observed["read_back"] == "unavailable"
+    assert observed["requested_max_num_seqs"] == spec.max_num_seqs
+
+
+def test_read_back_is_fatal_on_a_real_mismatch():
+    """A silently reduced max_num_seqs corrupts the exact quantity A7 freezes."""
+    class Sched:
+        max_num_seqs = 1          # engine silently reduced it
+        async_scheduling = False
+
+    class Config:
+        scheduler_config = Sched()
+        cache_config = None
+        model_config = None
+
+    class Engine:
+        vllm_config = Config()
+
+    class Llm:
+        llm_engine = Engine()
+
+    spec = EngineSpec(model_repo="m", model_revision=GOOD_SHA, max_num_seqs=8)
+    with pytest.raises(PreflightError, match="max_num_seqs"):
+        read_back_engine_state(Llm(), spec)
