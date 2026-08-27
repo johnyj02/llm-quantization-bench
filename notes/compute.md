@@ -558,3 +558,50 @@ digest already on disk is preserved. Six known digests are pinned in
 Old AWQ checkpoints are left in place under their previous hashes — nothing deleted. That also
 makes it possible to compare `qwen2.5-3b/awq-4bit` before and after bitwise, and so to settle
 empirically whether `offload_device` is neutral.
+
+### ✅ Job 1 COMPLETE — 9/9 arms
+
+`johnyj02-QA-v0-1-20260827-33b4267e-quantize-r2`, 7555 s (2.1 h, ~$5.88). 6 GPTQ arms skipped by
+preserved hash; 3 AWQ arms rebuilt with `offload_device=cpu`, including `phi-3.5-mini/awq-4bit`
+which had OOM'd twice.
+
+Offload costs roughly 2× on the slowest arm: `llama-3.1-8b/awq-4bit` took **53.7 min** with it
+versus 27.1 min without. That is the documented trade ("requires more time to move data").
+
+| | |
+|---|---|
+| study checkpoints | **9** |
+| superseded AWQ arms retained | 2 (old hashes; nothing deleted) |
+| total in S3 | 45.86 GB, 89 objects |
+| cost across 3 attempts + 3 smokes | ~**$12.6** |
+
+#### 🔬 UNRESOLVED, and possibly a paper finding: AWQ weights are not reproducible
+
+Because the superseded arms were kept, `qwen2.5-3b/awq-4bit` exists twice — once without offload
+(`184c722115d8d9bb`) and once with (`e7377d975178f192`), everything else identical. Comparing them
+without downloading, via S3:
+
+| check | result |
+|---|---|
+| file size | **identical** (2,675,871,568 bytes) |
+| multipart ETag | **differs** (same 511 part boundaries) |
+| safetensors header (first 2 KB) | **identical** — same tensor names, shapes, offsets |
+| 64 KB windows sampled at 13 offsets | **6 of 13 differ** |
+
+So the weights differ materially and throughout — not in a handful of scale tensors.
+
+⚠️ **This is NOT yet attributable to `offload_device`.** The alternative explanation is that AWQ's
+grid search is simply nondeterministic run-to-run (GPU floating-point reduction order), in which
+case any two independent runs would differ regardless of offload. Separating the two needs one
+more `qwen2.5-3b/awq-4bit` run at **identical** settings: if it differs from
+`e7377d975178f192`, AWQ is nondeterministic; if it matches, the difference is offload's.
+Cost: ~10 min of GPU on one arm.
+
+**Internal validity is intact either way**, which is why uniformity mattered: all three AWQ arms in
+the study set were produced in ONE job with the SAME setting, so they remain mutually comparable
+and the normalisation claim holds.
+
+But if quantization is itself nondeterministic, then "we self-quantized with identical settings"
+does not imply anyone re-running gets our weights — a reproducibility caveat that bears on every
+published quantization comparison, and adjacent to H8. **Routed to the planner**, since whether to
+measure and report it is a scientific-scope decision, not an executor one.
