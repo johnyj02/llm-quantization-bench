@@ -65,6 +65,16 @@ STAGES: dict[str, dict] = {
         # not share a prefix with the study.
         "smoke_isolates_checkpoints": True,
     },
+    "pilot": {
+        "entry_point": "sm_pilot.py",
+        "description": "A8 pilot-v1: 17 cells x 300 items = 5,100 stored generations",
+        # ~2-3 h expected (5,100 generations plus 17 engine loads). Generous is free
+        # (R13.4) but a cap bounds a hang: 24 h is ~$67.
+        "max_run": 86400,
+        # READS job 1's checkpoints, so the smoke must see the study prefix.
+        # Isolation of its own writes is by run_id (`pilot-v1-smoke`), not by prefix.
+        "smoke_isolates_checkpoints": False,
+    },
     "determinism": {
         "entry_point": "sm_determinism.py",
         "description": "A7/H8: per-format bitwise disagreement + max_num_seqs frontier",
