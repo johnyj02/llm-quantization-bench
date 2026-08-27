@@ -89,13 +89,16 @@ def sweep_plan(formats: Sequence[str], n_probe: int, repeats: int) -> dict[str, 
         "order": list(SWEEP_ORDER),
         "floor_always_measured": SWEEP_FLOOR,
         "generations_per_level": per_level,
-        # 64 stable for every format -> that level plus the floor.
-        "best_case_generations": per_level * 2,
+        # Best case is now THREE levels, not two: the stable one, the level below it
+        # for the non-monotonicity check (R12.3.1), and the floor.
+        "best_case_generations": per_level * 3,
         "worst_case_generations": per_level * len(SWEEP_ORDER),
         "exhaustive_would_cost": per_level * len(MAX_NUM_SEQS_SWEEP),
+        # Charged separately because it happens once, at the selected value only.
+        "confirmation_generations": len(formats) * CONFIRM_REPEATS * n_probe,
         "note": (
-            "descending: stop at the first level stable for EVERY format, then "
-            "also measure the floor so the frontier table is complete"
+            "descending: stop at the first level stable for EVERY format, then also "
+            "measure the level BELOW it (non-monotonicity, R12.3.1) and the floor"
         ),
     }
 
@@ -119,20 +122,94 @@ def next_sweep_level(
         if not all(fmt in seen for fmt in formats):
             return level  # incomplete at this level -> test it
         if all(seen[fmt] for fmt in formats):
-            # Found the largest stable level. Only the floor remains, for the table.
-            if SWEEP_FLOOR not in by_level or not all(
-                fmt in by_level[SWEEP_FLOOR] for fmt in formats
-            ):
-                return SWEEP_FLOOR
+            # Largest stable level found. Two more levels are still required.
+            #
+            # 1. THE LEVEL IMMEDIATELY BELOW IT (planner ruling R12.3.1). "Stable at
+            #    64 but unstable at 32" is a non-monotonicity that would invalidate
+            #    the whole frontier framing, and it is cheap to rule out. Without
+            #    this the frontier is two points and the H8 contribution -- telling
+            #    other people what they can safely get away with -- is thin.
+            # 2. The floor, so the table is complete against §3.3's pre-audit value.
+            index = SWEEP_ORDER.index(level)
+            required = []
+            if index + 1 < len(SWEEP_ORDER):
+                required.append(SWEEP_ORDER[index + 1])
+            if SWEEP_FLOOR not in required:
+                required.append(SWEEP_FLOOR)
+
+            for want in required:
+                measured = by_level.get(want, {})
+                if not all(fmt in measured for fmt in formats):
+                    return want
             return None
 
     return None
+
+
+def non_monotonic_levels(
+    results: Sequence[DisagreementResult], formats: Sequence[str]
+) -> list[dict[str, Any]]:
+    """Levels where a SMALLER ``max_num_seqs`` was less stable than a larger one.
+
+    The frontier framing assumes stability is monotone in batch size: fewer
+    co-resident sequences cannot be worse. R12.3.1 requires ruling that out rather
+    than assuming it, because a non-monotonicity would mean "the largest stable
+    value" is not a well-defined thing to report.
+
+    Returns one entry per violation, empty when the frontier is well behaved.
+    """
+    formats = list(formats)
+    stable_at: dict[int, dict[str, bool]] = {}
+    for result in results:
+        # Only the plain probes describe the frontier; the Marlin-disabled fallback
+        # is a different engine configuration and would corrupt the comparison.
+        if result.disabled_kernels:
+            continue
+        stable_at.setdefault(result.max_num_seqs, {})[result.fmt] = result.bitwise_stable
+
+    violations: list[dict[str, Any]] = []
+    ascending = sorted(stable_at)
+    for fmt in formats:
+        for i, lower in enumerate(ascending):
+            for higher in ascending[i + 1 :]:
+                low = stable_at[lower].get(fmt)
+                high = stable_at[higher].get(fmt)
+                if low is False and high is True:
+                    violations.append(
+                        {
+                            "format": fmt,
+                            "unstable_at": lower,
+                            "stable_at": higher,
+                            "implication": (
+                                "stability is NOT monotone in max_num_seqs for this "
+                                "format, so 'the largest stable value' is not "
+                                "well defined and the frontier must be reported as "
+                                "a set rather than a threshold"
+                            ),
+                        }
+                    )
+    return violations
 
 # Slower fallback kernels, to test whether determinism is RESTORED when Marlin is
 # the culprit. Tried only if a format proves nondeterministic.
 DISABLED_KERNELS_FALLBACK = "MarlinLinearKernel,MacheteLinearKernel"
 
 REPEATS = 3
+
+# Planner ruling R12.3.2: three repeats PICK the value, ten CONFIRM it, and
+# everything downstream depends on this one number.
+#
+# ⚠️ This EXTENDS R8, which as recorded specifies 3 repeats and does not mention 10.
+# Select-then-confirm is coherent rather than contradictory, so it is applied — but
+# the difference is recorded in notes/planner-rulings.md rather than merged silently.
+#
+# ⚠️ The ten repeats CANNOT be stitched from the sweep's three plus seven more. What
+# A7 measures is whether repeated identical requests to a *running* engine return
+# identical text; combining repeats from two engine instances would measure
+# cross-instance variation instead, which is a different quantity. So the
+# confirmation is its own cell with its own engine, and the sweep's three repeats at
+# that level are not reused.
+CONFIRM_REPEATS = 10
 
 # The A7 probe: 500 items spanning all three answer formats, so a
 # format-dependent nondeterminism cannot hide.
@@ -331,6 +408,12 @@ def summarise(results: Sequence[DisagreementResult]) -> dict[str, Any]:
         "differential_noise_floor": differential_noise_floor(results),
         "formats_tested": sorted({result.fmt for result in results}),
         "any_nondeterminism": any(not r.bitwise_stable for r in results),
+        # R12.3.1: the frontier framing assumes stability is monotone in batch size.
+        # Empty here means it is; non-empty means "the largest stable value" is not
+        # a well-defined threshold and must be reported as a set.
+        "non_monotonic_violations": non_monotonic_levels(
+            results, sorted({r.fmt for r in results})
+        ),
     }
 
 

@@ -17,14 +17,17 @@ from __future__ import annotations
 import pytest
 
 from quantartifact.determinism import (
+    CONFIRM_REPEATS,
     MAX_NUM_SEQS_SWEEP,
     PROBE_COMPOSITION,
+    REPEATS,
     DisagreementResult,
     RepeatOutputs,
     compute_disagreement,
     differential_noise_floor,
     distinct_output_histogram,
     next_sweep_level,
+    non_monotonic_levels,
     probe_fingerprint,
     select_max_num_seqs,
     summarise,
@@ -251,10 +254,14 @@ def test_sweep_plan_reports_best_and_worst_case():
 
     plan = sweep_plan(["bf16", "gptq-4bit", "awq-4bit", "gptq-8bit", "bnb-nf4"], 500, 3)
     assert plan["generations_per_level"] == 7500
-    assert plan["best_case_generations"] == 15000
+    # THREE levels best case, not two: the stable level, the level below it for the
+    # non-monotonicity check (planner ruling R12.3.1), and the floor.
+    assert plan["best_case_generations"] == 22500
     assert plan["worst_case_generations"] == 30000
     assert plan["exhaustive_would_cost"] == 30000
     assert plan["order"] == [64, 32, 16, 8], "must be DESCENDING"
+    # Charged separately: 10 repeats at the selected value only (R12.3.2).
+    assert plan["confirmation_generations"] == 25000
 
 
 def test_sweep_starts_at_the_largest_value():
@@ -263,9 +270,18 @@ def test_sweep_starts_at_the_largest_value():
 
 
 def test_sweep_stops_early_when_the_top_level_is_stable_everywhere():
-    """The whole point: 64 stable for all formats => only the floor remains."""
+    """64 stable everywhere => still measure 32 (non-monotonicity) and the floor.
+
+    Planner ruling R12.3.1: "stable at 64, unstable at 32" would invalidate the
+    frontier framing, so the level immediately below the stable one is always
+    measured. Skipping it would also leave the frontier as two points, which makes
+    the H8 contribution -- telling others what they can get away with -- thin.
+    """
 
     tested = [make_result("bf16", 64, True), make_result("gptq-4bit", 64, True)]
+    assert next_sweep_level(tested, ["bf16", "gptq-4bit"]) == 32, "R12.3.1 check"
+
+    tested += [make_result("bf16", 32, True), make_result("gptq-4bit", 32, True)]
     assert next_sweep_level(tested, ["bf16", "gptq-4bit"]) == 8, "floor for the table"
 
     tested += [make_result("bf16", 8, True), make_result("gptq-4bit", 8, True)]
@@ -283,3 +299,62 @@ def test_sweep_completes_a_partially_tested_level_before_descending():
 
     tested = [make_result("bf16", 64, True)]
     assert next_sweep_level(tested, ["bf16", "gptq-4bit"]) == 64
+
+
+# ---------------------------------------------------------------------------
+# R12.3.1 — the frontier framing assumes stability is monotone in batch size.
+# Fewer co-resident sequences cannot be WORSE. If that is violated, "the largest
+# stable value" is not a well-defined threshold and must be reported as a set.
+# ---------------------------------------------------------------------------
+
+def test_monotone_frontier_reports_no_violations():
+    """Unstable at 64, stable at 32 and 8 -- the expected, well-behaved shape."""
+
+    results = [
+        make_result("bf16", 64, False, 0.02),
+        make_result("bf16", 32, True),
+        make_result("bf16", 8, True),
+    ]
+    assert non_monotonic_levels(results, ["bf16"]) == []
+
+
+def test_non_monotonicity_is_detected():
+    """Stable at 64 but UNSTABLE at 32 is the violation worth ruling out."""
+
+    results = [
+        make_result("bf16", 64, True),
+        make_result("bf16", 32, False, 0.01),
+    ]
+    violations = non_monotonic_levels(results, ["bf16"])
+    assert len(violations) == 1
+    assert violations[0]["unstable_at"] == 32
+    assert violations[0]["stable_at"] == 64
+    assert "not well defined" in violations[0]["implication"].replace("\n", " ") or \
+        "not \nwell defined" in violations[0]["implication"]
+
+
+def test_violation_is_reported_per_format():
+    """One format violating must not be hidden by another behaving."""
+
+    results = [
+        make_result("bf16", 64, True), make_result("bf16", 32, True),
+        make_result("gptq-4bit", 64, True), make_result("gptq-4bit", 32, False, 0.03),
+    ]
+    violations = non_monotonic_levels(results, ["bf16", "gptq-4bit"])
+    assert [v["format"] for v in violations] == ["gptq-4bit"]
+
+
+def test_marlin_fallback_cells_are_excluded():
+    """The fallback runs a DIFFERENT engine config; comparing it corrupts the frontier."""
+
+    fallback = make_result("gptq-4bit", 8, False, 0.05)
+    fallback.disabled_kernels = "MarlinLinearKernel"
+    results = [make_result("gptq-4bit", 64, True), fallback]
+    assert non_monotonic_levels(results, ["gptq-4bit"]) == []
+
+
+def test_confirm_repeats_exceeds_selection_repeats():
+    """Three repeats pick the value; ten confirm it (R12.3.2)."""
+
+    assert CONFIRM_REPEATS == 10
+    assert CONFIRM_REPEATS > REPEATS

@@ -29,9 +29,31 @@ at `max_num_seqs=8`. The job exits 0 either way; it exits non-zero only when it
 could not *measure*.
 
 **Cost control.** The sweep is DESCENDING with early exit (`SWEEP_ORDER`): we want
-the largest stable value, so testing 64 first and stopping on success answers it
-in one level (7,500 generations) instead of four (30,000). Every (arm, level)
-result is checkpointed, so a timeout costs one cell rather than the job.
+the largest stable value, so testing 64 first answers it in one level instead of
+four. Every cell is checkpointed, so a timeout costs one cell rather than the job.
+
+**Three additions from planner ruling R12.3**, each closing a specific hole:
+
+* **R12.3.1 — the level BELOW the stable one is always measured.** "Stable at 64
+  but unstable at 32" would be a non-monotonicity, and the frontier framing assumes
+  stability is monotone in batch size. Without it the frontier is two points and
+  the H8 contribution — telling others what they can safely get away with — is thin.
+* **R12.3.2 — 10 repeats CONFIRM the selected value** before it is frozen. Three
+  repeats *pick* it; everything downstream depends on this one number. If ten
+  repeats reject what three accepted, that is itself an H8 result: the 3-repeat
+  frontier overstates reproducibility.
+* **R12.3.3 — a model-generality probe on Phi-3.5-mini.** One model establishes the
+  *mechanism* (it lives in vLLM's kernel-dispatch source, so it is
+  architecture-general) but not the *rates*. vLLM #48271's leak depends on token
+  count and block-size selection, both model-dependent, and Phi's fused
+  3072→16384 gate+up projection — the same quirk that broke job 1's AWQ memory
+  budget — could take a different kernel path. Phi over Llama deliberately: the
+  architectural outlier is the higher-information second point.
+
+The three write SEPARATE artifacts. Only the sweep defines the frontier, and
+`select_max_num_seqs` must see only 3-repeat single-model cells — folding in a
+10-repeat cell (more chances to diverge, so more likely to look unstable) would let
+the confirmation veto the value it exists to confirm.
 """
 
 from __future__ import annotations
@@ -49,6 +71,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 import yaml  # noqa: E402
 
 from quantartifact.determinism import (  # noqa: E402
+    CONFIRM_REPEATS,
     DISABLED_KERNELS_FALLBACK,
     PROBE_COMPOSITION,
     REPEATS,
@@ -59,6 +82,7 @@ from quantartifact.determinism import (  # noqa: E402
     distinct_output_histogram,
     next_sweep_level,
     probe_fingerprint,
+    select_max_num_seqs,
     summarise,
     sweep_plan,
     write_csv,
@@ -106,9 +130,31 @@ def arm_engine_fields(arm: str, specs: dict) -> tuple[str | None, int]:
     return specs[arm].method, specs[arm].bits
 
 
-def cell_tag(arm: str, max_num_seqs: int, disabled_kernels: str | None) -> str:
-    """Filesystem-safe identity for one probe cell. Also its checkpoint key."""
-    return f"{arm}_at_{max_num_seqs}" + ("_fallback" if disabled_kernels else "")
+def cell_tag(
+    arm: str,
+    max_num_seqs: int,
+    disabled_kernels: str | None = None,
+    *,
+    model_key: str = AUDIT_MODEL,
+    repeats: int = REPEATS,
+) -> str:
+    """Filesystem-safe identity for one probe cell. Also its resume key.
+
+    ⚠️ **MODEL and REPEATS both belong in the tag.** The tag is the resume key, so
+    anything that changes what a cell measures must change its name or a later cell
+    silently inherits an earlier cell's answer:
+
+    * The Phi-3.5-mini confirmation probe (R12.3.3) runs the same arms at the same
+      level as the Qwen audit, so without the model key ``bf16_at_8`` would collide
+      and Phi would report Qwen's numbers.
+    * The 10-repeat confirmation (R12.3.2) runs the same arm at the same level as
+      the sweep's 3-repeat cell. Without the repeat count it would resume from the
+      3-repeat result and "confirm" nothing at all.
+    """
+    parts = [model_key, arm, f"at{max_num_seqs}", f"r{repeats}"]
+    if disabled_kernels:
+        parts.append("fallback")
+    return "__".join(parts)
 
 
 def bbh_probe_split(total: int, subtasks: list[str]) -> dict[str, int]:
@@ -196,7 +242,9 @@ def build_probe(model: dict, model_key: str) -> list[dict]:
     return items
 
 
-def resolve_model_path(arm: str, model: dict, specs: dict, calibration) -> tuple[str, str | None]:
+def resolve_model_path(
+    arm: str, model: dict, specs: dict, calibration, model_key: str = AUDIT_MODEL
+) -> tuple[str, str | None]:
     """Where the weights for one arm live, and the recipe hash that produced them.
 
     bf16 and bnb-nf4 serve from the base repo (NF4 is quantized in-flight by vLLM
@@ -209,10 +257,10 @@ def resolve_model_path(arm: str, model: dict, specs: dict, calibration) -> tuple
 
     spec = specs[arm]
     digest = config_hash(spec, calibration, model["revision"])
-    path = output_dir(CHECKPOINT_DIR, AUDIT_MODEL, spec, digest)
+    path = output_dir(CHECKPOINT_DIR, model_key, spec, digest)
     if not (path / "config.json").exists():
         raise FileNotFoundError(
-            f"no checkpoint for {AUDIT_MODEL}/{arm} at {path}. Job 1 (quantize) "
+            f"no checkpoint for {model_key}/{arm} at {path}. Job 1 (quantize) "
             f"must complete first, and its checkpoint_s3_uri must match this "
             f"job's so SageMaker restores it. Expected recipe hash {digest}."
         )
@@ -258,6 +306,8 @@ def run_probe_cell(
     max_num_seqs: int,
     items: list[dict],
     disabled_kernels: str | None,
+    model_key: str = AUDIT_MODEL,
+    repeats: int = REPEATS,
 ) -> DisagreementResult | None:
     """Run one (arm, max_num_seqs) cell: `REPEATS` passes over the probe.
 
@@ -271,7 +321,8 @@ def run_probe_cell(
     is the shape vLLM #51187 reported. `enable_prefix_caching=False` keeps the
     repeats from contaminating each other.
     """
-    tag = cell_tag(arm, max_num_seqs, disabled_kernels)
+    tag = cell_tag(arm, max_num_seqs, disabled_kernels,
+                   model_key=model_key, repeats=repeats)
     result_path = PROBE_DIR / f"{tag}.json"
 
     # A rehearsal must actually rehearse. Resuming from a previous smoke's cached
@@ -296,7 +347,7 @@ def run_probe_cell(
             "disabled_kernels": disabled_kernels,
         },
         "items": items,
-        "repeats": REPEATS,
+        "repeats": repeats,
         "out_path": str(raw_path),
     }
     payload_path = PROBE_DIR / f"payload_{tag}.json"
@@ -311,7 +362,7 @@ def run_probe_cell(
     if disabled_kernels:
         env["VLLM_DISABLED_KERNELS"] = disabled_kernels
 
-    print(f"[run ] {tag}  {REPEATS} repeats x {len(items)} items")
+    print(f"[run ] {tag}  {repeats} repeats x {len(items)} items")
     # Output INHERITED, not captured. `capture_output=True` buffers until exit, so a
     # multi-hour cell would emit nothing to CloudWatch and look like a hang -- and
     # vLLM's engine-startup logs, the ones worth watching during a long load, are
@@ -329,20 +380,23 @@ def run_probe_cell(
         return None
 
     raw = json.loads(raw_path.read_text())
-    repeats = [
+    # NOT named `repeats` -- that is the int parameter, and shadowing it here made
+    # the count unavailable to anything after this point.
+    repeat_outputs = [
         RepeatOutputs(
             fmt=arm, max_num_seqs=max_num_seqs, repeat_idx=i,
             outputs=texts, disabled_kernels=disabled_kernels,
         )
         for i, texts in enumerate(raw["repeats"])
     ]
-    result = compute_disagreement(repeats)
+    result = compute_disagreement(repeat_outputs)
 
     result_path.write_text(json.dumps({
         "result": dataclasses.asdict(result),
-        "fingerprints": [probe_fingerprint(r.outputs) for r in repeats],
+        "repeats": repeats,
+        "fingerprints": [probe_fingerprint(r.outputs) for r in repeat_outputs],
         "distinct_output_histogram": {
-            str(k): v for k, v in distinct_output_histogram(repeats).items()
+            str(k): v for k, v in distinct_output_histogram(repeat_outputs).items()
         },
         "minutes": round(elapsed / 60, 1),
         "hardware": raw.get("hardware"),
@@ -404,7 +458,17 @@ def main() -> int:
     results: list[DisagreementResult] = []
     unmeasured: set[str] = set()
 
-    def measure(arm: str, level: int, fallback: str | None = None) -> None:
+    def measure(
+        arm: str,
+        level: int,
+        fallback: str | None = None,
+        *,
+        repeats: int = REPEATS,
+        collect: list[DisagreementResult] | None = None,
+        model_key: str = AUDIT_MODEL,
+        model_cfg: dict | None = None,
+        paths: dict[str, tuple[str, str | None]] | None = None,
+    ) -> DisagreementResult:
         """Run one cell and record it, treating an unmeasured cell as UNSTABLE.
 
         That default matters: if a cell crashes and we simply skip it,
@@ -412,22 +476,33 @@ def main() -> int:
         `select_max_num_seqs` could pick a level on the strength of a measurement
         that never happened. Recording it as maximally unstable makes a missing
         measurement fail closed.
+
+        ``collect`` decides which list the result joins. The frontier list must
+        contain ONLY the Qwen sweep cells: the 10-repeat confirmation and the Phi
+        probe measure different things, and folding them into the frontier would let
+        `select_max_num_seqs` mix probes of different repeat counts and models.
         """
-        path, _ = resolved[arm]
+        cfg = model_cfg if model_cfg is not None else model
+        lookup = paths if paths is not None else resolved
+        path, _ = lookup[arm]
         method, bits = arm_engine_fields(arm, specs)
         result = run_probe_cell(
-            arm, path, model["revision"], quant_method=method, bits=bits,
+            arm, path, cfg["revision"], quant_method=method, bits=bits,
             max_num_seqs=level, items=items, disabled_kernels=fallback,
+            model_key=model_key, repeats=repeats,
         )
         if result is None:
-            unmeasured.add(cell_tag(arm, level, fallback))
+            unmeasured.add(
+                cell_tag(arm, level, fallback, model_key=model_key, repeats=repeats)
+            )
             result = DisagreementResult(
                 fmt=arm, max_num_seqs=level, n_items=len(items),
                 n_disagreeing=len(items), disagreement_rate=1.0,
-                max_distinct_outputs=REPEATS, bitwise_stable=False,
+                max_distinct_outputs=repeats, bitwise_stable=False,
                 disabled_kernels=fallback,
             )
-        results.append(result)
+        (results if collect is None else collect).append(result)
+        return result
 
     # SMOKE pins the floor only. Otherwise `next_sweep_level` drives the descending
     # sweep and decides when the frontier is settled.
@@ -452,7 +527,10 @@ def main() -> int:
     #
     # Arms whose cells could not be measured are excluded: their instability is an
     # artefact of the crash, so probing the kernel would answer nothing.
-    crashed_arms = {tag.split("_at_")[0] for tag in unmeasured}
+    # cell_tag is "<model>__<arm>__at<N>__r<K>", so the arm is field 1. Parsing the
+    # old "<arm>_at_<N>" shape here silently matched nothing after the tag changed,
+    # which would have let a crashed arm into the Marlin probe.
+    crashed_arms = {tag.split("__")[1] for tag in unmeasured if "__" in tag}
     unstable = sorted(
         {r.fmt for r in results if not r.bitwise_stable and r.fmt not in crashed_arms}
     )
@@ -463,9 +541,79 @@ def main() -> int:
             measure(arm, SWEEP_FLOOR, fallback=DISABLED_KERNELS_FALLBACK)
         print()
 
+    # ---------------------------------------------------------------------
+    # R12.3.2 — CONFIRM the selected value with 10 repeats before freezing it.
+    # Three repeats pick the value; ten confirm it, and everything downstream
+    # depends on this one number.
+    #
+    # Kept OUT of `results`, deliberately. `select_max_num_seqs` must see only the
+    # 3-repeat sweep cells, or it would compare probes of different repeat counts
+    # and a 10-repeat cell (more chances to diverge, so more likely to look
+    # unstable) could veto the very value it was meant to confirm.
+    # ---------------------------------------------------------------------
+    confirmation: list[DisagreementResult] = []
+    selected = select_max_num_seqs(results)["selected_max_num_seqs"]
+    confirm_level = selected if selected is not None else SWEEP_FLOOR
+    if not SMOKE:
+        print(f"=== confirmation: max_num_seqs={confirm_level}, "
+              f"{CONFIRM_REPEATS} repeats (R12.3.2) ===")
+        if selected is None:
+            print("    ⚠️ no value was stable for every arm — confirming at the floor,")
+            print("       which is itself the reportable H8 result.")
+        for arm in arms:
+            measure(arm, confirm_level, repeats=CONFIRM_REPEATS, collect=confirmation)
+        print()
+
+    # ---------------------------------------------------------------------
+    # R12.3.3 — MODEL-GENERALITY probe on Phi-3.5-mini. One model establishes the
+    # MECHANISM (it is in vLLM's kernel-dispatch source, so architecture-general);
+    # it does not establish the RATES. vLLM #48271's leak depends on token count and
+    # block-size selection, which are model-dependent, and Phi's fused 3072->16384
+    # gate+up projection -- the same quirk that broke the AWQ memory budget in job 1
+    # -- could take a different kernel path. Phi over Llama on purpose: the
+    # architectural outlier is the higher-information second point.
+    # ---------------------------------------------------------------------
+    phi_results: list[DisagreementResult] = []
+    phi_key = os.environ.get("QA_CONFIRM_MODEL", "phi-3.5-mini")
+    phi_arms = ["bf16", "gptq-4bit"]
+    if not SMOKE and phi_key in models:
+        phi_cfg = models[phi_key]
+        print(f"=== model-generality probe: {phi_key} {phi_arms} "
+              f"at max_num_seqs={confirm_level} (R12.3.3) ===")
+        phi_paths: dict[str, tuple[str, str | None]] = {}
+        try:
+            for arm in phi_arms:
+                phi_paths[arm] = resolve_model_path(
+                    arm, phi_cfg, specs, calibration, model_key=phi_key
+                )
+        except FileNotFoundError as exc:
+            print(f"    SKIPPED — {exc}")
+            phi_paths = {}
+
+        if phi_paths:
+            # Re-materialised for Phi: prompts are tokenizer-specific, so reusing
+            # Qwen's would silently probe the wrong strings.
+            items = build_probe(phi_cfg, phi_key)
+            print(f"    probe re-materialised for {phi_key}: {len(items)} items")
+            for arm in phi_arms:
+                measure(arm, confirm_level, repeats=REPEATS, collect=phi_results,
+                        model_key=phi_key, model_cfg=phi_cfg, paths=phi_paths)
+        print()
+
+    # The frontier CSV/JSON carry the sweep only, so the selection rule is applied
+    # to exactly the cells it is defined over. The confirmation and model-generality
+    # probes are separate artifacts -- they answer different questions and must not
+    # be averaged into the frontier.
     write_json(OUTPUT_DIR / "determinism.json", results)
     write_csv(OUTPUT_DIR / "determinism.csv", results)
     report = summarise(results)
+
+    if confirmation:
+        write_json(OUTPUT_DIR / "determinism_confirmation.json", confirmation)
+        write_csv(OUTPUT_DIR / "determinism_confirmation.csv", confirmation)
+    if phi_results:
+        write_json(OUTPUT_DIR / "determinism_model_generality.json", phi_results)
+        write_csv(OUTPUT_DIR / "determinism_model_generality.csv", phi_results)
 
     print("=" * 70)
     print(f"{'format':12} {'max_seqs':>9} {'disagree':>10} {'distinct':>9}  kernels")
@@ -482,11 +630,56 @@ def main() -> int:
     if selection["finding_if_none"]:
         print(f"  ⚠️ {selection['finding_if_none']}")
 
+    violations = report["non_monotonic_violations"]
+    if violations:
+        print("  🚨 NON-MONOTONIC FRONTIER — a smaller max_num_seqs was LESS stable "
+              "than a larger one:")
+        for violation in violations:
+            print(f"     {violation['format']}: unstable at "
+                  f"{violation['unstable_at']} but stable at {violation['stable_at']}")
+        print("     'the largest stable value' is not well defined; report the "
+              "frontier as a SET, not a threshold.")
+    else:
+        print("  frontier   : monotone (no smaller level was less stable) — R12.3.1 OK")
+
     floor = report["differential_noise_floor"]
     print(f"noise floor  : bf16 {floor['bf16_disagreement']:.4%}")
     print(f"  vs bf16    : {floor['differential_vs_bf16']}")
     if floor["differential_noise_exists"]:
         print(f"  ⚠️ DIFFERENTIAL NOISE EXISTS — {floor['implication']}")
+
+    if confirmation:
+        print()
+        print(f"=== confirmation at max_num_seqs={confirm_level}, "
+              f"{CONFIRM_REPEATS} repeats ===")
+        held = [r for r in confirmation if r.bitwise_stable]
+        for result in confirmation:
+            verdict = "stable" if result.bitwise_stable else (
+                f"{result.n_disagreeing}/{result.n_items} disagree")
+            print(f"  {result.fmt:12} {verdict}")
+        if len(held) == len(confirmation):
+            print(f"  ✅ {confirm_level} CONFIRMED over {CONFIRM_REPEATS} repeats — "
+                  f"freeze it")
+        else:
+            broke = [r.fmt for r in confirmation if not r.bitwise_stable]
+            print(f"  🚨 {confirm_level} did NOT survive {CONFIRM_REPEATS} repeats "
+                  f"for {broke}.")
+            print("     Three repeats picked a value ten repeats rejects, which is "
+                  "itself an H8 result:")
+            print("     the 3-repeat frontier OVERSTATES reproducibility. Do not "
+                  "freeze this value without a planner ruling.")
+
+    if phi_results:
+        print()
+        print(f"=== model generality: {phi_key} at max_num_seqs={confirm_level} ===")
+        for result in phi_results:
+            verdict = "stable" if result.bitwise_stable else (
+                f"{result.n_disagreeing}/{result.n_items} disagree "
+                f"({result.disagreement_rate:.3%})")
+            print(f"  {result.fmt:12} {verdict}")
+        print("  Mechanism is architecture-general (vLLM source); these RATES are "
+              "what is model-scoped.")
+
     print()
     print(f"report -> {OUTPUT_DIR / 'determinism.json'}")
 

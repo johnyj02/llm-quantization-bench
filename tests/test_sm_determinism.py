@@ -116,8 +116,26 @@ class TestCellTag:
     def test_is_filesystem_safe(self):
         """It is used as a filename, so no '@' or '+' may survive."""
         tag = cell_tag("gptq-4bit", 64, None)
-        assert tag == "gptq-4bit_at_64"
+        assert tag == "qwen2.5-3b__gptq-4bit__at64__r3"
         assert not (set(tag) & set("@+/ "))
+
+    def test_model_is_in_the_tag(self):
+        """The Phi model-generality probe (R12.3.3) runs the SAME arms at the SAME
+        level as the Qwen audit. Without the model key the cells collide and Phi
+        resumes Qwen's result, reporting Qwen's numbers under Phi's name."""
+        assert cell_tag("bf16", 8) != cell_tag("bf16", 8, model_key="phi-3.5-mini")
+
+    def test_repeat_count_is_in_the_tag(self):
+        """The 10-repeat confirmation (R12.3.2) runs the same arm at the same level
+        as the 3-repeat sweep cell. Without the count it resumes the 3-repeat result
+        and 'confirms' nothing."""
+        assert cell_tag("bf16", 8, repeats=3) != cell_tag("bf16", 8, repeats=10)
+
+    def test_arm_is_recoverable_from_the_tag(self):
+        """The Marlin-probe filter parses the arm back out of the tag."""
+        for arm in ("bf16", "gptq-4bit", "awq-4bit", "bnb-nf4"):
+            assert cell_tag(arm, 8).split("__")[1] == arm
+            assert cell_tag(arm, 8, "MarlinLinearKernel").split("__")[1] == arm
 
     def test_fallback_is_a_distinct_cell(self):
         """The Marlin-fallback probe must not overwrite the plain measurement.
