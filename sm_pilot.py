@@ -228,7 +228,11 @@ for lm_eval_task, task, subtask, limit in payload["plan"]:
         num_fewshot=config.get("num_fewshot"), apply_chat_template=True,
         fewshot_as_multiturn=False, limit=limit,
     ))
-    items = [{"item_id": p.item_id, "prompt": p.prompt_text, "gold": p.gold}
+    # prompt_token_ids carried through so vLLM never re-tokenizes -- text input
+    # takes the completion path (add_special_tokens=True) and double-BOSes any model
+    # whose chat template already emits one.
+    items = [{"item_id": p.item_id, "prompt": p.prompt_text, "gold": p.gold,
+              "prompt_token_ids": p.prompt_token_ids}
              for p in prompts]
     started = time.monotonic()
     counts = run_cell(

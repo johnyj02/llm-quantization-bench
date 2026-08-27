@@ -279,7 +279,11 @@ class VLLMRunner:
         return self._llm
 
     def generate(
-        self, prompts: list[str], max_gen_toks: int, until: list[str]
+        self,
+        prompts: list[str],
+        max_gen_toks: int,
+        until: list[str],
+        token_ids: list[list[int]] | None = None,
     ) -> list[dict[str, Any]]:
         """Greedy generation. Returns one dict per prompt, input order preserved.
 
@@ -287,12 +291,29 @@ class VLLMRunner:
         do not wait on the batch's longest -- passing the full batch is strictly
         better than hand-rolled padded batches.
 
+        🚨 **PASS ``token_ids`` WHENEVER YOU HAVE THEM.** Handing vLLM text makes it
+        re-tokenize, and it does so on the *completion* path, whose
+        ``default_cmpl_tok_params`` sets **``add_special_tokens=True``** (vLLM's
+        ``default_chat_tok_params`` uses ``False``, with the comment that special
+        tokens are "suppressed for chat, where the template already supplies them").
+        Our prompts ARE chat-templated, so text input means BOS gets added a second
+        time on any model whose template already embeds one -- Llama-3.1 emits
+        ``<|begin_of_text|>``.
+
+        That is precisely the double-BOS failure ``tasks/materialize.py`` exists to
+        prevent: it chooses ``add_special_tokens`` per model, records
+        ``prompt_token_ids``, and asserts a single leading BOS. Passing text throws
+        all of that away and feeds the model something other than the frozen G2
+        artifact -- silently, and differently per model. Red Hat's finding that
+        quantized models are BOS-sensitive is what makes it consequential rather
+        than cosmetic.
+
         ⚠️ vLLM documents that ``generate()`` preserves input order, but the
         sibling project flagged that as *never directly observed*. We therefore
         assert the count and let the caller key by ``item_id`` rather than trust
         position alone.
         """
-        from vllm import SamplingParams  # noqa: PLC0415 - GPU-box-only dependency
+        from vllm import SamplingParams, TokensPrompt  # noqa: PLC0415 - box-only
 
         params = SamplingParams(
             temperature=0.0,
@@ -302,13 +323,44 @@ class VLLMRunner:
             seed=self.spec.seed,
             n=1,
         )
-        outputs = self.llm.generate(prompts, params, use_tqdm=False)
+        # R14.3 item 6: assert the values as they reached SamplingParams, not as we
+        # believe we passed them. Same failure shape as `async_scheduling`.
+        if params.temperature != 0.0 or params.seed != self.spec.seed:
+            raise PreflightError(
+                f"SamplingParams did not take our values: temperature="
+                f"{params.temperature}, seed={params.seed}"
+            )
+
+        if token_ids is not None:
+            if len(token_ids) != len(prompts):
+                raise RuntimeError(
+                    f"{len(token_ids)} token id lists for {len(prompts)} prompts"
+                )
+            request = [TokensPrompt(prompt_token_ids=ids) for ids in token_ids]
+        else:
+            request = prompts
+
+        outputs = self.llm.generate(request, params, use_tqdm=False)
 
         if len(outputs) != len(prompts):
             raise RuntimeError(
                 f"vLLM returned {len(outputs)} outputs for {len(prompts)} prompts -- "
                 f"positional correspondence is broken, refusing to attribute results"
             )
+
+        # R14.3 item 7: single-BOS on EVERY generation, from what the engine actually
+        # received -- not once per model at G2. Cheap, and a known-live failure on
+        # Llama. Checked here because this is the only place that sees the engine's
+        # own view of the prompt.
+        if token_ids is not None:
+            for output, expected in zip(outputs, token_ids, strict=True):
+                got = list(output.prompt_token_ids or [])
+                if got != list(expected):
+                    raise RuntimeError(
+                        "the engine's prompt_token_ids differ from the frozen "
+                        f"artifact ({len(got)} vs {len(expected)} tokens; first ids "
+                        f"{got[:4]} vs {expected[:4]}). Something re-tokenized."
+                    )
 
         results: list[dict[str, Any]] = []
         for output in outputs:
@@ -383,7 +435,13 @@ def run_cell(
     for start in range(0, len(pending), batch_size):
         batch = pending[start : start + batch_size]
         started = time.monotonic()
-        outputs = runner.generate([item["prompt"] for item in batch], max_gen_toks, until)
+        # Token ids when the caller has them, which is the correct path -- see
+        # VLLMRunner.generate. `items` carry them straight from the frozen G2 artifact.
+        ids = [item.get("prompt_token_ids") for item in batch]
+        outputs = runner.generate(
+            [item["prompt"] for item in batch], max_gen_toks, until,
+            token_ids=[i for i in ids if i is not None] if all(ids) else None,
+        )
         elapsed_ms = int((time.monotonic() - started) * 1000)
         per_item_ms = elapsed_ms // max(len(batch), 1)
 

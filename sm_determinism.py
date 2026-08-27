@@ -248,6 +248,10 @@ def build_probe(model: dict, model_key: str) -> list[dict]:
                     # into a false agreement when the probe is pooled.
                     "item_id": f"{task}:{subtask or '-'}:{prompt.item_id}",
                     "prompt": prompt.prompt_text,
+                    # The FROZEN token ids, so vLLM never re-tokenizes. Handing it
+                    # text takes the completion path (add_special_tokens=True) and
+                    # double-BOSes any model whose chat template already emits one.
+                    "prompt_token_ids": prompt.prompt_token_ids,
                     "max_gen_toks": config["max_gen_toks"]["1x"],
                     "until": config["until"],
                 }
@@ -316,7 +320,10 @@ for repeat_idx in range(payload["repeats"]):
         groups.setdefault((item["max_gen_toks"], tuple(item["until"])), []).append(item)
     pass_started = time.monotonic()
     for (max_toks, until), group in sorted(groups.items()):
-        results = runner.generate([g["prompt"] for g in group], max_toks, list(until))
+        results = runner.generate(
+            [g["prompt"] for g in group], max_toks, list(until),
+            token_ids=[g["prompt_token_ids"] for g in group],
+        )
         for g, r in zip(group, results):
             texts[g["item_id"]] = r["text"]
     elapsed = time.monotonic() - pass_started
