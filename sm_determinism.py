@@ -69,9 +69,17 @@ from quantartifact.quantize import config_hash, load_specs, output_dir  # noqa: 
 CHECKPOINT_DIR = Path(os.environ.get("SM_CHECKPOINT_DIR", "/opt/ml/checkpoints"))
 OUTPUT_DIR = Path(os.environ.get("SM_MODEL_DIR", "/opt/ml/model"))
 CONFIGS = Path(__file__).parent / "configs"
-PROBE_DIR = CHECKPOINT_DIR / "determinism"
 
 SMOKE = os.environ.get("SM_HP_SMOKE") == "1" or "--smoke" in sys.argv
+
+# 🚨 SMOKE RESULTS GO SOMEWHERE ELSE ENTIRELY, and this is a correctness issue,
+# not hygiene. A probe cell is keyed by (arm, max_num_seqs) — `bf16_at_8` — with no
+# reference to the probe SIZE. So with a shared directory the resume check would
+# let a smoke's 20-item result be read by a real run as its 500-item measurement,
+# and a disagreement RATE computed over 20 items would be reported as if it came
+# from 500. That is a wrong number that looks entirely plausible, which is the
+# worst kind. Separated by directory so the two can never meet.
+PROBE_DIR = CHECKPOINT_DIR / ("determinism-smoke" if SMOKE else "determinism")
 
 # ONE model for the audit, and that is a deliberate scope decision, not a
 # shortcut. H8's mechanism is in vLLM's *kernel dispatch* source, so it is
@@ -265,6 +273,12 @@ def run_probe_cell(
     """
     tag = cell_tag(arm, max_num_seqs, disabled_kernels)
     result_path = PROBE_DIR / f"{tag}.json"
+
+    # A rehearsal must actually rehearse. Resuming from a previous smoke's cached
+    # cell would report success while running no vLLM at all.
+    if SMOKE and result_path.exists():
+        result_path.unlink()
+        print(f"[smoke] discarded previous rehearsal result for {tag}")
 
     if result_path.exists():
         print(f"[skip] {tag}  already measured")
