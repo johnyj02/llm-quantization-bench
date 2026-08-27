@@ -525,20 +525,30 @@ def main() -> int:
 
     arms = list(AUDIT_ARMS)
     if SMOKE:
-        arms = ["bf16"]
-        print("SMOKE MODE: bf16 only, floor level only, 20 items")
-        print("  ⚠️ proves the probe path runs. It CANNOT answer H8 or select")
-        print("     max_num_seqs — one arm measures no asymmetry and one level no frontier.")
+        # TWO arms, not one, and one of them QUANTIZED. Job 1's first smoke ran a
+        # single quantization method, passed nothing useful, and left a completely
+        # different API path to fail nine arms into the real job. The lesson applies
+        # here: `bf16` alone exercises neither loading a quantized checkpoint out of
+        # the restored checkpoint directory nor the kernel-dispatch path H8 is about.
+        # 20 items x 2 arms is a rounding error against the model load time.
+        arms = ["bf16", "gptq-4bit"]
+        print("SMOKE MODE: bf16 + gptq-4bit, floor level only, 20 items, "
+              "ordering confirmation ON")
+        print("  ⚠️ proves the paths run. It CANNOT answer H8 or select max_num_seqs —")
+        print("     two arms measure no asymmetry and one level no frontier.")
 
     print(f"audit model  : {AUDIT_MODEL} ({model['repo']})")
     print(f"arms         : {arms}")
     print(f"repeats      : {REPEATS}")
     plan = sweep_plan(arms, sum(PROBE_COMPOSITION.values()), REPEATS)
-    print(f"sweep        : {plan['order']} descending, early exit; floor "
-          f"{plan['floor_always_measured']} always measured")
+    print(f"sweep        : {plan['order']} descending, early exit; "
+          f"{plan['best_case_levels']}-{plan['worst_case_levels']} levels "
+          f"(floor only if nothing above it is stable)")
     print(f"generations  : {plan['best_case_generations']:,} best -> "
           f"{plan['worst_case_generations']:,} worst "
           f"(exhaustive would be {plan['exhaustive_would_cost']:,})")
+    print(f"confirmation : {plan['confirmation_generations']:,} marginal — orderings "
+          f"{list(ORDERING_SEEDS)}, ordering 0 reused from the sweep")
     print()
 
     print("=== materializing the probe ===")
@@ -665,21 +675,22 @@ def main() -> int:
     confirmation: list[DisagreementResult] = []
     selected = select_max_num_seqs(results)["selected_max_num_seqs"]
     confirm_level = selected if selected is not None else SWEEP_FLOOR
-    if not SMOKE:
-        print(f"=== ordering confirmation: max_num_seqs={confirm_level}, "
-              f"orderings {list(ORDERING_SEEDS)} (R13.1) ===")
-        if selected is None:
-            print("    ⚠️ no value was stable for every arm — confirming at the floor,")
-            print("       which is itself the reportable H8 result.")
-        for arm in arms:
-            result = confirm_ordering(
-                arm, confirm_level, items, specs, model, resolved,
-            )
-            if result is None:
-                unmeasured.add(f"ordering:{arm}@{confirm_level}")
-            else:
-                confirmation.append(result)
-        print()
+    # RUNS IN SMOKE TOO. This is the newest code in the job -- ordering shuffle in the
+    # child, reading the sweep's pass back off disk, combining passes from separate
+    # engine instances. Leaving it out of the rehearsal would mean its first execution
+    # ever is inside a 48-hour run, which is the mistake job 1 already paid for twice.
+    print(f"=== ordering confirmation: max_num_seqs={confirm_level}, "
+          f"orderings {list(ORDERING_SEEDS)} (R13.1) ===")
+    if selected is None:
+        print("    ⚠️ no value was stable for every arm — confirming at the floor,")
+        print("       which is itself the reportable H8 result.")
+    for arm in arms:
+        result = confirm_ordering(arm, confirm_level, items, specs, model, resolved)
+        if result is None:
+            unmeasured.add(f"ordering:{arm}@{confirm_level}")
+        else:
+            confirmation.append(result)
+    print()
 
     # ---------------------------------------------------------------------
     # R12.3.3 — MODEL-GENERALITY probe on Phi-3.5-mini. One model establishes the
