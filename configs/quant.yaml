@@ -101,6 +101,25 @@ precisions:
     # what A7 measures and why H8 exists.
     bi_guard_in_vllm: true
     normalisation_note: "asym->sym is a DEVIATION from llmcompressor's example; state it in the paper"
+    # 🚨 REQUIRED, not optional. AWQ's scale search OOM'd on Phi-3.5-mini with
+    # 42.64 GiB allocated of a 44.39 GiB L40S -- and Phi is the WORST case here
+    # despite being SMALLER than Llama-8B, because it fuses gate and up into one
+    # 3072->16384 projection, so the grid search materialises a single wide output
+    # tensor over every calibration token instead of two narrower ones.
+    #
+    # This is llmcompressor's own documented remedy ("consider torch.device('cpu')
+    # if you are encountering OOM errors"): it holds the cached forward args on the
+    # host instead of the GPU. It moves a cache, so it changes neither the maths,
+    # the dtype, nor the grid -- unlike `n_grid`, which their docs say trades scale
+    # QUALITY for time and which we therefore leave alone.
+    #
+    # Hashed into quant_config_hash anyway. It *should* be bitwise neutral, but the
+    # claim this paper rests on is that every arm was produced identically, and
+    # "should" is not good enough for that. Hashing also makes an accidental mix of
+    # offloaded and non-offloaded arms land on different paths, so it cannot happen
+    # silently. Applied to AWQ UNIFORMLY for the same reason -- not just to the arm
+    # that happened to fail.
+    offload_device: cpu
 
   bnb-nf4:
     method: bitsandbytes

@@ -24,6 +24,7 @@ These run without llmcompressor installed: `gptq_actorder` only imports
 
 from __future__ import annotations
 
+import dataclasses
 import inspect
 import json
 import re
@@ -33,11 +34,13 @@ import tempfile
 from pathlib import Path
 
 import pytest
+import yaml
 
 from quantartifact.quantize import (
     QuantConfigError,
     QuantSpec,
     build_recipe,
+    config_hash,
     gptq_actorder,
     load_specs,
     validate_normalisation,
@@ -204,3 +207,67 @@ class TestArmSubprocessPlumbing:
         out = self._run_child(None)
         for bad in ("KeyError", "TypeError", "FileNotFoundError", "JSONDecodeError"):
             assert bad not in out, f"{bad} in child output:\n{out[-1500:]}"
+
+
+class TestConfigHashExtensibility:
+    """An unset option must not change the digest. This one cost real GPU time.
+
+    Adding AWQ's `offload_device` field changed the hash of all nine arms --
+    including the six GPTQ ones, which an AWQ-only setting cannot affect -- purely
+    because `to_dict()` gained a key whose value was None. That would have
+    invalidated eight finished checkpoints and forced hours of re-quantization.
+    """
+
+    def _cal(self):
+        return load_specs(CONFIGS / "quant.yaml")[1]
+
+    def test_unset_option_does_not_change_the_digest(self):
+        cal = self._cal()
+        spec = gptq_spec()
+        assert dataclasses.replace(spec, offload_device=None) == spec
+        # A brand-new optional field left unset must be invisible to the hash.
+        assert config_hash(spec, cal, "abc1234") == config_hash(
+            dataclasses.replace(spec, offload_device=None), cal, "abc1234"
+        )
+
+    def test_option_in_use_DOES_change_the_digest(self):
+        """The other half of the contract: a setting in use may change the weights."""
+        cal = self._cal()
+        spec = gptq_spec()
+        assert config_hash(spec, cal, "abc1234") != config_hash(
+            dataclasses.replace(spec, offload_device="cpu"), cal, "abc1234"
+        )
+
+    def test_known_gptq_digests_are_unchanged(self):
+        """Pin the six digests already sitting in S3.
+
+        If any of these move, checkpoints that cost GPU hours silently stop being
+        found and get rebuilt. Values recorded from the completed job 1 arms.
+        """
+        models = yaml.safe_load((CONFIGS / "models.yaml").read_text())["models"]
+        specs, cal = load_specs(CONFIGS / "quant.yaml")
+        expected = {
+            ("qwen2.5-3b", "gptq-8bit"): "b8fe364b58da376b",
+            ("qwen2.5-3b", "gptq-4bit"): "4285d63706c2f769",
+            ("phi-3.5-mini", "gptq-8bit"): "014bd87655686ed2",
+            ("phi-3.5-mini", "gptq-4bit"): "71d458108b597e29",
+            ("llama-3.1-8b", "gptq-8bit"): "565010cdaa638957",
+            ("llama-3.1-8b", "gptq-4bit"): "89ac5631ebff47d9",
+        }
+        for (model_key, arm), digest in expected.items():
+            actual = config_hash(specs[arm], cal, models[model_key]["revision"])
+            assert actual == digest, f"{model_key}/{arm} digest moved: {actual} != {digest}"
+
+    def test_awq_is_offloaded_and_gptq_is_not(self):
+        """AWQ needs it (Phi OOM'd); GPTQ does not and must stay unhashed there."""
+        specs, _ = load_specs(CONFIGS / "quant.yaml")
+        assert specs["awq-4bit"].offload_device == "cpu"
+        for arm, spec in specs.items():
+            if spec.method == "gptq":
+                assert spec.offload_device is None, arm
+
+    def test_all_awq_arms_share_one_offload_setting(self):
+        """Uniform across AWQ, not just the arm that happened to fail."""
+        specs, _ = load_specs(CONFIGS / "quant.yaml")
+        awq = [s.offload_device for s in specs.values() if s.method == "awq"]
+        assert len(set(awq)) == 1, awq

@@ -86,6 +86,21 @@ class QuantSpec:
     group_size: int = 128
     desc_act: bool = False          # matches Qwen official; NOT hugging-quants' true
     in_flight: bool = False         # bnb only: quantized by vLLM at load
+    # AWQ only. `llmcompressor`'s documented remedy for OOM during the scale
+    # search: hold the cached forward args on this device instead of the GPU.
+    #
+    # ⚠️ IN THE HASH ON PURPOSE, even though it is a resource setting rather than an
+    # algorithm one. It moves a cache; it does not change the math, the dtype, or
+    # the grid, so the weights *should* be bitwise identical either way. But
+    # "should" is not good enough for the one claim this paper rests on — that every
+    # arm was produced identically — and the cost of being conservative is one
+    # re-run of two cheap arms. Hashing it also makes an accidental mix of
+    # offloaded and non-offloaded arms impossible rather than merely unlikely,
+    # because they land on different paths.
+    #
+    # Contrast with `n_grid`, which llmcompressor documents as trading scale
+    # QUALITY for time. That one would be a genuine recipe change and is left alone.
+    offload_device: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return dataclasses.asdict(self)
@@ -96,11 +111,22 @@ def config_hash(spec: QuantSpec, calibration: CalibrationSpec, model_revision: s
 
     Includes ``model_revision`` because the same recipe over a different base
     checkpoint is a different artifact, and a reviewer must be able to tell.
+
+    ⚠️ **Unset (``None``) spec fields are EXCLUDED**, and that is what makes this
+    hash extensible. Adding an optional field otherwise changes the digest of every
+    arm that does not use it, purely because ``to_dict()`` gained a key: adding
+    AWQ's ``offload_device`` invalidated all six GPTQ checkpoints, which an AWQ-only
+    setting cannot possibly affect. That is a re-run of hours of GPU time for a
+    field whose value is "not in use".
+
+    So an option in use changes the hash (correct -- it may change the weights) and
+    an option left unset does not (correct -- it changed nothing). No pre-existing
+    field defaults to ``None``, so this preserves every digest already on disk.
     """
     payload = json.dumps(
         {
             "quantize_version": QUANTIZE_VERSION,
-            "spec": spec.to_dict(),
+            "spec": {k: v for k, v in spec.to_dict().items() if v is not None},
             "calibration": calibration.to_dict(),
             "model_revision": model_revision,
         },
@@ -136,6 +162,7 @@ def load_specs(config_path: Path) -> tuple[dict[str, QuantSpec], CalibrationSpec
             group_size=raw.get("group_size", 128),
             desc_act=raw.get("desc_act", False),
             in_flight=raw.get("in_flight", False),
+            offload_device=raw.get("offload_device"),
         )
 
     validate_normalisation(specs, calibration)
@@ -348,11 +375,23 @@ def build_recipe(spec: QuantSpec) -> list:
         # `scheme` is routed to the QuantizationModifier half; the AWQ transform
         # half infers its layer mappings from the model. Normalised to symmetric
         # W4A16, NOT the example's W4A16_ASYM -- asserted just above.
-        result = AWQModifier(
-            targets="Linear",
-            scheme=spec.scheme,
-            ignore=["lm_head"],
-        )
+        kwargs: dict[str, Any] = {
+            "targets": "Linear",
+            "scheme": spec.scheme,
+            "ignore": ["lm_head"],
+        }
+        if spec.offload_device:
+            # llmcompressor's documented OOM remedy: keep the cached forward args
+            # off the GPU. Needed because Phi-3.5-mini is the WORST case here
+            # despite being smaller than Llama-8B -- it fuses gate and up into one
+            # 3072->16384 projection, so AWQ's grid search must materialise a
+            # single wide output tensor over every calibration token instead of two
+            # narrower ones. It OOM'd with 42.64 GiB allocated of a 44.39 GiB card.
+            import torch  # noqa: PLC0415 - box-only dependency
+
+            kwargs["offload_device"] = torch.device(spec.offload_device)
+
+        result = AWQModifier(**kwargs)
         return list(result) if isinstance(result, (list, tuple)) else [result]
 
     if spec.method == "bitsandbytes":

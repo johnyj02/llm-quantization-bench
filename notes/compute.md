@@ -504,3 +504,57 @@ and the recipe is frozen and reported in the paper.
 - **`--smoke` never skips.** A previous rehearsal had already written those exact hashes, so
   normal resume semantics would have skipped every arm, reported success, and proven nothing —
   worse than not running, because it looks like a pass.
+
+### Job 1, attempt 2: 8 of 9 — the subprocess fix worked; one genuine OOM remains
+
+`johnyj02-QA-v0-1-20260827-33b4267e-quantize`, 4052 s (67 min, ~$3.15). **All three
+`llama-3.1-8b` arms now succeed** (previously all three failed), the 5 prior arms skipped by hash,
+and `llama-3.1-8b/awq-4bit` finished in 27.1 min / 5.72 GB. So the per-arm subprocess fixed the
+leak.
+
+Measured calibration for the Llama AWQ arm: **579,588 tokens = 55.3% of the 1,048,576 ceiling.**
+Good thing the paper reports the realised count rather than `num_samples × max_seq_length`.
+
+#### The one remaining failure was real, not a leak
+
+`phi-3.5-mini/awq-4bit`, in a **fresh** subprocess:
+
+```
+CUDA out of memory. Tried to allocate 34.00 MiB.
+GPU 0 has a total capacity of 44.39 GiB of which 23.31 MiB is free.
+Of the allocated memory 42.64 GiB is allocated by PyTorch, and 1.21 GiB is reserved but unallocated.
+```
+
+**Phi-3.5-mini is the worst case for AWQ despite being SMALLER than Llama-8B.** It fuses gate and
+up into a single `gate_up_proj` (3072 → 16384), so AWQ's grid search must materialise one wide
+output tensor across every calibration token instead of two narrower ones.
+
+Fix: `AWQModifier.offload_device = cpu`, which is llmcompressor's own documented remedy —
+*"consider `torch.device('cpu')` if you are encountering OOM errors"*. It holds the cached forward
+args on the host instead of the GPU, so it changes neither the maths, the dtype, nor the grid.
+
+Rejected alternatives, and why:
+
+| option | why not |
+|---|---|
+| `sequential_targets="Linear"` (the error's suggestion) | changes which modules are co-resident, and AWQ's scale search depends on that grouping. Not semantically neutral. |
+| `n_grid` lower | llmcompressor documents it as trading scale QUALITY for time — a genuine recipe change. |
+| smaller `num_samples` / `max_seq_length` | destroys the normalised calibration budget, which is the paper's central claim. Never. |
+
+Applied to **all three** AWQ arms, not only the one that failed, so the AWQ arms stay identically
+produced — and hashed into `quant_config_hash`, so an accidental mix of offloaded and
+non-offloaded arms lands on different paths instead of being silently averaged.
+
+#### ⚠️ The hash must ignore UNSET options, or extending it costs GPU hours
+
+Adding the field changed the digest of **all nine** arms, including the six GPTQ ones that an
+AWQ-only setting cannot affect, purely because `to_dict()` gained a key whose value was `None`.
+That would have invalidated eight finished checkpoints. `config_hash` now drops `None`-valued spec
+fields: an option in use changes the digest (correct — it may change the weights), an option left
+unset does not (correct — it changed nothing). No pre-existing field defaults to `None`, so every
+digest already on disk is preserved. Six known digests are pinned in
+`tests/test_quantize_recipe.py` so this cannot regress silently.
+
+Old AWQ checkpoints are left in place under their previous hashes — nothing deleted. That also
+makes it possible to compare `qwen2.5-3b/awq-4bit` before and after bitwise, and so to settle
+empirically whether `offload_device` is neutral.
