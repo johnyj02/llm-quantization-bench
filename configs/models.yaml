@@ -23,6 +23,20 @@ serving:
   attention_backend: FLASH_ATTN  # pinned
   enforce_eager: false           # do NOT set true -- CUDA graphs are BI-compatible since PR #27660
   async_scheduling: false
+  # 🚨 OFF, and now actually ENFORCED via EngineSpec -> kernel_config. An autotuner
+  # picks kernels by startup benchmark, so the configuration is not identical across
+  # runs BY CONSTRUCTION -- which violates §4.6 directly. It is also the 4th
+  # undocumented gap in VLLM_BATCH_INVARIANT's coverage (after auto_awq's guard,
+  # auto_gptq's absence of one, and the sampler path), which is what makes H8 a
+  # four-gap claim. A7 measures the ON-vs-OFF contrast on gptq-4bit.
+  enable_flashinfer_autotune: false
+  # The sampler path. Set as VLLM_USE_FLASHINFER_SAMPLER=0 and asserted by preflight.
+  # Required because our image has no nvcc (flashinfer JIT-compiles at runtime), AND
+  # correct because batch invariance substitutes TRITON kernels while the flashinfer
+  # sampler is a separate unguarded CUDA path. Sampling is the last step before the
+  # token, and at temperature 0 argmax tie-breaking is implementation-specific, so an
+  # unguarded sampler turns any upstream near-tie straight into a different token.
+  use_flashinfer_sampler: false
   seed: 0
   temperature: 0.0
   dtype: bfloat16

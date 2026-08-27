@@ -182,3 +182,22 @@ RuntimeError: Could not find nvcc and default cuda_home='/usr/local/cuda' doesn'
 4. **Fail closed, but never print a failure as a measurement.**
 5. **Wall clock, not GPU time, is the binding constraint.** Queue waits have run 20 min – 2.5 h
    with quota 1 on a shared account. Smokes are cheap; queue cycles are not.
+
+## determinism-smoke-r2 · Stopped · 0 s · $0.00
+
+`johnyj02-QA-v0-1-20260827-33b4267e-determinism-smoke-r2`
+
+- Stopped while Pending ($0) — superseded by the token-ids fix, which replaced the text path it would have validated.
+- Not a failure: stopped deliberately while still `Pending`, so zero cost.
+- ⚠️ Worth recording because of WHAT superseded it. R14.3's config audit asked why
+  `models.yaml: serving.add_bos_token` was consumed by nothing, and the answer was a
+  real bug: `run_cell` passed prompts as **text**, so vLLM re-tokenized them on the
+  *completion* path (`add_special_tokens=True`) rather than the chat path (`False`,
+  "suppressed for chat, where the template already supplies them"). Our prompts are
+  chat-templated, so any model whose template emits BOS — Llama-3.1 emits
+  `<|begin_of_text|>` — got a **second** one. `materialize.py` exists to prevent
+  exactly that and its work was being discarded at generation time.
+- Generation now passes the frozen `prompt_token_ids` via `TokensPrompt`, and asserts
+  the engine's own reported ids match the artifact. A config audit found a
+  correctness bug in every generation, which is the argument for doing such audits
+  before generations exist rather than after.

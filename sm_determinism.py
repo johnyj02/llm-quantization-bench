@@ -151,6 +151,7 @@ def cell_tag(
     model_key: str = AUDIT_MODEL,
     repeats: int = REPEATS,
     ordering_seed: int = 0,
+    autotune: bool = False,
 ) -> str:
     """Filesystem-safe identity for one probe cell. Also its resume key.
 
@@ -170,6 +171,8 @@ def cell_tag(
     parts = [model_key, arm, f"at{max_num_seqs}", f"r{repeats}"]
     if ordering_seed:
         parts.append(f"ord{ordering_seed}")
+    if autotune:
+        parts.append("autotune")
     if disabled_kernels:
         parts.append("fallback")
     return "__".join(parts)
@@ -351,6 +354,7 @@ def run_probe_cell(
     model_key: str = AUDIT_MODEL,
     repeats: int = REPEATS,
     ordering_seed: int = 0,
+    autotune: bool = False,
 ) -> DisagreementResult | None:
     """Run one (arm, max_num_seqs) cell: `REPEATS` passes over the probe.
 
@@ -366,7 +370,7 @@ def run_probe_cell(
     """
     tag = cell_tag(arm, max_num_seqs, disabled_kernels,
                    model_key=model_key, repeats=repeats,
-                   ordering_seed=ordering_seed)
+                   ordering_seed=ordering_seed, autotune=autotune)
     result_path = PROBE_DIR / f"{tag}.json"
 
     # A rehearsal must actually rehearse. Resuming from a previous smoke's cached
@@ -389,6 +393,7 @@ def run_probe_cell(
             "bits": bits,
             "max_num_seqs": max_num_seqs,
             "disabled_kernels": disabled_kernels,
+            "enable_flashinfer_autotune": autotune,
         },
         "items": items,
         "repeats": repeats,
@@ -703,6 +708,52 @@ def main() -> int:
     print()
 
     # ---------------------------------------------------------------------
+    # R14.1 — AUTOTUNE CONTRAST on GPTQ-4bit. The study runs with flashinfer
+    # autotuning OFF, because an autotuner picks kernels by startup benchmark and so
+    # makes the configuration non-identical across runs by construction. This arm
+    # measures what that setting is worth.
+    #
+    # GPTQ-4bit rather than bf16, on the planner's correction: GPTQ-4 is the arm H8's
+    # claim is ABOUT (no BI guard, keeps Marlin), so "stable with autotune off,
+    # unstable with it on" is a quotable result -- kernel autotuning alone is
+    # sufficient to break bitwise reproducibility. bf16 would isolate more cleanly and
+    # answer a question nobody asked.
+    #
+    # The autotune-OFF condition is already in the sweep, so only ON costs anything:
+    # 3 repeats x 500 = 1,500 generations.
+    # ---------------------------------------------------------------------
+    autotune_contrast: list[DisagreementResult] = []
+    if not SMOKE and "gptq-4bit" in resolved:
+        print(f"=== autotune contrast: gptq-4bit at max_num_seqs={confirm_level}, "
+              f"flashinfer autotune ON (R14.1) ===")
+        path, _ = resolved["gptq-4bit"]
+        method, bits = arm_engine_fields("gptq-4bit", specs)
+        result = run_probe_cell(
+            "gptq-4bit", path, model["revision"], quant_method=method, bits=bits,
+            max_num_seqs=confirm_level, items=items, disabled_kernels=None,
+            autotune=True,
+        )
+        if result is None:
+            unmeasured.add(f"autotune:gptq-4bit@{confirm_level}")
+        else:
+            autotune_contrast.append(result)
+            baseline = next(
+                (r for r in results
+                 if r.fmt == "gptq-4bit" and r.max_num_seqs == confirm_level
+                 and not r.disabled_kernels),
+                None,
+            )
+            if baseline is not None:
+                print(f"    autotune OFF: "
+                      f"{'stable' if baseline.bitwise_stable else f'{baseline.disagreement_rate:.3%}'}")
+                print(f"    autotune ON : "
+                      f"{'stable' if result.bitwise_stable else f'{result.disagreement_rate:.3%}'}")
+                if baseline.bitwise_stable and not result.bitwise_stable:
+                    print("    🔬 KERNEL AUTOTUNING ALONE BREAKS BITWISE "
+                          "REPRODUCIBILITY — the 4th BI coverage gap, measured.")
+        print()
+
+    # ---------------------------------------------------------------------
     # R12.3.3 — MODEL-GENERALITY probe on Phi-3.5-mini. One model establishes the
     # MECHANISM (it is in vLLM's kernel-dispatch source, so architecture-general);
     # it does not establish the RATES. vLLM #48271's leak depends on token count and
@@ -749,6 +800,8 @@ def main() -> int:
     if confirmation:
         write_json(OUTPUT_DIR / "determinism_confirmation.json", confirmation)
         write_csv(OUTPUT_DIR / "determinism_confirmation.csv", confirmation)
+    if autotune_contrast:
+        write_json(OUTPUT_DIR / "determinism_autotune_contrast.json", autotune_contrast)
     if phi_results:
         write_json(OUTPUT_DIR / "determinism_model_generality.json", phi_results)
         write_csv(OUTPUT_DIR / "determinism_model_generality.csv", phi_results)

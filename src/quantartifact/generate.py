@@ -109,6 +109,22 @@ class EngineSpec:
     # batch-invariance failures, so it is not a setting to leave floating in a study
     # about reproducibility.
     async_scheduling: bool = False
+    # 🚨 OFF for the study (planner ruling R14.1), and correct on the merits rather
+    # than merely convenient. Batch invariance's premise is a FIXED, KNOWN kernel set;
+    # an autotuner picks kernels by STARTUP BENCHMARK, i.e. by a noisy timing
+    # measurement, so the configuration is not identical across runs BY CONSTRUCTION.
+    # That violates §4.6's "reproducibility holds only within an identical
+    # configuration" directly.
+    #
+    # It is also the 4th undocumented gap in VLLM_BATCH_INVARIANT's coverage, after
+    # auto_awq's guard, auto_gptq's absence of one, and the sampler path — which is
+    # what makes H8 a four-gap claim rather than a two-gap one.
+    #
+    # Left settable so the A7 audit can measure the ON-vs-OFF contrast on GPTQ-4bit,
+    # the arm H8's claim is about. Bounding note: autotune variance can only INFLATE
+    # measured instability, never manufacture false stability, so any arm that comes
+    # out stable is genuinely stable regardless.
+    enable_flashinfer_autotune: bool = False
 
 
 def preflight(spec: EngineSpec, *, strict: bool = True) -> list[str]:
@@ -269,6 +285,13 @@ class VLLMRunner:
                 "enforce_eager": self.spec.enforce_eager,
                 # Declared in configs/models.yaml and now actually ENFORCED.
                 "async_scheduling": self.spec.async_scheduling,
+                # Passed as the NESTED config, not the top-level shortcut: the
+                # shortcut goes through merge logic in create_engine_config that
+                # raises if both are set, and a False there risks being read as
+                # "unset". A dict is coerced by EngineArgs.__post_init__ directly.
+                "kernel_config": {
+                    "enable_flashinfer_autotune": self.spec.enable_flashinfer_autotune,
+                },
             }
             if self.spec.quant_method == "bitsandbytes":
                 # NF4 is quantized IN-FLIGHT by vLLM rather than loaded from a
