@@ -61,6 +61,9 @@ STAGES: dict[str, dict] = {
         # and transformers<=5.10.1, which conflicts with vllm 0.26.0 -- one image
         # cannot host both (EXECUTOR-TASKS.md 3.2's two-venv split, as two images).
         "image_key": "quant",
+        # This stage WRITES weights into the checkpoint tree, so a rehearsal must
+        # not share a prefix with the study.
+        "smoke_isolates_checkpoints": True,
     },
     "determinism": {
         "entry_point": "sm_determinism.py",
@@ -290,15 +293,23 @@ def main() -> int:
         config["job_name"] = config["job_name"] + "-smoke"
         if config.get("use_spot_instances"):
             config["max_wait"] = config["max_run"]
-        # SEPARATE checkpoint prefix. Smoke artefacts cannot be *used* by a real
-        # job (the recipe hash differs, so they land on a different path), but
-        # SageMaker restores the whole `checkpoint_s3_uri` prefix into the
-        # container at every job start -- so junk left here would be re-downloaded
-        # by every subsequent job forever. And in a study whose central claim is a
-        # normalised calibration budget, a deliberately-wrong-budget checkpoint
-        # sitting in the study's own tree is exactly the artefact not to leave
-        # behind for a reviewer, or for a later me, to trip over.
-        if config.get("checkpoint_s3_uri"):
+        # SEPARATE checkpoint prefix, but ONLY for stages that WRITE weights there.
+        #
+        # Smoke artefacts cannot be *used* by a real job (the recipe hash differs, so
+        # they land on a different path), but SageMaker restores the whole
+        # `checkpoint_s3_uri` prefix into the container at every job start -- so junk
+        # left here would be re-downloaded by every subsequent job forever. And in a
+        # study whose central claim is a normalised calibration budget, a
+        # deliberately-wrong-budget checkpoint sitting in the study's own tree is
+        # exactly the artefact not to leave for a reviewer to trip over.
+        #
+        # ⚠️ BUT for a stage that READS those weights -- `determinism` serves the
+        # quantized checkpoints job 1 produced -- redirecting the prefix means the
+        # rehearsal cannot see them at all and dies on a missing checkpoint. Such a
+        # stage isolates its own outputs internally instead (`sm_determinism.py`
+        # writes to a `determinism-smoke/` subdirectory), which is the isolation that
+        # actually matters: a smoke result must never be readable as a real one.
+        if spec.get("smoke_isolates_checkpoints") and config.get("checkpoint_s3_uri"):
             config["checkpoint_s3_uri"] = (
                 config["checkpoint_s3_uri"].rstrip("/") + "-smoke/"
             )
