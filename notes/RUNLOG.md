@@ -249,3 +249,40 @@ RuntimeError: Could not find nvcc and default cuda_home='/usr/local/cuda' doesn'
   are excluded from the noise floor rather than reading as a stability finding.
 - Cost of the lesson: $0.48, and it bought confirmation that the four hardest
   assertions in the study actually hold on real hardware.
+
+## determinism-smoke · Completed · 743 s · $0.58
+
+`johnyj02-QA-v0-1-20260828-33b4267e-determinism-smoke`
+
+- ✅ COMPLETED. And it found the real result: repeating the same order says both arms are stable, but REORDERING changes 65% of gptq-4bit outputs and 0% of bf16's.
+- 🔬 **THE FINDING.** 20-item smoke, qwen2.5-3b, `max_num_seqs=8`:
+
+  | | 3 repeats, SAME order | 3 ORDERINGS |
+  |---|---|---|
+  | bf16 | 0/20 disagree | **order-invariant** |
+  | gptq-4bit | 0/20 disagree | **13/20 changed (65.0%)** |
+
+  Repetition says both arms are perfectly reproducible. **Reordering the same items
+  changes 65% of GPTQ-4bit's outputs and none of bf16's.** That is H8's predicted
+  asymmetry, observed: `auto_gptq.py` carries no batch-invariance guard, keeps Marlin,
+  and vLLM's own source says Marlin is not batch invariant.
+- ⚠️ **My original design would have missed this entirely.** The 10-repeat confirmation
+  I proposed would have reported "8 confirmed, freeze it" and the study would have
+  proceeded on a false premise. R13.1's correction — vary ORDERING, not repeat count —
+  is what caught it, for 1/5 of the generations.
+- **Why 65% is plausible rather than suspicious:** in CoT generation a single differing
+  token cascades, so any batch-composition change that flips one token early rewrites
+  the rest of the trace. The magnitude is the cascade, not the numerical delta.
+- ⚠️ **Confound checked, and bf16 is the control.** The three orderings ran in
+  SEPARATE engine processes (one subprocess per cell), so ordering and engine instance
+  are not separated by construction. But bf16 has the identical process structure and
+  showed 0/20, so cross-instance variation cannot be the cause. Testing both arms is
+  what makes this attributable. Still worth isolating properly in the real run.
+- 📊 **Throughput is ARM-dependent, not warmup**: bf16 ~3,857–3,942 gen/h, gptq-4bit
+  ~15,616–15,734 gen/h, consistently across all three passes each. 4-bit is ~4× faster
+  on a bandwidth-bound decode. This is A6's deliverable arriving without its own job.
+  BBH's 4× longer generation budget will pull the blended rate down.
+- 🚧 **Gap this exposed in my code:** the Marlin-disabled fallback probe triggers on
+  SWEEP instability, and the sweep says both arms are stable. The instability is only
+  visible in the ORDERING test, so as written the probe that would attribute this to
+  Marlin never fires. Raised with the planner along with the freeze question.
