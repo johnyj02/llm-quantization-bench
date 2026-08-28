@@ -492,6 +492,95 @@ def order_sensitivity(
     return result
 
 
+def divergence_by_level(
+    passes: Sequence[RepeatOutputs],
+    items: dict[str, dict],
+) -> dict[str, Any]:
+    """Order divergence at TEXT, EXTRACTED ANSWER and CORRECTNESS. Ruling R15.3.
+
+    *"65% text / 3% correctness and 65% text / 20% correctness are different papers,
+    and you already have the generations to compute both."*
+
+    The three levels answer different questions, and the smoke showed they disagree
+    sharply:
+
+    * **text** — did the generated string change? In CoT one flipped token cascades,
+      so this is the largest number and the least consequential on its own.
+    * **extracted answer** — did the answer a scorer would read change? This is what
+      bounds correctness, since identical answers cannot score differently.
+    * **correctness** — did the item's score change? The only level that moves a
+      reported accuracy delta.
+
+    ``items`` maps item_id -> {"gold", "task", "subtask"}. Items lacking gold are
+    counted at the text and answer levels and skipped for correctness, with the count
+    reported rather than silently dropped.
+    """
+    from quantartifact.scoring.extract import score_generation  # noqa: PLC0415
+
+    # One pass per distinct ordering: this is the ORDER comparison, not repetition.
+    seen: set[int] = set()
+    ordering: list[RepeatOutputs] = []
+    for candidate in passes:
+        if candidate.ordering_seed not in seen:
+            seen.add(candidate.ordering_seed)
+            ordering.append(candidate)
+
+    if len(ordering) < 2:
+        return {"error": "need >=2 orderings to measure order divergence"}
+
+    levels = ("strict", "strict_last", "permissive")
+    text_diff = 0
+    answer_diff = {rung: 0 for rung in levels}
+    correct_diff = {rung: 0 for rung in levels}
+    n_text = 0
+    n_scored = 0
+
+    all_items = set()
+    for pass_ in ordering:
+        all_items.update(pass_.outputs)
+
+    for item_id in sorted(all_items):
+        texts = [p.outputs.get(item_id) for p in ordering]
+        if any(t is None for t in texts):
+            continue
+        n_text += 1
+        if len(set(texts)) > 1:
+            text_diff += 1
+
+        meta = items.get(item_id)
+        if not meta or meta.get("gold") is None:
+            continue
+        n_scored += 1
+        scored = [
+            score_generation(
+                text, meta["gold"], meta["task"], meta.get("subtask"),
+                rungs=levels, math_verify_available=False,
+            )
+            for text in texts
+        ]
+        for rung in levels:
+            if len({str(s[rung]["extracted"]) for s in scored}) > 1:
+                answer_diff[rung] += 1
+            if len({bool(s[rung]["correct"]) for s in scored}) > 1:
+                correct_diff[rung] += 1
+
+    def rate(count: int, total: int) -> float | None:
+        return round(count / total, 6) if total else None
+
+    return {
+        "n_orderings": len(ordering),
+        "n_items_text": n_text,
+        "n_items_scored": n_scored,
+        "n_items_unscored_no_gold": n_text - n_scored,
+        "text_divergence": rate(text_diff, n_text),
+        "answer_divergence": {r: rate(answer_diff[r], n_scored) for r in levels},
+        "correctness_divergence": {r: rate(correct_diff[r], n_scored) for r in levels},
+        # The number R15.6's escalation trigger is defined on. Strict is the headline
+        # rung, so it governs; the others are reported alongside.
+        "escalation_metric_strict_correctness": rate(correct_diff["strict"], n_scored),
+    }
+
+
 def probe_fingerprint(outputs: dict[str, str]) -> str:
     """Stable hash over a whole probe pass, for a quick eyeball comparison."""
     rolling = hashlib.sha256()

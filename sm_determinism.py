@@ -90,6 +90,7 @@ from quantartifact.determinism import (  # noqa: E402
     REPEATS,
     SWEEP_FLOOR,
     RepeatOutputs,
+    divergence_by_level,
     order_sensitivity,
     probe_fingerprint,
 )
@@ -247,6 +248,13 @@ def build_probe(model: dict, model_key: str) -> list[dict]:
                     # text takes the completion path (add_special_tokens=True) and
                     # double-BOSes any model whose chat template already emits one.
                     "prompt_token_ids": prompt.prompt_token_ids,
+                    # R15.3 needs divergence at THREE levels, and correctness needs
+                    # gold. Carried here so the job computes it rather than leaving it
+                    # to a manual pass -- "65% text / 3% correctness and 65% text /
+                    # 20% correctness are different papers".
+                    "gold": prompt.gold,
+                    "task": task,
+                    "subtask": subtask,
                     "max_gen_toks": config["max_gen_toks"]["1x"],
                     "until": config["until"],
                 }
@@ -440,6 +448,11 @@ def measure_cell(
         for index, entry in enumerate(raw["passes"])
     ]
     analysis = order_sensitivity(outputs)
+    # R15.3: text alone is the least consequential of the three levels. Computed here
+    # so the job reports it rather than leaving it to a manual pass afterwards.
+    analysis["by_level"] = divergence_by_level(
+        outputs, {i["item_id"]: i for i in items}
+    )
     analysis.update({
         "arm": arm, "model_key": model_key, "max_num_seqs": level,
         "disabled_kernels": disabled_kernels, "autotune": autotune,
@@ -457,6 +470,18 @@ def measure_cell(
     print(f"        repetition floor {rep if rep is None else f'{rep:.3%}'}  |  "
           f"order divergence {order if order is None else f'{order:.3%}'}"
           f"{'  ← STABLE UNDER REPEATS BUT NOT REORDERING' if analysis['repeat_stable_but_order_sensitive'] else ''}")
+    levels = analysis.get("by_level", {})
+    if levels.get("text_divergence") is not None:
+        ans = levels["answer_divergence"]["strict"]
+        cor = levels["correctness_divergence"]["strict"]
+        perm = levels["answer_divergence"]["permissive"]
+        fmt = lambda v: "-" if v is None else f"{v:.1%}"  # noqa: E731
+        print(f"        by level (strict): text {fmt(levels['text_divergence'])} -> "
+              f"answer {fmt(ans)} -> correctness {fmt(cor)}   "
+              f"[permissive answer {fmt(perm)}]")
+        if levels.get("n_items_unscored_no_gold"):
+            print(f"        ⚠️ {levels['n_items_unscored_no_gold']} items had no gold "
+                  f"and were excluded from the scored levels")
     payload_path.unlink(missing_ok=True)
     return analysis
 

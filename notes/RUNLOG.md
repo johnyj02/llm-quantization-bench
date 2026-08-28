@@ -286,3 +286,54 @@ RuntimeError: Could not find nvcc and default cuda_home='/usr/local/cuda' doesn'
   SWEEP instability, and the sweep says both arms are stable. The instability is only
   visible in the ORDERING test, so as written the probe that would attribute this to
   Marlin never fires. Raised with the planner along with the freeze question.
+
+## determinism-smoke-r2 · Completed · 633 s · $0.49
+
+`johnyj02-QA-v0-1-20260828-33b4267e-determinism-smoke-r2`
+
+- ✅ Confound BROKEN (one engine, repetition floor 0.000% all arms). bf16 order-invariant; gptq-4bit 65%; AWQ 75% — WORSE, despite having the guard. R15.2's second fork: the guard is insufficient.
+- ✅ **THE CONFOUND IS BROKEN.** All four passes ran in ONE engine, and the
+  **repetition floor is 0.000% for every arm** — same order, same engine, identical
+  output. So ordering is established as the cause, not process state. R15.1's decisive
+  cell is filled.
+
+  | arm | repetition | ordering | verdict |
+  |---|---|---|---|
+  | bf16 | 0.000% | **0.000%** | order-invariant |
+  | gptq-4bit | 0.000% | **65.0%** | stable on repeats, NOT on reordering |
+  | awq-4bit | 0.000% | **75.0%** | stable on repeats, NOT on reordering |
+
+- 🔬 **R15.2's SECOND fork, and it is the stronger finding.** AWQ **has** the
+  batch-invariance guard GPTQ lacks, and AWQ is **worse** (75% vs 65%). So the guard
+  does not deliver batch invariance — *"the guard is insufficient. Different finding,
+  also publishable, plus a substantive vLLM bug report."* Not the confirmed-prediction
+  branch, but a harder claim about the feature.
+- bf16 being order-invariant under the identical structure means the effect is
+  **quantization-specific**, not a general engine property. That is the control that
+  makes the claim attributable.
+
+- 📊 **R15.3's three levels, computed locally from the stored outputs — no GPU:**
+
+  | arm | text | strict answer | permissive answer |
+  |---|---|---|---|
+  | bf16 | 0.0% | 0.0% | 0.0% |
+  | gptq-4bit | 65.0% | **10.0%** | 20.0% |
+  | awq-4bit | 75.0% | **0.0%** | 40.0% |
+
+  **The cascade largely collapses by the answer level.** AWQ's traces differ 75% of the
+  time and its committed answer never does. That is exactly why the planner insisted on
+  three levels: 65%-text/10%-answer and 65%-text/0%-answer are different papers.
+- 🔬 **AND THE PERMISSIVE RUNG IS MORE ORDER-SENSITIVE THAN THE STRICT ONE** (20% vs
+  10% for GPTQ; 40% vs 0% for AWQ). It takes the last number anywhere in the trace, and
+  the trace is what diverges, while strict requires the committed marker, which is
+  stable. This cuts directly toward the "**calibrate** extraction, don't loosen it"
+  framing C1 was built on — leniency buys recovery of truncated answers at the cost of
+  exposure to batch-composition noise. Unplanned, and it strengthens the thesis.
+- ⚠️ **R15.6's escalation trigger is LIVE but not yet decidable.** GPTQ strict-answer
+  divergence is 10.0% = 2/20, and the trigger is >10 pp *correctness*. At n=20 the
+  Wilson 95% CI on 2/20 spans roughly 1%–31%, so the smoke cannot resolve it either
+  way. The 500-item probe decides. Answer-level divergence **upper-bounds** correctness
+  (identical answers cannot score differently), so the bound is ≤10% for GPTQ strict.
+- Code changes: probe items now carry `gold`/`task`/`subtask`, and
+  `divergence_by_level()` computes all three levels **inside the job**, so this analysis
+  is no longer a manual step I might skip.

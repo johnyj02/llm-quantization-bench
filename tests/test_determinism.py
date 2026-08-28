@@ -25,6 +25,7 @@ from quantartifact.determinism import (
     compute_disagreement,
     differential_noise_floor,
     distinct_output_histogram,
+    divergence_by_level,
     next_sweep_level,
     non_monotonic_levels,
     probe_fingerprint,
@@ -411,3 +412,65 @@ def test_measured_defaults_true_and_reaches_the_row():
     result = make_result("bf16", 8, True)
     assert result.measured is True
     assert result.to_row()["measured"] is True
+
+
+# ---------------------------------------------------------------------------
+# R15.3 — three levels, because they disagree sharply. The smoke measured
+# gptq-4bit at 65% text / 10% strict answer, and awq-4bit at 75% text / 0% strict
+# answer: the cascade largely collapses by the time a scorer reads the answer.
+# ---------------------------------------------------------------------------
+
+def test_divergence_collapses_from_text_to_answer():
+    """Different traces, identical committed answer -- awq-4bit's observed shape."""
+    items = {"a": {"gold": "42", "task": "gsm8k_cot", "subtask": None}}
+    passes = [
+        RepeatOutputs(fmt="awq-4bit", max_num_seqs=8, repeat_idx=0, ordering_seed=0,
+                      outputs={"a": "First I add. The answer is 42."}),
+        RepeatOutputs(fmt="awq-4bit", max_num_seqs=8, repeat_idx=1,
+                      ordering_seed=20260827,
+                      outputs={"a": "Let me reason differently. The answer is 42."}),
+    ]
+    result = divergence_by_level(passes, items)
+    assert result["text_divergence"] == 1.0, "the traces differ"
+    assert result["answer_divergence"]["strict"] == 0.0, "the answer does not"
+    assert result["correctness_divergence"]["strict"] == 0.0
+
+
+def test_divergence_that_reaches_correctness_is_flagged():
+    """The only level that moves a reported accuracy delta."""
+    items = {"a": {"gold": "42", "task": "gsm8k_cot", "subtask": None}}
+    passes = [
+        RepeatOutputs(fmt="gptq-4bit", max_num_seqs=8, repeat_idx=0, ordering_seed=0,
+                      outputs={"a": "The answer is 42."}),
+        RepeatOutputs(fmt="gptq-4bit", max_num_seqs=8, repeat_idx=1,
+                      ordering_seed=20260827,
+                      outputs={"a": "The answer is 41."}),
+    ]
+    result = divergence_by_level(passes, items)
+    assert result["answer_divergence"]["strict"] == 1.0
+    assert result["correctness_divergence"]["strict"] == 1.0
+    assert result["escalation_metric_strict_correctness"] == 1.0
+
+
+def test_items_without_gold_are_counted_not_dropped():
+    """Silently dropping them would understate the denominator and flatter the rate."""
+    items = {"a": {"gold": "42", "task": "gsm8k_cot", "subtask": None}}
+    passes = [
+        RepeatOutputs(fmt="bf16", max_num_seqs=8, repeat_idx=0, ordering_seed=0,
+                      outputs={"a": "The answer is 42.", "b": "The answer is 1."}),
+        RepeatOutputs(fmt="bf16", max_num_seqs=8, repeat_idx=1, ordering_seed=20260827,
+                      outputs={"a": "The answer is 42.", "b": "The answer is 2."}),
+    ]
+    result = divergence_by_level(passes, items)
+    assert result["n_items_text"] == 2
+    assert result["n_items_scored"] == 1
+    assert result["n_items_unscored_no_gold"] == 1
+    # "b" diverges at text level but has no gold, so it cannot enter correctness.
+    assert result["text_divergence"] == 0.5
+    assert result["correctness_divergence"]["strict"] == 0.0
+
+
+def test_one_ordering_is_refused():
+    passes = [RepeatOutputs(fmt="bf16", max_num_seqs=8, repeat_idx=0, ordering_seed=0,
+                            outputs={"a": "x"})]
+    assert "error" in divergence_by_level(passes, {})
