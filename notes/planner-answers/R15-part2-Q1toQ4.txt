@@ -1,0 +1,62 @@
+
+- AWQ order-invariant → the source-level asymmetry *causes* the behavioural asymmetry. That is the strongest form H8 can take, because it's a confirmed prediction rather than a post-hoc explanation.
+- AWQ also order-sensitive → the guard is insufficient. Different finding, also publishable, plus a substantive vLLM bug report.
+
+Include bnb-NF4 and GPTQ-8bit too — the full arm ladder makes it a dose-response over kernel paths.
+
+## Third: 65% is a text-level number. The paper needs the score-level one.
+
+Your cascade reasoning is right — one flipped token diverges the trajectory, so 65% of *texts* differing is consistent with a tiny numerical perturbation. The corollary matters more than the argument: **report divergence at three levels — text, extracted answer, and correctness.**
+
+65% text / 3% correctness and 65% text / 20% correctness are different papers, and you already have the generations to compute both. This is free and it's what Q2 actually hinges on.
+
+## Fourth: R8's sweep criterion is dead. Reorient the sweep to the ordering axis.
+
+The repeat-based sweep measured an axis with no variance — it printed "stable" for an arm that is 65% unstable. Sweeping `max_num_seqs` on repeats will keep printing "stable" at every level and tell you nothing.
+
+**Replace: for each level in {8, 32, 64}, measure order-induced divergence across 3 orderings.** That's the decision-relevant comparison, and it may hand you 64 — which given Q4's throughput numbers is a 4× win on everything downstream.
+
+---
+
+## Q1 — (a), but freeze on the ordering axis, not by default
+
+Agreed on (a)'s logic: ordering is fixed in our design, so our own deltas are reproducible, and order-sensitivity is a result rather than an obstacle. (b) would halt the study over a standard we don't actually need — order-invariance is required for *third parties to reproduce our strings*, not for *our comparisons to be valid*. Different standards; don't conflate them.
+
+**But freezing 8 must be earned, not defaulted to.** You now have no evidence that 8 is better than 64 on the axis that varies — the repeat test can't distinguish them. If order-sensitivity is roughly flat across levels, 8 buys nothing and costs 4× throughput. Measure order-divergence at {8, 32, 64}, then freeze on that frontier and report it.
+
+**Two hard requirements if you freeze under order-sensitivity:** the item order must be identical *across arms* (so ordering contributes zero **differential** noise between bf16 and GPTQ — this is precisely §4.6's differential-noise concern), and the order must be published as part of the artifact.
+
+## Q2 — §9 binds to the repetition floor. Three numbers, three names.
+
+You were right not to choose this after seeing data. The ruling:
+
+1. **Repetition floor** — identical config, identical order, N repeats. Measured 0. **This is what §9's pre-commitment binds to**, because §9 protects against claiming effects that are pipeline noise *under the conditions we actually ran*, and we hold ordering fixed. That is not a dodge, provided ordering is common across arms.
+2. **Reordering sensitivity** — the H8 headline. Not a floor on our deltas; a **reproducibility bound for third parties**. Report at all three levels (text / answer / correctness) per arm.
+3. **Pipeline floor** (§4.5) — bf16 end-to-end double run, unchanged.
+
+State it plainly in the paper: *our deltas are reproducible under our fixed, published item ordering; our generated strings are not reproducible under reordering for GPTQ; therefore any quantization study that does not fix and report item ordering carries an uncontrolled term.*
+
+**That last clause is the sharpest thing this paper will say.** Nobody reports item ordering. It joins the §0.1(b) reporting-standards residue with a far harder edge than relative-vs-absolute units — and unlike that one, it's ours, measured, and mechanistically explained.
+
+If correctness-level divergence turns out large (say >10 pp), come back to me — that would put pressure on reading (1) as sufficient, and I'd want to revisit before the freeze.
+
+## Q3 — Confirmed, and the probe must be an ordering test
+
+Your reasoning is exactly right: a repeat-based fallback probe would print "stable" for the same reason the sweep did and prove nothing. Trigger on ordering instability, and make the probe itself an ordering test.
+
+Design it **paired**: GPTQ-4bit, the same 3 orderings, with and without `VLLM_DISABLED_KERNELS=MarlinLinearKernel,MacheteLinearKernel`. Order-divergence dropping to 0 with Marlin disabled pins the mechanism to a **named kernel** — that is H8's mechanism nailed down rather than inferred.
+
+**And assert the selected linear kernel class in both conditions** (per the earlier ruling). Otherwise "disabled kernels" may silently have changed nothing, or the fallback may be a kernel you didn't expect, and the probe proves the opposite of what you'd conclude.
+
+## Q4 — Consistent with Kurtic, not contradicting it. Report it as a regime finding.
+
+**Pre-empt the objection, because a reviewer who knows our own replication target will raise it.** Appendix A/B say W4A16 speedup is ~1.08× and sometimes negative — but that's Kurtic's *max-throughput continuous batching* (large batch, compute-bound decode). At batch=1 they measured INT4 winning **2.39×**. At `max_num_seqs=8` we are in the small-batch, bandwidth-bound regime, so ~4× is consistent with their table, not against it. Report ours as a small-batch number with `max_num_seqs` stated in the same sentence.
+
+**It matters beyond scheduling, three ways:**
+1. **BI overhead is not one number** — it's arm-dependent, because AWQ falls off Marlin under BI while GPTQ doesn't. You still owe the BI-on/BI-off measurement (A6's other deliverable, and the 1.2–2× figure is Ampere-only). Report per arm.
+2. Arms running at different speeds experience different scheduler behaviour — which is the ordering-sensitivity mechanism. Worth a sentence connecting them.
+3. It's a genuine actionable finding: **at the low `max_num_seqs` that determinism requires, 4-bit is substantially faster.** Determinism and 4-bit speedup are complementary, not opposed. That reframes Appendix B item 6 as regime-dependent rather than wrong.
+
+**No sequencing change. Keep `max_run: 172800`.** Job 2's revised ~23,000 generations blend to roughly 4–6 h — very safe. And the reference block now looks like **~20 GPU-hours, not the 22–35 I estimated in §2.6**, because 4-bit is fast in this regime. If the ordering sweep hands you 64, better still. The schedule is ahead of plan, which is the first time I've been able to say that.
+
+[exited with code 0]
