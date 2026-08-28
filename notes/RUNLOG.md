@@ -218,3 +218,34 @@ RuntimeError: Could not find nvcc and default cuda_home='/usr/local/cuda' doesn'
 - **This is the last change to the generation path before a smoke result.** Everything
   else outstanding from R14 (the config manifest, the prereg and Method updates) does
   not alter what runs.
+
+## determinism-smoke-r4 · Failed · 619 s · $0.48
+
+`johnyj02-QA-v0-1-20260827-33b4267e-determinism-smoke-r4`
+
+- Failed on MY bug (single-pass cell hit a >=2-repeat guard) AFTER validating everything else — batch invariance engaged, engine read-back clean, autotune off, quantized checkpoint loaded, ~3,866-4,100 gen/h.
+- FailureReason: `AlgorithmError: ExecuteUserScriptError: ExitCode 1 ErrorMessage "" Command "/usr/local/bin/python3.11 sm_determinism.py --smoke 1 --stage determinism", exit code: 1 `
+- ✅ **Almost everything validated.** This run is the first generation on the
+  substrate and it cleared every guard built for R14:
+
+  | check | observed |
+  |---|---|
+  | batch invariance ENGAGED | `torch_bmm: bmm_batch_invariant`, `_batch_invariant_MODE: True`, reduced-precision off, `CUBLAS_WORKSPACE_CONFIG: ':4096:8'` — both arms |
+  | `async_scheduling` | **`False`** (it was `True` before the fix) |
+  | autotune | `Skipping FlashInfer autotune because it is disabled`, `enable_flashinfer_autotune=False` in KernelConfig |
+  | revision as LOADED | `aa8e72537993…` — matches the pin |
+  | `max_num_seqs` | `8`, not silently reduced; KV cache allows 118–132× concurrency |
+  | quantized load | `quantization=compressed-tensors` from the hash-stamped dir |
+  | Triton BI kernel | `Triton kernel JIT compilation during inference: matmul_kernel_persistent` |
+
+- 📊 **First measured throughput: ~3,866–4,100 gen/h.** On 20-item passes, so
+  fixed-overhead dominated and a floor rather than a rate. At that floor job 2's
+  24,500–47,000 generations is **6–11.5 h**, comfortably inside the 48 h cap.
+- ❌ **The failure was mine**: `confirm_ordering` runs ONE pass per ordering and
+  compares the orderings afterwards, but `run_probe_cell` called
+  `compute_disagreement` on every cell — and that correctly requires ≥2 repeats. The
+  function conflated *run the passes* with *compare the passes*. Single-pass cells now
+  return a placeholder marked `measured=False`, so they fail the selection closed and
+  are excluded from the noise floor rather than reading as a stability finding.
+- Cost of the lesson: $0.48, and it bought confirmation that the four hardest
+  assertions in the study actually hold on real hardware.

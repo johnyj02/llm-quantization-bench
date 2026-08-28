@@ -13,12 +13,20 @@ trap in them worth pinning down:
 
 from __future__ import annotations
 
+import inspect
 from pathlib import Path
 
 import pytest
+import sm_determinism
 from sm_determinism import AUDIT_ARMS, arm_engine_fields, bbh_probe_split, cell_tag
 
-from quantartifact.determinism import PROBE_COMPOSITION, SWEEP_FLOOR
+from quantartifact.determinism import (
+    ORDERING_SEEDS,
+    PROBE_COMPOSITION,
+    SWEEP_FLOOR,
+    RepeatOutputs,
+    compute_disagreement,
+)
 from quantartifact.quantize import load_specs
 
 CONFIGS = Path(__file__).resolve().parents[1] / "configs"
@@ -154,3 +162,45 @@ class TestCellTag:
     def test_arms_are_distinct(self):
         tags = {cell_tag(arm, 8, None) for arm in ("bf16", "gptq-4bit", "awq-4bit")}
         assert len(tags) == 3
+
+
+class TestSinglePassCells:
+    """A single-pass cell has nothing to compare against itself.
+
+    The ordering confirmation (R13.1) deliberately runs ONE pass per ordering and
+    compares the orderings afterwards. `run_probe_cell` was calling
+    `compute_disagreement` on every cell regardless, so a 1-repeat cell raised
+    "need at least 2 repeats" and killed the job after it had already produced good
+    data — it conflated "run the passes" with "compare the passes".
+    """
+
+    def test_compute_disagreement_still_rejects_one_pass(self):
+        """The guard itself is correct and must stay: one pass is not a comparison."""
+        single = [RepeatOutputs(fmt="bf16", max_num_seqs=8, repeat_idx=0,
+                                outputs={"a": "x"})]
+        with pytest.raises(ValueError, match="at least 2 repeats"):
+            compute_disagreement(single)
+
+    def test_three_orderings_are_comparable(self):
+        """The confirmation combines ORDERING_SEEDS passes, which must be >= 2."""
+        assert len(ORDERING_SEEDS) >= 2, "the ordering comparison needs >=2 passes"
+
+    def test_run_probe_cell_guards_single_pass_before_comparing(self):
+        """Source-inspected: no GPU here, and the failure cost a queued run."""
+        source = inspect.getsource(sm_determinism.run_probe_cell)
+        guard = source.index("len(repeat_outputs) < 2")
+        compare = source.index("result = compute_disagreement(")
+        assert guard < compare, (
+            "the single-pass guard must come BEFORE compute_disagreement, or a "
+            "1-repeat ordering cell raises and kills the job"
+        )
+
+    def test_single_pass_result_is_marked_unmeasured(self):
+        """It must not read as a stability finding.
+
+        Unmeasured results fail the selection closed and are excluded from the noise
+        floor, so a placeholder cannot be mistaken for evidence either way.
+        """
+        source = inspect.getsource(sm_determinism.run_probe_cell)
+        after_guard = source[source.index("len(repeat_outputs) < 2"):]
+        assert "measured=False" in after_guard

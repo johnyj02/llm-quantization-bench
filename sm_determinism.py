@@ -386,8 +386,16 @@ def run_probe_cell(
         print(f"[smoke] discarded previous rehearsal result for {tag}")
 
     if result_path.exists():
-        print(f"[skip] {tag}  already measured")
         cached = json.loads(result_path.read_text())
+        if cached.get("result") is None:
+            # A single-pass ordering cell: the raw file is what the caller needs.
+            print(f"[skip] {tag}  single pass already recorded")
+            return DisagreementResult(
+                fmt=arm, max_num_seqs=max_num_seqs, n_items=0, n_disagreeing=0,
+                disagreement_rate=0.0, max_distinct_outputs=1, bitwise_stable=False,
+                disabled_kernels=disabled_kernels, measured=False,
+            )
+        print(f"[skip] {tag}  already measured")
         return DisagreementResult(**cached["result"])
 
     raw_path = PROBE_DIR / f"raw_{tag}.json"
@@ -445,6 +453,36 @@ def run_probe_cell(
         )
         for i, texts in enumerate(raw["repeats"])
     ]
+
+    # ⚠️ A SINGLE-PASS cell has nothing to compare against ITSELF. The ordering
+    # confirmation (R13.1) deliberately runs one pass per ordering and compares the
+    # orderings afterwards, so calling compute_disagreement here raised
+    # "need at least 2 repeats" and killed the job -- this function was conflating
+    # "run the passes" with "compare the passes". Single-pass cells now return a
+    # placeholder marked `measured=False`, which the ordering caller ignores (it reads
+    # the raw file) and which cannot be mistaken for a stability finding by anything
+    # else: unmeasured cells fail the selection closed and are excluded from the noise
+    # floor.
+    if len(repeat_outputs) < 2:
+        result_path.write_text(json.dumps({
+            "result": None,
+            "repeats": repeats,
+            "single_pass": True,
+            "ordering_seed": ordering_seed,
+            "fingerprint": probe_fingerprint(repeat_outputs[0].outputs),
+            "minutes": round(elapsed / 60, 1),
+            "hardware": raw.get("hardware"),
+            "batch_invariance": raw.get("batch_invariance"),
+            "engine_state": raw.get("engine_state"),
+        }, indent=2))
+        print(f"       {elapsed / 60:.1f} min — single pass recorded "
+              f"(ordering {ordering_seed}); comparison happens across orderings")
+        return DisagreementResult(
+            fmt=arm, max_num_seqs=max_num_seqs, n_items=len(repeat_outputs[0].outputs),
+            n_disagreeing=0, disagreement_rate=0.0, max_distinct_outputs=1,
+            bitwise_stable=False, disabled_kernels=disabled_kernels, measured=False,
+        )
+
     result = compute_disagreement(repeat_outputs)
 
     result_path.write_text(json.dumps({
