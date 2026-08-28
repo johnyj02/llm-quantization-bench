@@ -736,8 +736,37 @@ confirmation probe on **Phi-3.5-mini** (bf16 and one 4-bit arm, at the frozen va
 the rates transfer, chosen over Llama-3.1-8B deliberately because its fused gate+up projection
 makes it the architectural outlier and therefore the higher-information second point.
 
-**Registered generation budget for the audit: 23,000 best case, 45,500 worst** — superseding
-§2.6's ~13,500, which predated the three additions above.
+**Registered generation budget for the audit: 38,000** — superseding both §2.6's ~13,500 and the
+23,000 registered before the criterion below was retired.
+
+**⚠️ The repeat-based selection criterion above is RETIRED (planner ruling R15.4).** The pilot
+measurement showed why: at `max_num_seqs=8`, three repeats of an identical probe in an identical
+order gave **0/20 disagreement for every arm**, while three *reorderings* of the same items changed
+**65% of GPTQ-4bit's outputs and none of bf16's*. A criterion defined on repetition therefore
+measures an axis with no variance and certifies as "stable" an arm that is grossly unstable on the
+axis that matters.
+
+**Replacement, pre-registered:** for each level in {8, 32, 64}, measure **order-induced
+divergence** across three orderings of the same probe (seeds `0`, `20260827`, `20260828`), with all
+passes executed **inside a single engine process** so that ordering is not confounded with process
+state. The frozen value is the largest level order-invariant for every arm; if no level is
+order-invariant, that is reported as the frontier and the freeze is made on it explicitly.
+
+Two requirements when freezing under order sensitivity: the **item order is identical across
+arms**, so ordering contributes zero *differential* noise between precisions, and **the order is
+published** as part of the artifact.
+
+**Three floors, three names** (R15.6), which must not be conflated:
+1. **Repetition floor** — identical config, identical order, N repeats. **§9's pre-commitment binds
+   to this one**, because §9 protects against claiming effects that are pipeline noise under the
+   conditions actually run, and ordering is held fixed and published.
+2. **Reordering sensitivity** — reported per arm at three levels (text, extracted answer,
+   correctness). This is *not* a floor on our deltas; it is a reproducibility bound for third
+   parties.
+3. **Pipeline floor** (§4.5) — the bf16 end-to-end double run, unchanged.
+
+If correctness-level reordering divergence exceeds 10 pp, the freeze is escalated before being
+made.
 
 **H7 framing, pre-committed.** For each published degradation figure cited, compute the 95%
 CI implied by that paper's own eval size and state whether the reported delta clears it.

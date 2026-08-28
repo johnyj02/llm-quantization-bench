@@ -438,7 +438,21 @@ item_counts:
   # answer is good news and expensive only when the frontier is genuinely
   # informative. Pre-specified as a contingency in analysis/preregistration.md, so it
   # reads as a plan rather than a post-hoc expansion.
-  determinism_audit_best: 23000     # sweep 15,000 + ordering 5,000 + Phi 3,000
-  determinism_audit_worst: 45500    # sweep 30,000 + ordering 5,000 + Phi 3,000 + Marlin 7,500
-  determinism_audit_supersedes: "EXECUTOR-TASKS.md 2.6's ~13,500 estimate"
+  # ⚠️ REVISED AGAIN by R15, and upward. R13.7's 23,000 assumed a descending sweep on
+  # the REPEAT axis with early exit. R15.4 retired that criterion outright -- it
+  # measured an axis with no variance and called a 65%-order-unstable arm "stable" --
+  # so the sweep now measures ORDER-induced divergence at three fixed levels
+  # {8,32,64}, and R15.2 puts the full arm ladder in it because AWQ is the prediction
+  # test (it HAS the guard GPTQ lacks).
+  #
+  # 5 arms x 3 levels x 4 passes x 500 = 30,000, plus Marlin 2,000 + autotune 2,000 +
+  # Phi 4,000. Four passes per cell = 2 at ordering 0 (the repetition floor §9 binds
+  # to) + 2 reordered (order sensitivity), ALL IN ONE ENGINE so ordering is not
+  # confounded with process state.
+  #
+  # The TIME estimate is unchanged (~4.8 h at the measured blended rate, against the
+  # planner's predicted 4-6 h); it is the generation COUNT that grew.
+  determinism_audit: 38000
+  determinism_audit_breakdown: "sweep 30,000 + Marlin 2,000 + autotune 2,000 + Phi 4,000"
+  determinism_audit_supersedes: "R13.7's 23,000, which assumed the retired repeat-axis sweep"
   supersedes: "EXECUTOR-TASKS.md 2.6 table (99,000)"

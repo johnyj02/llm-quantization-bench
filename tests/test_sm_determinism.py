@@ -26,6 +26,7 @@ from quantartifact.determinism import (
     SWEEP_FLOOR,
     RepeatOutputs,
     compute_disagreement,
+    order_sensitivity,
 )
 from quantartifact.quantize import load_specs
 
@@ -185,22 +186,94 @@ class TestSinglePassCells:
         """The confirmation combines ORDERING_SEEDS passes, which must be >= 2."""
         assert len(ORDERING_SEEDS) >= 2, "the ordering comparison needs >=2 passes"
 
-    def test_run_probe_cell_guards_single_pass_before_comparing(self):
-        """Source-inspected: no GPU here, and the failure cost a queued run."""
-        source = inspect.getsource(sm_determinism.run_probe_cell)
-        guard = source.index("len(repeat_outputs) < 2")
-        compare = source.index("result = compute_disagreement(")
-        assert guard < compare, (
-            "the single-pass guard must come BEFORE compute_disagreement, or a "
-            "1-repeat ordering cell raises and kills the job"
+
+class TestOneEngineForAllPasses:
+    """R15.1 — every pass must share ONE engine, or ordering is confounded.
+
+    My first version gave each ordering its own subprocess. The planner's correction:
+    my argument that bf16's stability ruled out process-state variation was UNSOUND,
+    because it assumed both arms are equally sensitive to whatever varies across
+    processes — and GPTQ's Marlin path could be sensitive to workspace addresses or
+    cuBLAS handle state in ways bf16 is not. The mechanism decides the write-up, so the
+    confound has to be designed out rather than argued away.
+    """
+
+    def test_probe_script_loops_passes_inside_one_runner(self):
+        script = sm_determinism.PROBE_SCRIPT
+        runner_init = script.index("VLLMRunner(spec)")
+        pass_loop = script.index('for index, spec_pass in enumerate(payload["passes"])')
+        assert runner_init < pass_loop, (
+            "the engine must be constructed BEFORE the pass loop, or each ordering "
+            "gets its own engine and ordering is confounded with process state"
         )
+        # And only one engine may be built.
+        assert script.count("VLLMRunner(") == 1
 
-    def test_single_pass_result_is_marked_unmeasured(self):
-        """It must not read as a stability finding.
+    def test_probe_script_shuffles_before_grouping(self):
+        """Shuffling after grouping would change call order but not CO-RESIDENCY,
+        which is the actual mechanism."""
+        script = sm_determinism.PROBE_SCRIPT
+        shuffle = script.index("shuffle(items)")
+        grouping = script.index("groups.setdefault(")
+        assert shuffle < grouping
 
-        Unmeasured results fail the selection closed and are excluded from the noise
-        floor, so a placeholder cannot be mistaken for evidence either way.
+
+class TestTwoFloorsFromOneCell:
+    """R15.6 — three numbers, three names. Conflating them misreports either our
+    noise or the field's."""
+
+    def _passes(self, order_diverges: bool):
+        base = {"a": "1", "b": "2", "c": "3"}
+        out = [
+            RepeatOutputs(fmt="gptq-4bit", max_num_seqs=8, repeat_idx=0,
+                          outputs=dict(base), ordering_seed=0),
+            RepeatOutputs(fmt="gptq-4bit", max_num_seqs=8, repeat_idx=1,
+                          outputs=dict(base), ordering_seed=0),
+        ]
+        shuffled = dict(base)
+        if order_diverges:
+            shuffled["b"] = "DIFFERENT"
+        out.append(RepeatOutputs(fmt="gptq-4bit", max_num_seqs=8, repeat_idx=2,
+                                 outputs=shuffled, ordering_seed=20260827))
+        return out
+
+    def test_repetition_floor_is_measured_from_same_ordering_only(self):
+        result = order_sensitivity(self._passes(order_diverges=True))
+        assert result["repetition_passes"] == 2
+        assert result["repetition_floor"] == 0.0
+        assert result["repetition_stable"] is True
+
+    def test_order_divergence_is_measured_across_orderings(self):
+        result = order_sensitivity(self._passes(order_diverges=True))
+        assert result["order_invariant"] is False
+        assert result["order_n_disagreeing"] == 1
+
+    def test_the_exact_state_the_smoke_found_is_flagged(self):
+        """Stable under repetition, unstable under reordering.
+
+        This is what the 20-item smoke measured for gptq-4bit (0/20 on repeats,
+        13/20 on reordering) and what R8's retired criterion called "stable". If this
+        flag ever stops firing, the freeze rule silently reverts to the dead one.
         """
-        source = inspect.getsource(sm_determinism.run_probe_cell)
-        after_guard = source[source.index("len(repeat_outputs) < 2"):]
-        assert "measured=False" in after_guard
+        result = order_sensitivity(self._passes(order_diverges=True))
+        assert result["repeat_stable_but_order_sensitive"] is True
+
+    def test_order_invariant_arm_is_not_flagged(self):
+        """bf16's observed behaviour: stable on both axes."""
+        result = order_sensitivity(self._passes(order_diverges=False))
+        assert result["order_invariant"] is True
+        assert result["repeat_stable_but_order_sensitive"] is False
+
+
+class TestOrderSweepLevels:
+    def test_sweep_is_on_the_ordering_axis(self):
+        """R15.4: R8's repeat-based sweep measured an axis with no variance."""
+        assert sm_determinism.ORDER_SWEEP_LEVELS == (8, 32, 64)
+
+    def test_smoke_includes_awq_the_prediction_test(self):
+        """R15.2: AWQ HAS the guard GPTQ lacks, so it is the arm that converts H8
+        from an observation into a mechanism."""
+
+        source = inspect.getsource(sm_determinism.main)
+        smoke_arms = source[source.index('arms = ["bf16"'):]
+        assert "awq-4bit" in smoke_arms.split("]")[0]

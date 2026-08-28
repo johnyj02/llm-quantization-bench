@@ -71,7 +71,6 @@ batch-invariance overhead does not need a separate job.
 
 from __future__ import annotations
 
-import dataclasses
 import json
 import os
 import subprocess
@@ -84,22 +83,15 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 import yaml  # noqa: E402
 
 from quantartifact.determinism import (  # noqa: E402
+    DETERMINISM_VERSION,
     DISABLED_KERNELS_FALLBACK,
     ORDERING_SEEDS,
     PROBE_COMPOSITION,
     REPEATS,
     SWEEP_FLOOR,
-    DisagreementResult,
     RepeatOutputs,
-    compute_disagreement,
-    distinct_output_histogram,
-    next_sweep_level,
+    order_sensitivity,
     probe_fingerprint,
-    select_max_num_seqs,
-    summarise,
-    sweep_plan,
-    write_csv,
-    write_json,
 )
 from quantartifact.quantize import config_hash, load_specs, output_dir  # noqa: E402
 
@@ -306,24 +298,26 @@ load_s = time.monotonic() - started
 print(f"  batch invariance: {runner.batch_invariance}", flush=True)
 print(f"  engine state    : {runner.engine_state}", flush=True)
 
-items = list(payload["items"])
-# ORDERING (R13.1). Seed 0 is the natural probe order used by the sweep. A non-zero
-# seed shuffles the items, which changes which sequences are CO-RESIDENT in each
-# batch -- the actual mechanism behind batch-invariance failures, and the thing
-# vLLM #51187 reported. Shuffled BEFORE grouping so the order changes inside each
-# vLLM call, not merely between calls.
-if payload.get("ordering_seed"):
-    random.Random(payload["ordering_seed"]).shuffle(items)
-
-out = {"repeats": [], "hardware": runner.hardware, "engine_load_s": round(load_s, 1),
-       # R14.3's structural fix in miniature: the engine's OWN reported state travels
-       # with the measurement, so a reviewer sees what ran rather than what we asked for.
+base = list(payload["items"])
+out = {"passes": [], "hardware": runner.hardware, "engine_load_s": round(load_s, 1),
        "batch_invariance": runner.batch_invariance, "engine_state": runner.engine_state}
-for repeat_idx in range(payload["repeats"]):
+
+# 🚨 EVERY PASS RUNS IN THIS ONE ENGINE. That is the whole point of R15.1: my first
+# version gave each ordering its own subprocess, which confounded item ordering with
+# process state -- and the argument that bf16's stability ruled that out was unsound,
+# because it assumed both arms are equally sensitive to whatever varies across
+# processes. Holding the engine constant makes ordering the only thing that changes.
+for index, spec_pass in enumerate(payload["passes"]):
+    seed = spec_pass["ordering_seed"]
+    items = list(base)
+    # Seed 0 is the natural probe order. A non-zero seed shuffles, changing which
+    # sequences are CO-RESIDENT in each batch -- the actual mechanism behind
+    # batch-invariance failures. Shuffled BEFORE grouping so the order changes inside
+    # each vLLM call, not merely between calls.
+    if seed:
+        random.Random(seed).shuffle(items)
+
     texts = {}
-    # Group by (max_gen_toks, until) so each vLLM call is a single homogeneous
-    # batch, exactly as run_cell does it. Sorted for a deterministic call order:
-    # the probe must differ across repeats ONLY by engine nondeterminism.
     groups = {}
     for item in items:
         groups.setdefault((item["max_gen_toks"], tuple(item["until"])), []).append(item)
@@ -336,82 +330,77 @@ for repeat_idx in range(payload["repeats"]):
         for g, r in zip(group, results):
             texts[g["item_id"]] = r["text"]
     elapsed = time.monotonic() - pass_started
-    out["repeats"].append(texts)
-    # Per-pass wall time is how A6's deliverable (measured generations/hour on SM89)
-    # falls out of this job instead of needing its own (R13.5).
-    out.setdefault("pass_seconds", []).append(round(elapsed, 1))
+    out["passes"].append({"ordering_seed": seed, "outputs": texts,
+                          "seconds": round(elapsed, 1)})
     rate = len(texts) / elapsed * 3600 if elapsed else 0
-    print(f"  pass {repeat_idx}: {len(texts)} outputs in {elapsed / 60:.1f} min "
-          f"(~{rate:,.0f} gen/h)", flush=True)
+    print(f"  pass {index} (ordering {seed}): {len(texts)} outputs in "
+          f"{elapsed / 60:.1f} min (~{rate:,.0f} gen/h)", flush=True)
 
 open(payload["out_path"], "w").write(json.dumps(out))
 """
 
 
-def run_probe_cell(
+def measure_cell(
     arm: str,
-    model_path: str,
-    revision: str,
-    quant_method: str | None,
-    bits: int,
-    max_num_seqs: int,
+    level: int,
     items: list[dict],
-    disabled_kernels: str | None,
+    specs: dict,
+    model: dict,
+    resolved: dict[str, tuple[str, str | None]],
+    *,
     model_key: str = AUDIT_MODEL,
-    repeats: int = REPEATS,
-    ordering_seed: int = 0,
+    orderings: tuple[int, ...] = ORDERING_SEEDS,
+    repetition_passes: int = 2,
+    disabled_kernels: str | None = None,
     autotune: bool = False,
-) -> DisagreementResult | None:
-    """Run one (arm, max_num_seqs) cell: `REPEATS` passes over the probe.
+) -> dict | None:
+    """One (arm, max_num_seqs) cell: BOTH floors, from ONE engine load.
 
-    **In a subprocess, and that is required, not tidy.** `max_num_seqs` and
-    `VLLM_DISABLED_KERNELS` are read at engine init, and vLLM's CUDA teardown is
-    not reliable enough to build five engines in one process. One process per
-    cell also means a crash costs one cell.
+    Passes are `repetition_passes` at ordering 0 followed by one pass per further
+    ordering. Comparing the ordering-0 passes gives the **repetition floor** (what §9
+    binds to, R15.6); comparing across distinct orderings gives **order sensitivity**
+    (the H8 headline, and a third-party reproducibility bound).
 
-    The repeats share ONE engine deliberately: the question A7 asks is whether
-    repeated identical requests to a *running* engine return identical text, which
-    is the shape vLLM #51187 reported. `enable_prefix_caching=False` keeps the
-    repeats from contaminating each other.
+    🚨 **One engine for all of them (R15.1).** My first version ran each ordering in
+    its own subprocess, so ordering was confounded with process state — and my
+    argument that bf16's stability ruled that out was *unsound*: it assumed both arms
+    are equally sensitive to whatever varies across processes, and GPTQ's Marlin path
+    could be sensitive to workspace addresses or cuBLAS handle state in ways bf16 is
+    not. Holding the engine fixed is what makes ordering the only variable, and the
+    mechanism decides the write-up: reordering-changes-outputs is the
+    batch-composition thesis, restarting-changes-outputs is a different claim.
+
+    Returns the analysis dict, or None if the cell could not be measured.
     """
-    tag = cell_tag(arm, max_num_seqs, disabled_kernels,
-                   model_key=model_key, repeats=repeats,
-                   ordering_seed=ordering_seed, autotune=autotune)
+    tag = cell_tag(arm, level, disabled_kernels, model_key=model_key,
+                   repeats=repetition_passes, autotune=autotune)
     result_path = PROBE_DIR / f"{tag}.json"
 
-    # A rehearsal must actually rehearse. Resuming from a previous smoke's cached
-    # cell would report success while running no vLLM at all.
     if SMOKE and result_path.exists():
         result_path.unlink()
         print(f"[smoke] discarded previous rehearsal result for {tag}")
-
     if result_path.exists():
-        cached = json.loads(result_path.read_text())
-        if cached.get("result") is None:
-            # A single-pass ordering cell: the raw file is what the caller needs.
-            print(f"[skip] {tag}  single pass already recorded")
-            return DisagreementResult(
-                fmt=arm, max_num_seqs=max_num_seqs, n_items=0, n_disagreeing=0,
-                disagreement_rate=0.0, max_distinct_outputs=1, bitwise_stable=False,
-                disabled_kernels=disabled_kernels, measured=False,
-            )
-        print(f"[skip] {tag}  already measured")
-        return DisagreementResult(**cached["result"])
+        print(f"[skip ] {tag}  already measured")
+        return json.loads(result_path.read_text())
+
+    passes = [{"ordering_seed": 0} for _ in range(repetition_passes)]
+    passes += [{"ordering_seed": seed} for seed in orderings if seed != 0]
 
     raw_path = PROBE_DIR / f"raw_{tag}.json"
+    path, _ = resolved[arm]
+    method, bits = arm_engine_fields(arm, specs)
     payload = {
         "spec": {
-            "model_repo": model_path,
-            "model_revision": revision,
-            "quant_method": quant_method,
+            "model_repo": path,
+            "model_revision": model["revision"],
+            "quant_method": method,
             "bits": bits,
-            "max_num_seqs": max_num_seqs,
+            "max_num_seqs": level,
             "disabled_kernels": disabled_kernels,
             "enable_flashinfer_autotune": autotune,
         },
         "items": items,
-        "repeats": repeats,
-        "ordering_seed": ordering_seed,
+        "passes": passes,
         "out_path": str(raw_path),
     }
     payload_path = PROBE_DIR / f"payload_{tag}.json"
@@ -419,156 +408,60 @@ def run_probe_cell(
 
     env = dict(os.environ)
     # Never inherited: BI must be ON for every study measurement, and
-    # VLLM_DISABLED_KERNELS must be absent unless this cell is the fallback probe.
+    # VLLM_DISABLED_KERNELS must be absent unless this cell is the Marlin probe.
     env["VLLM_BATCH_INVARIANT"] = "1"
     env["VLLM_ENABLE_V1_MULTIPROCESSING"] = "0"
+    env["VLLM_USE_FLASHINFER_SAMPLER"] = "0"
     env.pop("VLLM_DISABLED_KERNELS", None)
     if disabled_kernels:
         env["VLLM_DISABLED_KERNELS"] = disabled_kernels
 
-    print(f"[run ] {tag}  {repeats} repeats x {len(items)} items")
-    # Output INHERITED, not captured. `capture_output=True` buffers until exit, so a
-    # multi-hour cell would emit nothing to CloudWatch and look like a hang -- and
-    # vLLM's engine-startup logs, the ones worth watching during a long load, are
-    # exactly what would be withheld. The traceback lands in CloudWatch instead.
+    print(f"[run  ] {tag}  {len(passes)} passes "
+          f"({repetition_passes} at ordering 0 + {len(passes) - repetition_passes} "
+          f"reordered) x {len(items)} items")
     sys.stdout.flush()
     started = time.monotonic()
     proc = subprocess.run(
         [sys.executable, "-c", PROBE_SCRIPT, str(payload_path)],
-        env=env, timeout=14400,
+        env=env, timeout=21600,
     )
     elapsed = time.monotonic() - started
     if proc.returncode != 0:
-        print(f"       FAILED after {elapsed / 60:.1f} min, exit {proc.returncode} "
-              f"(traceback above)")
+        print(f"        FAILED after {elapsed / 60:.1f} min, exit {proc.returncode}")
         return None
 
     raw = json.loads(raw_path.read_text())
-    # NOT named `repeats` -- that is the int parameter, and shadowing it here made
-    # the count unavailable to anything after this point.
-    repeat_outputs = [
+    outputs = [
         RepeatOutputs(
-            fmt=arm, max_num_seqs=max_num_seqs, repeat_idx=i,
-            outputs=texts, disabled_kernels=disabled_kernels,
+            fmt=arm, max_num_seqs=level, repeat_idx=index,
+            outputs=entry["outputs"], disabled_kernels=disabled_kernels,
+            ordering_seed=entry["ordering_seed"],
         )
-        for i, texts in enumerate(raw["repeats"])
+        for index, entry in enumerate(raw["passes"])
     ]
-
-    # ⚠️ A SINGLE-PASS cell has nothing to compare against ITSELF. The ordering
-    # confirmation (R13.1) deliberately runs one pass per ordering and compares the
-    # orderings afterwards, so calling compute_disagreement here raised
-    # "need at least 2 repeats" and killed the job -- this function was conflating
-    # "run the passes" with "compare the passes". Single-pass cells now return a
-    # placeholder marked `measured=False`, which the ordering caller ignores (it reads
-    # the raw file) and which cannot be mistaken for a stability finding by anything
-    # else: unmeasured cells fail the selection closed and are excluded from the noise
-    # floor.
-    if len(repeat_outputs) < 2:
-        result_path.write_text(json.dumps({
-            "result": None,
-            "repeats": repeats,
-            "single_pass": True,
-            "ordering_seed": ordering_seed,
-            "fingerprint": probe_fingerprint(repeat_outputs[0].outputs),
-            "minutes": round(elapsed / 60, 1),
-            "hardware": raw.get("hardware"),
-            "batch_invariance": raw.get("batch_invariance"),
-            "engine_state": raw.get("engine_state"),
-        }, indent=2))
-        print(f"       {elapsed / 60:.1f} min — single pass recorded "
-              f"(ordering {ordering_seed}); comparison happens across orderings")
-        return DisagreementResult(
-            fmt=arm, max_num_seqs=max_num_seqs, n_items=len(repeat_outputs[0].outputs),
-            n_disagreeing=0, disagreement_rate=0.0, max_distinct_outputs=1,
-            bitwise_stable=False, disabled_kernels=disabled_kernels, measured=False,
-        )
-
-    result = compute_disagreement(repeat_outputs)
-
-    result_path.write_text(json.dumps({
-        "result": dataclasses.asdict(result),
-        "repeats": repeats,
-        "fingerprints": [probe_fingerprint(r.outputs) for r in repeat_outputs],
-        "distinct_output_histogram": {
-            str(k): v for k, v in distinct_output_histogram(repeat_outputs).items()
-        },
+    analysis = order_sensitivity(outputs)
+    analysis.update({
+        "arm": arm, "model_key": model_key, "max_num_seqs": level,
+        "disabled_kernels": disabled_kernels, "autotune": autotune,
         "minutes": round(elapsed / 60, 1),
+        "seconds_per_pass": [entry["seconds"] for entry in raw["passes"]],
+        "fingerprints": [probe_fingerprint(o.outputs) for o in outputs],
         "hardware": raw.get("hardware"),
-    }, indent=2))
+        "batch_invariance": raw.get("batch_invariance"),
+        "engine_state": raw.get("engine_state"),
+    })
+    result_path.write_text(json.dumps(analysis, indent=2))
 
-    verdict = "STABLE" if result.bitwise_stable else (
-        f"{result.n_disagreeing}/{result.n_items} disagree "
-        f"({result.disagreement_rate:.3%}), worst {result.max_distinct_outputs} distinct"
-    )
-    print(f"       {elapsed / 60:.1f} min — {verdict}")
-    return result
+    rep = analysis.get("repetition_floor")
+    order = analysis.get("order_divergence")
+    print(f"        repetition floor {rep if rep is None else f'{rep:.3%}'}  |  "
+          f"order divergence {order if order is None else f'{order:.3%}'}"
+          f"{'  ← STABLE UNDER REPEATS BUT NOT REORDERING' if analysis['repeat_stable_but_order_sensitive'] else ''}")
+    payload_path.unlink(missing_ok=True)
+    return analysis
 
 
-def confirm_ordering(
-    arm: str,
-    level: int,
-    items: list[dict],
-    specs: dict,
-    model: dict,
-    resolved: dict[str, tuple[str, str | None]],
-    model_key: str = AUDIT_MODEL,
-) -> DisagreementResult | None:
-    """Does this arm's output depend on the ORDER the probe was submitted in?
-
-    Three passes at the same `max_num_seqs`, differing only in item order. Ordering 0
-    is read back from the sweep's own run at this level rather than regenerated —
-    that reuse is what makes this cost 5,000 generations instead of 25,000.
-
-    Returns None if the sweep's pass is missing, since without it there is nothing to
-    compare the shuffled orderings against.
-
-    ⚠️ The comparison is order-INSENSITIVE by construction: outputs are dicts keyed by
-    `item_id`, so shuffling the submission order cannot by itself register as
-    disagreement. Only a genuinely different generation for the same item does.
-    """
-    baseline_tag = cell_tag(arm, level, model_key=model_key, repeats=REPEATS)
-    baseline_raw = PROBE_DIR / f"raw_{baseline_tag}.json"
-    if not baseline_raw.exists():
-        print(f"[skip] ordering {arm}@{level}: no sweep pass at this level to compare "
-              f"against ({baseline_raw.name})")
-        return None
-
-    passes = [
-        RepeatOutputs(
-            fmt=arm, max_num_seqs=level, repeat_idx=0,
-            outputs=json.loads(baseline_raw.read_text())["repeats"][0],
-        )
-    ]
-
-    path, _ = resolved[arm]
-    method, bits = arm_engine_fields(arm, specs)
-    for index, seed in enumerate(ORDERING_SEEDS[1:], start=1):
-        result = run_probe_cell(
-            arm, path, model["revision"], quant_method=method, bits=bits,
-            max_num_seqs=level, items=items, disabled_kernels=None,
-            model_key=model_key, repeats=1, ordering_seed=seed,
-        )
-        if result is None:
-            return None
-        raw = PROBE_DIR / (
-            "raw_"
-            + cell_tag(arm, level, model_key=model_key, repeats=1, ordering_seed=seed)
-            + ".json"
-        )
-        passes.append(
-            RepeatOutputs(
-                fmt=arm, max_num_seqs=level, repeat_idx=index,
-                outputs=json.loads(raw.read_text())["repeats"][0],
-            )
-        )
-
-    combined = compute_disagreement(passes)
-    verdict = "order-INVARIANT" if combined.bitwise_stable else (
-        f"{combined.n_disagreeing}/{combined.n_items} items changed with order "
-        f"({combined.disagreement_rate:.3%})"
-    )
-    print(f"       {arm}: {verdict}")
-    return combined
+ORDER_SWEEP_LEVELS: tuple[int, ...] = (8, 32, 64)
 
 
 def main() -> int:
@@ -580,31 +473,29 @@ def main() -> int:
     model = models[AUDIT_MODEL]
 
     arms = list(AUDIT_ARMS)
+    levels = list(ORDER_SWEEP_LEVELS)
     if SMOKE:
-        # TWO arms, not one, and one of them QUANTIZED. Job 1's first smoke ran a
-        # single quantization method, passed nothing useful, and left a completely
-        # different API path to fail nine arms into the real job. The lesson applies
-        # here: `bf16` alone exercises neither loading a quantized checkpoint out of
-        # the restored checkpoint directory nor the kernel-dispatch path H8 is about.
-        # 20 items x 2 arms is a rounding error against the model load time.
-        arms = ["bf16", "gptq-4bit"]
-        print("SMOKE MODE: bf16 + gptq-4bit, floor level only, 20 items, "
-              "ordering confirmation ON")
-        print("  ⚠️ proves the paths run. It CANNOT answer H8 or select max_num_seqs —")
-        print("     two arms measure no asymmetry and one level no frontier.")
+        # bf16 + gptq-4bit + awq-4bit: the three that carry the prediction. AWQ is
+        # the one that matters most (R15.2) -- it HAS the guard GPTQ lacks, so AWQ
+        # coming out order-invariant shows the source-level asymmetry CAUSES the
+        # behavioural one, which is the strongest form H8 can take.
+        arms = ["bf16", "gptq-4bit", "awq-4bit"]
+        levels = [8]
+        print("SMOKE MODE: bf16 + gptq-4bit + awq-4bit at max_num_seqs=8, 20 items")
+
+    n_probe = len(PROBE_COMPOSITION) and sum(PROBE_COMPOSITION.values())
+    passes_per_cell = 2 + len([s for s in ORDERING_SEEDS if s != 0])
 
     print(f"audit model  : {AUDIT_MODEL} ({model['repo']})")
     print(f"arms         : {arms}")
-    print(f"repeats      : {REPEATS}")
-    plan = sweep_plan(arms, sum(PROBE_COMPOSITION.values()), REPEATS)
-    print(f"sweep        : {plan['order']} descending, early exit; "
-          f"{plan['best_case_levels']}-{plan['worst_case_levels']} levels "
-          f"(floor only if nothing above it is stable)")
-    print(f"generations  : {plan['best_case_generations']:,} best -> "
-          f"{plan['worst_case_generations']:,} worst "
-          f"(exhaustive would be {plan['exhaustive_would_cost']:,})")
-    print(f"confirmation : {plan['confirmation_generations']:,} marginal — orderings "
-          f"{list(ORDERING_SEEDS)}, ordering 0 reused from the sweep")
+    print(f"levels       : {levels}   (ORDER-induced divergence, per R15.4 --")
+    print("               R8's repeat-based criterion measured an axis with no")
+    print("               variance and called a 65%-unstable arm 'stable')")
+    print(f"passes/cell  : {passes_per_cell}  (2 at ordering 0 for the repetition")
+    print(f"               floor, + {len(ORDERING_SEEDS) - 1} reordered), orderings "
+          f"{list(ORDERING_SEEDS)}")
+    print(f"generations  : {len(arms) * len(levels) * passes_per_cell * n_probe:,} "
+          f"for the sweep")
     print()
 
     print("=== materializing the probe ===")
@@ -614,8 +505,6 @@ def main() -> int:
     print(f"probe        : {len(items)} items")
     print()
 
-    # Resolve every arm's weights BEFORE loading anything. A missing checkpoint
-    # should fail in seconds, not after an hour of measuring the arms that do exist.
     resolved: dict[str, tuple[str, str | None]] = {}
     for arm in arms:
         try:
@@ -626,314 +515,160 @@ def main() -> int:
         print(f"  {arm:10} -> {resolved[arm][0]}")
     print()
 
-    results: list[DisagreementResult] = []
-    unmeasured: set[str] = set()
+    cells: list[dict] = []
+    unmeasured: list[str] = []
 
-    def measure(
-        arm: str,
-        level: int,
-        fallback: str | None = None,
-        *,
-        repeats: int = REPEATS,
-        collect: list[DisagreementResult] | None = None,
-        model_key: str = AUDIT_MODEL,
-        model_cfg: dict | None = None,
-        paths: dict[str, tuple[str, str | None]] | None = None,
-    ) -> DisagreementResult:
-        """Run one cell and record it, treating an unmeasured cell as UNSTABLE.
-
-        That default matters: if a cell crashes and we simply skip it,
-        `next_sweep_level` sees the level as incomplete and retries forever, and
-        `select_max_num_seqs` could pick a level on the strength of a measurement
-        that never happened. Recording it as maximally unstable makes a missing
-        measurement fail closed.
-
-        ``collect`` decides which list the result joins. The frontier list must
-        contain ONLY the Qwen sweep cells: the 10-repeat confirmation and the Phi
-        probe measure different things, and folding them into the frontier would let
-        `select_max_num_seqs` mix probes of different repeat counts and models.
-        """
-        cfg = model_cfg if model_cfg is not None else model
-        lookup = paths if paths is not None else resolved
-        path, _ = lookup[arm]
-        method, bits = arm_engine_fields(arm, specs)
-        result = run_probe_cell(
-            arm, path, cfg["revision"], quant_method=method, bits=bits,
-            max_num_seqs=level, items=items, disabled_kernels=fallback,
-            model_key=model_key, repeats=repeats,
-        )
-        if result is None:
-            unmeasured.add(
-                cell_tag(arm, level, fallback, model_key=model_key, repeats=repeats)
-            )
-            result = DisagreementResult(
-                fmt=arm, max_num_seqs=level, n_items=len(items),
-                n_disagreeing=len(items), disagreement_rate=1.0,
-                max_distinct_outputs=repeats, bitwise_stable=False,
-                disabled_kernels=fallback,
-                # Synthetic: fails the selection closed, but must NOT be read as a
-                # measurement. The first smoke printed this as "bf16 100.0000%".
-                measured=False,
-            )
-        (results if collect is None else collect).append(result)
-        return result
-
-    # SMOKE pins the floor only. Otherwise `next_sweep_level` drives the descending
-    # sweep and decides when the frontier is settled.
-    pending_levels = [SWEEP_FLOOR] if SMOKE else None
-    while True:
-        if pending_levels is not None:
-            if not pending_levels:
-                break
-            level = pending_levels.pop(0)
-        else:
-            level = next_sweep_level(results, arms)
-            if level is None:
-                break
+    for level in levels:
         print(f"=== max_num_seqs = {level} ===")
         for arm in arms:
-            measure(arm, level)
+            analysis = measure_cell(arm, level, items, specs, model, resolved)
+            if analysis is None:
+                unmeasured.append(f"{arm}@{level}")
+            else:
+                cells.append(analysis)
         print()
 
-    # H8's mechanism test: where a format was nondeterministic, does disabling
-    # Marlin RESTORE determinism? That converts "GPTQ is less stable" from a
-    # correlation into a claim about the kernel, which is the whole point.
-    #
-    # Arms whose cells could not be measured are excluded: their instability is an
-    # artefact of the crash, so probing the kernel would answer nothing.
-    # cell_tag is "<model>__<arm>__at<N>__r<K>", so the arm is field 1. Parsing the
-    # old "<arm>_at_<N>" shape here silently matched nothing after the tag changed,
-    # which would have let a crashed arm into the Marlin probe.
-    crashed_arms = {tag.split("__")[1] for tag in unmeasured if "__" in tag}
-    unstable = sorted(
-        {r.fmt for r in results if not r.bitwise_stable and r.fmt not in crashed_arms}
-    )
-    if unstable and not SMOKE:
-        print(f"=== Marlin fallback probe: {unstable} ===")
+    # ------------------------------------------------------------------
+    # R15.7 — the Marlin probe must itself be an ORDERING test, and PAIRED.
+    # A repeat-based fallback would print "stable" for the same reason the old sweep
+    # did and prove nothing. Order-divergence dropping to 0 with Marlin disabled pins
+    # the mechanism to a NAMED kernel rather than leaving it inferred.
+    # ------------------------------------------------------------------
+    order_sensitive = sorted({
+        c["arm"] for c in cells
+        if c.get("order_invariant") is False and not c["disabled_kernels"]
+    })
+    marlin: list[dict] = []
+    if order_sensitive and not SMOKE:
+        print(f"=== Marlin attribution probe (PAIRED ordering test): "
+              f"{order_sensitive} ===")
         print(f"    VLLM_DISABLED_KERNELS={DISABLED_KERNELS_FALLBACK}")
-        for arm in unstable:
-            measure(arm, SWEEP_FLOOR, fallback=DISABLED_KERNELS_FALLBACK)
-        print()
-
-    # ---------------------------------------------------------------------
-    # R13.1 — CONFIRM the selected value by varying ITEM ORDERING, not repeats.
-    #
-    # Batch-invariance failures happen because batch COMPOSITION changes float
-    # reduction order. Repeating the same items in the same order re-presents the
-    # scheduler with nearly the same batches, so repeat count is a weak way to
-    # explore the failure surface. A different ORDER means different co-residency,
-    # which is what vLLM #51187 actually reported.
-    #
-    # Ordering 0 is the natural order the sweep already ran at this level, so it is
-    # REUSED from disk. Only the extra orderings cost generations.
-    #
-    # Kept OUT of `results`: `select_max_num_seqs` is defined over the 3-repeat
-    # single-ordering sweep cells, and folding in a different measurement would let
-    # the confirmation veto the value it exists to confirm.
-    # ---------------------------------------------------------------------
-    confirmation: list[DisagreementResult] = []
-    selected = select_max_num_seqs(results)["selected_max_num_seqs"]
-    confirm_level = selected if selected is not None else SWEEP_FLOOR
-    # RUNS IN SMOKE TOO. This is the newest code in the job -- ordering shuffle in the
-    # child, reading the sweep's pass back off disk, combining passes from separate
-    # engine instances. Leaving it out of the rehearsal would mean its first execution
-    # ever is inside a 48-hour run, which is the mistake job 1 already paid for twice.
-    print(f"=== ordering confirmation: max_num_seqs={confirm_level}, "
-          f"orderings {list(ORDERING_SEEDS)} (R13.1) ===")
-    if selected is None:
-        print("    ⚠️ no value was stable for every arm — confirming at the floor,")
-        print("       which is itself the reportable H8 result.")
-    for arm in arms:
-        result = confirm_ordering(arm, confirm_level, items, specs, model, resolved)
-        if result is None:
-            unmeasured.add(f"ordering:{arm}@{confirm_level}")
-        else:
-            confirmation.append(result)
-    print()
-
-    # ---------------------------------------------------------------------
-    # R14.1 — AUTOTUNE CONTRAST on GPTQ-4bit. The study runs with flashinfer
-    # autotuning OFF, because an autotuner picks kernels by startup benchmark and so
-    # makes the configuration non-identical across runs by construction. This arm
-    # measures what that setting is worth.
-    #
-    # GPTQ-4bit rather than bf16, on the planner's correction: GPTQ-4 is the arm H8's
-    # claim is ABOUT (no BI guard, keeps Marlin), so "stable with autotune off,
-    # unstable with it on" is a quotable result -- kernel autotuning alone is
-    # sufficient to break bitwise reproducibility. bf16 would isolate more cleanly and
-    # answer a question nobody asked.
-    #
-    # The autotune-OFF condition is already in the sweep, so only ON costs anything:
-    # 3 repeats x 500 = 1,500 generations.
-    # ---------------------------------------------------------------------
-    autotune_contrast: list[DisagreementResult] = []
-    if not SMOKE and "gptq-4bit" in resolved:
-        print(f"=== autotune contrast: gptq-4bit at max_num_seqs={confirm_level}, "
-              f"flashinfer autotune ON (R14.1) ===")
-        path, _ = resolved["gptq-4bit"]
-        method, bits = arm_engine_fields("gptq-4bit", specs)
-        result = run_probe_cell(
-            "gptq-4bit", path, model["revision"], quant_method=method, bits=bits,
-            max_num_seqs=confirm_level, items=items, disabled_kernels=None,
-            autotune=True,
-        )
-        if result is None:
-            unmeasured.add(f"autotune:gptq-4bit@{confirm_level}")
-        else:
-            autotune_contrast.append(result)
-            baseline = next(
-                (r for r in results
-                 if r.fmt == "gptq-4bit" and r.max_num_seqs == confirm_level
-                 and not r.disabled_kernels),
-                None,
+        print("    The unpaired half is already measured above; this is the other half.")
+        for arm in order_sensitive:
+            analysis = measure_cell(
+                arm, SWEEP_FLOOR, items, specs, model, resolved,
+                disabled_kernels=DISABLED_KERNELS_FALLBACK,
             )
-            if baseline is not None:
-                print(f"    autotune OFF: "
-                      f"{'stable' if baseline.bitwise_stable else f'{baseline.disagreement_rate:.3%}'}")
-                print(f"    autotune ON : "
-                      f"{'stable' if result.bitwise_stable else f'{result.disagreement_rate:.3%}'}")
-                if baseline.bitwise_stable and not result.bitwise_stable:
-                    print("    🔬 KERNEL AUTOTUNING ALONE BREAKS BITWISE "
-                          "REPRODUCIBILITY — the 4th BI coverage gap, measured.")
+            if analysis is None:
+                unmeasured.append(f"{arm}@{SWEEP_FLOOR}+marlin-off")
+            else:
+                marlin.append(analysis)
+                baseline = next(
+                    (c for c in cells if c["arm"] == arm
+                     and c["max_num_seqs"] == SWEEP_FLOOR
+                     and not c["disabled_kernels"]), None)
+                if baseline and analysis.get("order_invariant") and \
+                        baseline.get("order_invariant") is False:
+                    print(f"    🔬 {arm}: order divergence "
+                          f"{baseline['order_divergence']:.3%} -> 0 with Marlin "
+                          f"disabled. The mechanism is a NAMED KERNEL.")
         print()
 
-    # ---------------------------------------------------------------------
-    # R12.3.3 — MODEL-GENERALITY probe on Phi-3.5-mini. One model establishes the
-    # MECHANISM (it is in vLLM's kernel-dispatch source, so architecture-general);
-    # it does not establish the RATES. vLLM #48271's leak depends on token count and
-    # block-size selection, which are model-dependent, and Phi's fused 3072->16384
-    # gate+up projection -- the same quirk that broke the AWQ memory budget in job 1
-    # -- could take a different kernel path. Phi over Llama on purpose: the
-    # architectural outlier is the higher-information second point.
-    # ---------------------------------------------------------------------
-    phi_results: list[DisagreementResult] = []
+    # ------------------------------------------------------------------
+    # R14.1 — autotune contrast on gptq-4bit, the arm H8's claim is about.
+    # ------------------------------------------------------------------
+    autotune_contrast: list[dict] = []
+    if not SMOKE and "gptq-4bit" in resolved:
+        print("=== autotune contrast: gptq-4bit, flashinfer autotune ON (R14.1) ===")
+        analysis = measure_cell(
+            "gptq-4bit", SWEEP_FLOOR, items, specs, model, resolved, autotune=True,
+        )
+        if analysis is None:
+            unmeasured.append(f"gptq-4bit@{SWEEP_FLOOR}+autotune")
+        else:
+            autotune_contrast.append(analysis)
+        print()
+
+    # ------------------------------------------------------------------
+    # R12.3.3 — model generality on Phi-3.5-mini, the architectural outlier.
+    # ------------------------------------------------------------------
+    phi: list[dict] = []
     phi_key = os.environ.get("QA_CONFIRM_MODEL", "phi-3.5-mini")
-    phi_arms = ["bf16", "gptq-4bit"]
     if not SMOKE and phi_key in models:
         phi_cfg = models[phi_key]
-        print(f"=== model-generality probe: {phi_key} {phi_arms} "
-              f"at max_num_seqs={confirm_level} (R12.3.3) ===")
+        phi_arms = ["bf16", "gptq-4bit"]
+        print(f"=== model generality: {phi_key} {phi_arms} (R12.3.3) ===")
         phi_paths: dict[str, tuple[str, str | None]] = {}
         try:
             for arm in phi_arms:
                 phi_paths[arm] = resolve_model_path(
-                    arm, phi_cfg, specs, calibration, model_key=phi_key
-                )
+                    arm, phi_cfg, specs, calibration, model_key=phi_key)
         except FileNotFoundError as exc:
             print(f"    SKIPPED — {exc}")
             phi_paths = {}
-
         if phi_paths:
-            # Re-materialised for Phi: prompts are tokenizer-specific, so reusing
-            # Qwen's would silently probe the wrong strings.
-            items = build_probe(phi_cfg, phi_key)
-            print(f"    probe re-materialised for {phi_key}: {len(items)} items")
+            # Re-materialised: prompts are tokenizer-specific, so reusing Qwen's
+            # would silently probe the wrong strings.
+            phi_items = build_probe(phi_cfg, phi_key)
             for arm in phi_arms:
-                measure(arm, confirm_level, repeats=REPEATS, collect=phi_results,
-                        model_key=phi_key, model_cfg=phi_cfg, paths=phi_paths)
+                analysis = measure_cell(
+                    arm, SWEEP_FLOOR, phi_items, specs, phi_cfg, phi_paths,
+                    model_key=phi_key)
+                if analysis is None:
+                    unmeasured.append(f"{phi_key}/{arm}@{SWEEP_FLOOR}")
+                else:
+                    phi.append(analysis)
         print()
 
-    # The frontier CSV/JSON carry the sweep only, so the selection rule is applied
-    # to exactly the cells it is defined over. The confirmation and model-generality
-    # probes are separate artifacts -- they answer different questions and must not
-    # be averaged into the frontier.
-    write_json(OUTPUT_DIR / "determinism.json", results)
-    write_csv(OUTPUT_DIR / "determinism.csv", results)
-    report = summarise(results)
+    report = {
+        "gate": "G4",
+        "determinism_version": DETERMINISM_VERSION,
+        "audit_model": AUDIT_MODEL,
+        "orderings": list(ORDERING_SEEDS),
+        "order_sweep_levels": levels,
+        "probe_composition": PROBE_COMPOSITION,
+        "n_items": len(items),
+        "sweep": cells,
+        "marlin_attribution": marlin,
+        "autotune_contrast": autotune_contrast,
+        "model_generality": phi,
+        "unmeasured": unmeasured,
+    }
+    (OUTPUT_DIR / "determinism.json").write_text(json.dumps(report, indent=2))
 
-    if confirmation:
-        write_json(OUTPUT_DIR / "determinism_confirmation.json", confirmation)
-        write_csv(OUTPUT_DIR / "determinism_confirmation.csv", confirmation)
-    if autotune_contrast:
-        write_json(OUTPUT_DIR / "determinism_autotune_contrast.json", autotune_contrast)
-    if phi_results:
-        write_json(OUTPUT_DIR / "determinism_model_generality.json", phi_results)
-        write_csv(OUTPUT_DIR / "determinism_model_generality.csv", phi_results)
-
-    print("=" * 70)
-    print(f"{'format':12} {'max_seqs':>9} {'disagree':>10} {'distinct':>9}  kernels")
-    for row in report["rows"]:
-        if not row.get("measured", True):
-            print(f"{row['format']:12} {row['max_num_seqs']:>9} "
-                  f"{'NOT MEASURED (cell failed)':>26}  "
-                  f"{row['disabled_kernels'] or '-'}")
-            continue
-        print(f"{row['format']:12} {row['max_num_seqs']:>9} "
-              f"{row['n_disagreeing']:>4}/{row['n_items']:<5} "
-              f"{row['max_distinct_outputs']:>9}  {row['disabled_kernels'] or '-'}")
+    print("=" * 78)
+    print(f"{'arm':12} {'max_seqs':>9} {'repetition':>12} {'ordering':>12}   verdict")
+    for cell in cells:
+        rep = cell.get("repetition_floor")
+        order = cell.get("order_divergence")
+        verdict = ""
+        if cell["repeat_stable_but_order_sensitive"]:
+            verdict = "🚨 stable on repeats, NOT on reordering"
+        elif cell.get("order_invariant"):
+            verdict = "order-invariant"
+        print(f"{cell['arm']:12} {cell['max_num_seqs']:>9} "
+              f"{'-' if rep is None else f'{rep:>11.3%}'} "
+              f"{'-' if order is None else f'{order:>11.3%}'}   {verdict}")
     print()
 
-    selection = report["max_num_seqs_selection"]
-    print(f"max_num_seqs : {selection['selected_max_num_seqs']} "
-          f"({selection['rule']})")
-    print(f"  per format : {selection['per_format_max_stable']}")
-    if selection["finding_if_none"]:
-        print(f"  ⚠️ {selection['finding_if_none']}")
-
-    violations = report["non_monotonic_violations"]
-    if violations:
-        print("  🚨 NON-MONOTONIC FRONTIER — a smaller max_num_seqs was LESS stable "
-              "than a larger one:")
-        for violation in violations:
-            print(f"     {violation['format']}: unstable at "
-                  f"{violation['unstable_at']} but stable at {violation['stable_at']}")
-        print("     'the largest stable value' is not well defined; report the "
-              "frontier as a SET, not a threshold.")
+    # R15.5: freezing must be EARNED on the axis that varies, not defaulted to.
+    invariant = {}
+    for level in levels:
+        at_level = [c for c in cells if c["max_num_seqs"] == level
+                    and not c["disabled_kernels"]]
+        invariant[level] = bool(at_level) and all(
+            c.get("order_invariant") for c in at_level)
+    admissible = [level for level, ok in invariant.items() if ok]
+    print(f"order-invariant at : {invariant}")
+    if admissible:
+        print(f"✅ freeze max_num_seqs = {max(admissible)} — the LARGEST level "
+              f"order-invariant for every arm")
     else:
-        print("  frontier   : monotone (no smaller level was less stable) — R12.3.1 OK")
-
-    floor = report["differential_noise_floor"]
-    excluded = floor.get("n_unmeasured_cells_excluded", 0)
-    if excluded:
-        print(f"noise floor  : {excluded} unmeasured cell(s) EXCLUDED — the numbers "
-              f"below cover only cells that actually ran")
-    print(f"noise floor  : bf16 {floor['bf16_disagreement']:.4%}")
-    print(f"  vs bf16    : {floor['differential_vs_bf16']}")
-    if floor["differential_noise_exists"]:
-        print(f"  ⚠️ DIFFERENTIAL NOISE EXISTS — {floor['implication']}")
-
-    if confirmation:
-        print()
-        print(f"=== ordering confirmation at max_num_seqs={confirm_level} "
-              f"(orderings {list(ORDERING_SEEDS)}) ===")
-        held = [r for r in confirmation if r.bitwise_stable]
-        for result in confirmation:
-            verdict = "order-invariant" if result.bitwise_stable else (
-                f"{result.n_disagreeing}/{result.n_items} changed "
-                f"({result.disagreement_rate:.3%})")
-            print(f"  {result.fmt:12} {verdict}")
-        if len(held) == len(confirmation):
-            print(f"  ✅ {confirm_level} survives ITEM REORDERING for every arm — "
-                  f"freeze it")
-        else:
-            broke = [r.fmt for r in confirmation if not r.bitwise_stable]
-            print(f"  🚨 {confirm_level} is NOT order-invariant for {broke}.")
-            print("     Repeating the identical order agreed while REORDERING did "
-                  "not, which is the")
-            print("     mechanism itself: batch composition, not repetition, is what "
-                  "moves the output.")
-            print("     The single-ordering frontier OVERSTATES reproducibility. Do "
-                  "not freeze without a planner ruling.")
-
-    if phi_results:
-        print()
-        print(f"=== model generality: {phi_key} at max_num_seqs={confirm_level} ===")
-        for result in phi_results:
-            verdict = "stable" if result.bitwise_stable else (
-                f"{result.n_disagreeing}/{result.n_items} disagree "
-                f"({result.disagreement_rate:.3%})")
-            print(f"  {result.fmt:12} {verdict}")
-        print("  Mechanism is architecture-general (vLLM source); these RATES are "
-              "what is model-scoped.")
-
+        print("🚨 NO level is order-invariant for every arm.")
+        print("   Per R15.5 this does NOT halt the study: order-invariance is needed "
+              "for third parties")
+        print("   to reproduce our strings, not for our comparisons to be valid, and "
+              "we fix ordering.")
+        print("   But the freeze must be EARNED on this axis, so report the frontier "
+              "and pick on it.")
+        print("   §9's noise-floor pre-commitment binds to the REPETITION floor "
+              "(R15.6), which is")
+        print("   separate from this and reported separately.")
     print()
     print(f"report -> {OUTPUT_DIR / 'determinism.json'}")
 
     if unmeasured:
-        # Exit non-zero only when we could not MEASURE. Nondeterminism itself is
-        # a finding and must not be reported as a job failure -- a null result
-        # here is a headline H8 result and the study proceeds at the floor.
-        print(f"\nUNMEASURED CELLS: {sorted(unmeasured)}")
+        print(f"\nUNMEASURED CELLS: {unmeasured}")
         return 1
     return 0
 

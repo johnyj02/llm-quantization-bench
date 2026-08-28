@@ -245,6 +245,11 @@ class RepeatOutputs:
     # what every downstream scorer consumes.
     outputs: dict[str, str]
     disabled_kernels: str | None = None
+    # Which item ORDER this pass submitted the probe in. 0 is the natural order.
+    # Needed because the two floors are now distinguished by it (R15.6): passes
+    # sharing a seed measure REPETITION, passes with different seeds measure
+    # ORDER sensitivity.
+    ordering_seed: int = 0
 
 
 @dataclasses.dataclass
@@ -408,6 +413,83 @@ def differential_noise_floor(results: Sequence[DisagreementResult]) -> dict[str,
             "differential cannot claim an effect smaller than that differential"
         ),
     }
+
+
+def split_by_ordering(
+    passes: Sequence[RepeatOutputs],
+) -> tuple[list[RepeatOutputs], list[RepeatOutputs]]:
+    """Separate the two measurements that share one engine load.
+
+    Returns ``(repetition_passes, ordering_passes)``.
+
+    * **repetition** — every pass at the natural order (seed 0). Comparing these gives
+      the floor §9's pre-commitment binds to (R15.6): identical config, identical
+      order, N repeats.
+    * **ordering** — one pass per distinct seed, including seed 0. Comparing these
+      gives order sensitivity, which is the H8 headline and a third-party
+      reproducibility bound rather than a floor on our own deltas.
+
+    🚨 Both come from ONE engine process, and that is the point (R15.1). My first
+    version ran each ordering in its own subprocess, which confounded ordering with
+    process state -- and my argument that bf16's stability ruled that out was
+    unsound, since it assumed both arms are equally sensitive to whatever varies
+    across processes, which they are not.
+    """
+    repetition = [p for p in passes if p.ordering_seed == 0]
+    seen: set[int] = set()
+    ordering: list[RepeatOutputs] = []
+    for candidate in passes:
+        if candidate.ordering_seed not in seen:
+            seen.add(candidate.ordering_seed)
+            ordering.append(candidate)
+    return repetition, ordering
+
+
+def order_sensitivity(
+    passes: Sequence[RepeatOutputs],
+) -> dict[str, Any]:
+    """Both floors from one cell, named so they can never be conflated.
+
+    R15.6 fixes three numbers with three names, and the distinction is load-bearing:
+    the repetition floor is what §9 binds to, while reordering sensitivity is a
+    reproducibility bound for third parties. Reporting one under the other's name
+    would either overstate our noise or understate the field's.
+    """
+    repetition, ordering = split_by_ordering(passes)
+
+    result: dict[str, Any] = {
+        "n_passes": len(passes),
+        "orderings": sorted({p.ordering_seed for p in passes}),
+        "repetition_passes": len(repetition),
+    }
+
+    if len(repetition) >= 2:
+        floor = compute_disagreement(repetition)
+        result["repetition_floor"] = floor.disagreement_rate
+        result["repetition_stable"] = floor.bitwise_stable
+        result["repetition_n_disagreeing"] = floor.n_disagreeing
+    else:
+        result["repetition_floor"] = None
+        result["repetition_stable"] = None
+
+    if len(ordering) >= 2:
+        divergence = compute_disagreement(ordering)
+        result["order_divergence"] = divergence.disagreement_rate
+        result["order_invariant"] = divergence.bitwise_stable
+        result["order_n_disagreeing"] = divergence.n_disagreeing
+        result["n_items"] = divergence.n_items
+        result["order_max_distinct"] = divergence.max_distinct_outputs
+    else:
+        result["order_divergence"] = None
+        result["order_invariant"] = None
+
+    # The comparison that decides the write-up. Stable under repetition but not under
+    # reordering is exactly the state the repeat-based criterion called "stable", and
+    # it is why R8's criterion was retired.
+    result["repeat_stable_but_order_sensitive"] = bool(
+        result.get("repetition_stable") and result.get("order_invariant") is False
+    )
+    return result
 
 
 def probe_fingerprint(outputs: dict[str, str]) -> str:
