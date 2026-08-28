@@ -7,15 +7,77 @@ This is the running record. Evidence paths are repo-relative.
 |---|---|---|---|---|
 | **G1** env + access | Aug 25 | ✅ **PASSED** | 2026-08-23 | `notes/access.md`, `notes/compute.md`, `pyproject.toml` |
 | **G2** prompt parity | Aug 27 | ✅ **PASSED** | 2026-08-26 | `artifacts/prompts/MANIFEST.json` (27 cells, 0 failures) |
-| **G3** scorers | Aug 28 | 🟡 partial | — | 142 tests green; ARC log-likelihood cross-val outstanding |
-| **G4** determinism (H8) | Aug 30 | ⛔ blocked | — | needs GPU — gated on D10/D11 user confirmation |
+| **G3** scorers | Aug 28 | 🟡 partial | — | **265** tests green; ARC log-likelihood cross-val outstanding |
+| **G4** determinism (H8) | Aug 30 | 🟢 **measuring** | — | job 2 running (38,000 gen). Smoke evidence below is already substantive |
 | **PREREG** | **Sep 2** | 🟡 drafted | — | `analysis/preregistration.md`, all nine R-items written |
-| **G5a** anchors | Sep 2 | ⛔ blocked | — | needs GPU |
-| **G5** reference runs | Sep 13 | ⛔ blocked | — | needs GPU |
+| **G5a** anchors | Sep 2 | 🟡 unblocked | — | 9 quantized checkpoints exist (job 1 complete, 45.86 GB) |
+| **G5** reference runs | Sep 13 | 🟡 unblocked | — | substrate proven end-to-end; gated on G4's frozen `max_num_seqs` |
 | **G6** submittable draft | **Sep 20** | 🟡 mechanism ready | — | `make -C paper g6` checks all four criteria |
 | G7 results frozen | Sep 25 | — | — | |
 | G8 external review | Oct 4 | 🟡 on track | — | `B4` closed — readers ready (D12); draft due Sep 30 |
 | G9 submitted | Oct 10 | — | — | |
+
+---
+
+## G4 — determinism · MEASURING (job 2 in flight)
+
+**The substrate is proven and the audit is running.** Job 1 delivered 9 checkpoints; job 2
+(38,000 generations) is measuring the frontier. The smoke already produced results that stand
+on their own, and they changed the gate's own criterion.
+
+### 🚨 R8's pass criterion was RETIRED before it could pass
+
+The original criterion — largest `max_num_seqs` bitwise-stable across 3 repeats for every arm —
+**measures an axis with no variance**. Measured at `max_num_seqs=8`, 20 items, qwen2.5-3b:
+
+| arm | repetition floor (same order) | order divergence (3 orderings) |
+|---|---|---|
+| bf16 | 0.000% | **0.000%** — order-invariant |
+| gptq-4bit | 0.000% | **65.0%** |
+| awq-4bit | 0.000% | **75.0%** |
+
+Repetition says every arm is perfectly reproducible. Reordering the same items changes 65–75%
+of both quantized arms' outputs and none of bf16's. The criterion would have certified a
+grossly unstable configuration as stable. Replaced (R15.4) with order-induced divergence swept
+at {8, 32, 64}.
+
+### The finding, and why AWQ matters most
+
+**AWQ *has* the batch-invariance guard GPTQ lacks, and AWQ is worse.** So the guard does not
+deliver batch invariance — a harder claim about the feature than a confirmed prediction would
+have been, and a vLLM bug report. bf16's order-invariance under the identical structure makes
+the effect quantization-specific rather than a general engine property.
+
+**Confound broken by construction:** all passes run in ONE engine, so ordering is the only
+variable. An earlier design ran each ordering in its own process; the argument that bf16's
+stability ruled that out was *unsound*, since it assumed both arms are equally sensitive to
+process state.
+
+### Divergence collapses by the answer level (R15.3)
+
+| arm | text | strict answer | permissive answer |
+|---|---|---|---|
+| bf16 | 0.0% | 0.0% | 0.0% |
+| gptq-4bit | 65.0% | 10.0% | 20.0% |
+| awq-4bit | 75.0% | **0.0%** | 40.0% |
+
+AWQ's traces differ 75% of the time and its committed answer never does. **And the permissive
+rung is more order-sensitive than the strict one**, which cuts toward C1's "calibrate
+extraction, don't loosen it" framing.
+
+### What the running job must still deliver
+
+1. The frozen `max_num_seqs`, **earned on the ordering axis** at {8, 32, 64} rather than
+   defaulted to 8 (R15.5). If order-sensitivity is flat, 64 is a 4× throughput win downstream.
+2. Whether **correctness**-level divergence clears 10 pp — R15.6's escalation trigger. At n=20
+   it is 2/20 with a Wilson CI of roughly 1–31%, so undecidable; the 500-item probe decides.
+3. **Marlin attribution**, paired ±`VLLM_DISABLED_KERNELS`, to pin the mechanism to a named
+   kernel rather than inferring it.
+4. Model generality on Phi-3.5-mini, the architectural outlier.
+5. A6's throughput deliverable per arm — already measured at bf16 ~3,900 gen/h vs gptq-4bit
+   ~15,600 gen/h, a ~4× small-batch advantage consistent with Kurtic at batch=1 (2.39×).
+
+Full run-by-run record with costs: `notes/RUNLOG.md`.
 
 ---
 
