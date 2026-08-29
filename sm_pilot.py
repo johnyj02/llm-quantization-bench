@@ -304,16 +304,69 @@ def main() -> int:
     plan = pilot_plan(tasks)
 
     if SMOKE:
-        # One cell, one task, few items — but a QUANTIZED cell, so the path that
-        # loads a checkpoint through vLLM is exercised rather than assumed.
-        models = {"qwen2.5-3b": models["qwen2.5-3b"]}
-        plan = [("gsm8k", "gsm8k", None, 10)]
-        print("SMOKE MODE: qwen2.5-3b only, gsm8k only, 10 items per cell")
+        # 🚨 COVER EVERY PATH THAT CAN FAIL *SILENTLY*, not just one that can crash.
+        #
+        # The first version of this rehearsal ran qwen/gsm8k/{bf16,gptq-4bit} and was
+        # green -- while leaving ARC, all six BBH subtasks, and the two non-Qwen
+        # tokenizers uncleared. That asymmetry matters here in a way it does not for
+        # `quantize`: per-cell checkpointing makes a CRASH cheap (resubmit, completed
+        # cells are skipped), but a wrong `until` or `max_gen_toks` on BBH does not
+        # crash -- it silently truncates and yields plausible, wrong generations. This
+        # job is the ANNOTATION POOL, so that propagates into ~250 human annotations
+        # and into H1's truncation numbers. Checkpointing protects against
+        # interruption; only coverage protects against silent wrongness.
+        #
+        # One cell per distinct code path, 6 items each:
+        #   gsm8k                     the answer_marker=hash level
+        #   arc_challenge_chat        a different renderer and a different answer space
+        #   bbh/<first subtask>       different `until` strings AND 4x generation budget
+        plan = [
+            ("gsm8k", "gsm8k", None, 6),
+            ("arc_challenge_chat", "arc_challenge_chat", None, 6),
+        ]
+        bbh_subtasks = [s["name"] for s in tasks["bbh"]["subtasks"]]
+        prefix = tasks["bbh"]["lm_eval_task_prefix"]
+        plan.append((f"{prefix}{bbh_subtasks[0]}", "bbh", bbh_subtasks[0], 6))
+        print(f"SMOKE MODE: 3 task paths (gsm8k, arc, bbh/{bbh_subtasks[0]}), "
+              f"6 items each")
 
     cells = build_cells(models, specs, calibration)
     if SMOKE:
-        cells = [c for c in cells if c["precision"] in ("bf16", "gptq-4bit")
-                 and "r12_1_replicate" not in c]
+        # TOKENIZER coverage, which is the other thing a green Qwen-only run cannot
+        # speak to. G2 measured the BOS hazard as model-specific: Qwen has no
+        # bos_token, Phi has one but `add_bos_token=False` (zero BOS is CORRECT for
+        # it), and Llama-3.1's chat template emits `<|begin_of_text|>` itself -- so
+        # Llama is the ONLY model where the naive path double-BOSes. Generation now
+        # passes frozen prompt_token_ids, and this is where that assertion gets
+        # exercised against all three tokenizers rather than one.
+        #
+        # ARM coverage: bf16 (no quant path), gptq-4bit (compressed-tensors + Marlin)
+        # and awq-4bit (a different checkpoint). `bnb-nf4` is deliberately omitted --
+        # its in-flight load path is the one gap already closed elsewhere, since job 2
+        # served it successfully across all three batch sizes.
+        smoke_arms = ("bf16", "gptq-4bit", "awq-4bit")
+        keep = [
+            ("qwen2.5-3b", "bf16"), ("qwen2.5-3b", "gptq-4bit"),
+            ("qwen2.5-3b", "awq-4bit"),
+            ("phi-3.5-mini", "gptq-4bit"),   # zero-BOS tokenizer
+            # ⚠️ Llama on its QUANTIZED arm, not bf16, and the reason is the 1800 s
+            # smoke cap. The tokenizer always loads from the BASE repo (see the
+            # PROBE/cell script: a quantized checkpoint's tokenizer files are a copy,
+            # and prompts must be byte-identical across arms), so the BOS-emitting
+            # template is exercised either way -- but bf16 would additionally pull
+            # ~16 GB of weights from HF, while the quantized arm reads a checkpoint
+            # already restored from `checkpoint_s3_uri`. Same coverage, ~16 GB cheaper.
+            ("llama-3.1-8b", "gptq-4bit"),
+        ]
+        cells = [
+            c for c in cells
+            if c["precision"] in smoke_arms
+            and "r12_1_replicate" not in c
+            and (c["model_key"], c["precision"]) in keep
+        ]
+        print(f"SMOKE MODE: {len(cells)} cells across "
+              f"{len({c['model_key'] for c in cells})} tokenizers, "
+              f"{len({c['precision'] for c in cells})} arms")
 
     n_items = sum(limit for *_, limit in plan)
     print(f"run_id       : {RUN_ID}")
