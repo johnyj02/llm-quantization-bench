@@ -1,0 +1,1607 @@
+{
+  "gate": "G4",
+  "determinism_version": "1.0.0",
+  "audit_model": "qwen2.5-3b",
+  "orderings": [
+    0,
+    20260827,
+    20260828
+  ],
+  "order_sweep_levels": [
+    8,
+    32,
+    64
+  ],
+  "probe_composition": {
+    "gsm8k_cot": 200,
+    "bbh": 200,
+    "arc_challenge_chat": 100
+  },
+  "n_items": 500,
+  "sweep": [
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.0,
+      "order_invariant": true,
+      "order_n_disagreeing": 0,
+      "n_items": 500,
+      "order_max_distinct": 1,
+      "repeat_stable_but_order_sensitive": false,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.0,
+        "answer_divergence": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
+        "correctness_divergence": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
+        "escalation_metric_strict_correctness": 0.0
+      },
+      "arm": "bf16",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 8,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 12.6,
+      "seconds_per_pass": [
+        165.6,
+        165.0,
+        164.5,
+        164.7
+      ],
+      "fingerprints": [
+        "1c43ecd3d5828e75",
+        "1c43ecd3d5828e75",
+        "1c43ecd3d5828e75",
+        "1c43ecd3d5828e75"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 8,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 60716,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": null
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.298,
+      "order_invariant": false,
+      "order_n_disagreeing": 149,
+      "n_items": 500,
+      "order_max_distinct": 3,
+      "repeat_stable_but_order_sensitive": true,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.298,
+        "answer_divergence": {
+          "strict": 0.048,
+          "strict_last": 0.048,
+          "permissive": 0.098
+        },
+        "correctness_divergence": {
+          "strict": 0.036,
+          "strict_last": 0.036,
+          "permissive": 0.046
+        },
+        "escalation_metric_strict_correctness": 0.036
+      },
+      "arm": "gptq-8bit",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 8,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 4.8,
+      "seconds_per_pass": [
+        60.0,
+        60.0,
+        61.3,
+        60.4
+      ],
+      "fingerprints": [
+        "94f37028f97d5872",
+        "94f37028f97d5872",
+        "28c0cd2855818385",
+        "fd151ee3bdd20cf1"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 8,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 65373,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "compressed-tensors"
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.334,
+      "order_invariant": false,
+      "order_n_disagreeing": 167,
+      "n_items": 500,
+      "order_max_distinct": 3,
+      "repeat_stable_but_order_sensitive": true,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.334,
+        "answer_divergence": {
+          "strict": 0.074,
+          "strict_last": 0.074,
+          "permissive": 0.104
+        },
+        "correctness_divergence": {
+          "strict": 0.042,
+          "strict_last": 0.042,
+          "permissive": 0.03
+        },
+        "escalation_metric_strict_correctness": 0.042
+      },
+      "arm": "gptq-4bit",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 8,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 4.0,
+      "seconds_per_pass": [
+        50.0,
+        50.0,
+        48.6,
+        50.1
+      ],
+      "fingerprints": [
+        "1d0b368eb6aa0956",
+        "1d0b368eb6aa0956",
+        "0b0e10138989d2b8",
+        "3350b0ade7845993"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 8,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 67866,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "compressed-tensors"
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.436,
+      "order_invariant": false,
+      "order_n_disagreeing": 218,
+      "n_items": 500,
+      "order_max_distinct": 3,
+      "repeat_stable_but_order_sensitive": true,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.436,
+        "answer_divergence": {
+          "strict": 0.104,
+          "strict_last": 0.104,
+          "permissive": 0.192
+        },
+        "correctness_divergence": {
+          "strict": 0.04,
+          "strict_last": 0.04,
+          "permissive": 0.064
+        },
+        "escalation_metric_strict_correctness": 0.04
+      },
+      "arm": "awq-4bit",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 8,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 6.7,
+      "seconds_per_pass": [
+        87.6,
+        87.1,
+        90.1,
+        90.1
+      ],
+      "fingerprints": [
+        "d9aa098336ed7cfc",
+        "d9aa098336ed7cfc",
+        "17c4055d041534ae",
+        "ee12bec90c99913e"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 8,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 67948,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "compressed-tensors"
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.314,
+      "order_invariant": false,
+      "order_n_disagreeing": 157,
+      "n_items": 500,
+      "order_max_distinct": 3,
+      "repeat_stable_but_order_sensitive": true,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.314,
+        "answer_divergence": {
+          "strict": 0.096,
+          "strict_last": 0.096,
+          "permissive": 0.126
+        },
+        "correctness_divergence": {
+          "strict": 0.048,
+          "strict_last": 0.048,
+          "permissive": 0.04
+        },
+        "escalation_metric_strict_correctness": 0.048
+      },
+      "arm": "bnb-nf4",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 8,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 8.4,
+      "seconds_per_pass": [
+        115.0,
+        115.2,
+        119.7,
+        119.0
+      ],
+      "fingerprints": [
+        "e0158eeea2d7764d",
+        "e0158eeea2d7764d",
+        "ea2e13a4d3836456",
+        "4b73c21cecfc1d90"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 8,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 67503,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "bitsandbytes"
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.0,
+      "order_invariant": true,
+      "order_n_disagreeing": 0,
+      "n_items": 500,
+      "order_max_distinct": 1,
+      "repeat_stable_but_order_sensitive": false,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.0,
+        "answer_divergence": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
+        "correctness_divergence": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
+        "escalation_metric_strict_correctness": 0.0
+      },
+      "arm": "bf16",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 32,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 4.2,
+      "seconds_per_pass": [
+        53.2,
+        52.5,
+        52.0,
+        51.4
+      ],
+      "fingerprints": [
+        "1c43ecd3d5828e75",
+        "1c43ecd3d5828e75",
+        "1c43ecd3d5828e75",
+        "1c43ecd3d5828e75"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 32,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 60887,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": null
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.318,
+      "order_invariant": false,
+      "order_n_disagreeing": 159,
+      "n_items": 500,
+      "order_max_distinct": 3,
+      "repeat_stable_but_order_sensitive": true,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.318,
+        "answer_divergence": {
+          "strict": 0.048,
+          "strict_last": 0.048,
+          "permissive": 0.104
+        },
+        "correctness_divergence": {
+          "strict": 0.042,
+          "strict_last": 0.042,
+          "permissive": 0.05
+        },
+        "escalation_metric_strict_correctness": 0.042
+      },
+      "arm": "gptq-8bit",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 32,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 2.5,
+      "seconds_per_pass": [
+        28.0,
+        28.0,
+        27.5,
+        27.4
+      ],
+      "fingerprints": [
+        "8a23e3476ef23ca9",
+        "8a23e3476ef23ca9",
+        "3dc8736d14bcb4a4",
+        "71be87bbf78816a4"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 32,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 65543,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "compressed-tensors"
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.4,
+      "order_invariant": false,
+      "order_n_disagreeing": 200,
+      "n_items": 500,
+      "order_max_distinct": 3,
+      "repeat_stable_but_order_sensitive": true,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.4,
+        "answer_divergence": {
+          "strict": 0.088,
+          "strict_last": 0.088,
+          "permissive": 0.13
+        },
+        "correctness_divergence": {
+          "strict": 0.054,
+          "strict_last": 0.054,
+          "permissive": 0.036
+        },
+        "escalation_metric_strict_correctness": 0.054
+      },
+      "arm": "gptq-4bit",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 32,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 2.3,
+      "seconds_per_pass": [
+        25.4,
+        25.4,
+        28.2,
+        27.5
+      ],
+      "fingerprints": [
+        "4a37b7fc79b18133",
+        "4a37b7fc79b18133",
+        "5034c0b3065f2537",
+        "382876cc4ae71f7a"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 32,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 67948,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "compressed-tensors"
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.456,
+      "order_invariant": false,
+      "order_n_disagreeing": 228,
+      "n_items": 500,
+      "order_max_distinct": 3,
+      "repeat_stable_but_order_sensitive": true,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.456,
+        "answer_divergence": {
+          "strict": 0.112,
+          "strict_last": 0.112,
+          "permissive": 0.206
+        },
+        "correctness_divergence": {
+          "strict": 0.042,
+          "strict_last": 0.042,
+          "permissive": 0.07
+        },
+        "escalation_metric_strict_correctness": 0.042
+      },
+      "arm": "awq-4bit",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 32,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 3.2,
+      "seconds_per_pass": [
+        40.0,
+        40.2,
+        38.9,
+        38.8
+      ],
+      "fingerprints": [
+        "e6efda5f04b3835c",
+        "e6efda5f04b3835c",
+        "bf2c2826b44c9aa6",
+        "ddcf2a28b8c929f9"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 32,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 67948,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "compressed-tensors"
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.026,
+      "order_invariant": false,
+      "order_n_disagreeing": 13,
+      "n_items": 500,
+      "order_max_distinct": 2,
+      "repeat_stable_but_order_sensitive": true,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.026,
+        "answer_divergence": {
+          "strict": 0.008,
+          "strict_last": 0.008,
+          "permissive": 0.004
+        },
+        "correctness_divergence": {
+          "strict": 0.002,
+          "strict_last": 0.002,
+          "permissive": 0.002
+        },
+        "escalation_metric_strict_correctness": 0.002
+      },
+      "arm": "bnb-nf4",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 32,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 5.4,
+      "seconds_per_pass": [
+        71.5,
+        71.7,
+        74.9,
+        74.3
+      ],
+      "fingerprints": [
+        "597ee4023380a306",
+        "597ee4023380a306",
+        "cf429d2b21c9b2fe",
+        "e8627a9da9263525"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 32,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 67595,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "bitsandbytes"
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.0,
+      "order_invariant": true,
+      "order_n_disagreeing": 0,
+      "n_items": 500,
+      "order_max_distinct": 1,
+      "repeat_stable_but_order_sensitive": false,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.0,
+        "answer_divergence": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
+        "correctness_divergence": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
+        "escalation_metric_strict_correctness": 0.0
+      },
+      "arm": "bf16",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 64,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 3.0,
+      "seconds_per_pass": [
+        36.2,
+        36.3,
+        35.6,
+        35.7
+      ],
+      "fingerprints": [
+        "1c43ecd3d5828e75",
+        "1c43ecd3d5828e75",
+        "1c43ecd3d5828e75",
+        "1c43ecd3d5828e75"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 64,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 60887,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": null
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.298,
+      "order_invariant": false,
+      "order_n_disagreeing": 149,
+      "n_items": 500,
+      "order_max_distinct": 3,
+      "repeat_stable_but_order_sensitive": true,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.298,
+        "answer_divergence": {
+          "strict": 0.05,
+          "strict_last": 0.05,
+          "permissive": 0.1
+        },
+        "correctness_divergence": {
+          "strict": 0.04,
+          "strict_last": 0.04,
+          "permissive": 0.058
+        },
+        "escalation_metric_strict_correctness": 0.04
+      },
+      "arm": "gptq-8bit",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 64,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 2.1,
+      "seconds_per_pass": [
+        23.8,
+        23.7,
+        22.6,
+        22.8
+      ],
+      "fingerprints": [
+        "08347b2eacefb954",
+        "08347b2eacefb954",
+        "77cccc2eda97b613",
+        "2266a1cfcef851be"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 64,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 65543,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "compressed-tensors"
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.396,
+      "order_invariant": false,
+      "order_n_disagreeing": 198,
+      "n_items": 500,
+      "order_max_distinct": 3,
+      "repeat_stable_but_order_sensitive": true,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.396,
+        "answer_divergence": {
+          "strict": 0.086,
+          "strict_last": 0.086,
+          "permissive": 0.146
+        },
+        "correctness_divergence": {
+          "strict": 0.048,
+          "strict_last": 0.048,
+          "permissive": 0.066
+        },
+        "escalation_metric_strict_correctness": 0.048
+      },
+      "arm": "gptq-4bit",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 64,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 2.1,
+      "seconds_per_pass": [
+        22.7,
+        22.8,
+        23.1,
+        25.0
+      ],
+      "fingerprints": [
+        "e8e51bafc1e3578a",
+        "e8e51bafc1e3578a",
+        "611d6c1b8ff19e92",
+        "476fc0c0827c4f5e"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 64,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 67948,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "compressed-tensors"
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.47,
+      "order_invariant": false,
+      "order_n_disagreeing": 235,
+      "n_items": 500,
+      "order_max_distinct": 3,
+      "repeat_stable_but_order_sensitive": true,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.47,
+        "answer_divergence": {
+          "strict": 0.108,
+          "strict_last": 0.108,
+          "permissive": 0.2
+        },
+        "correctness_divergence": {
+          "strict": 0.038,
+          "strict_last": 0.038,
+          "permissive": 0.06
+        },
+        "escalation_metric_strict_correctness": 0.038
+      },
+      "arm": "awq-4bit",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 64,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 2.6,
+      "seconds_per_pass": [
+        31.0,
+        31.1,
+        30.7,
+        30.9
+      ],
+      "fingerprints": [
+        "67f435594f9571b3",
+        "67f435594f9571b3",
+        "42e92e3ac5601a29",
+        "f870c471223a608a"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 64,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 67948,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "compressed-tensors"
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.014,
+      "order_invariant": false,
+      "order_n_disagreeing": 7,
+      "n_items": 500,
+      "order_max_distinct": 3,
+      "repeat_stable_but_order_sensitive": true,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.014,
+        "answer_divergence": {
+          "strict": 0.006,
+          "strict_last": 0.006,
+          "permissive": 0.004
+        },
+        "correctness_divergence": {
+          "strict": 0.002,
+          "strict_last": 0.002,
+          "permissive": 0.002
+        },
+        "escalation_metric_strict_correctness": 0.002
+      },
+      "arm": "bnb-nf4",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 64,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 4.3,
+      "seconds_per_pass": [
+        56.4,
+        56.5,
+        52.6,
+        57.8
+      ],
+      "fingerprints": [
+        "87bef9e778d26b96",
+        "87bef9e778d26b96",
+        "facd8a70c422e8f4",
+        "1a89c336d681be10"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 64,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 67595,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "bitsandbytes"
+      }
+    }
+  ],
+  "marlin_attribution": [
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.0,
+      "order_invariant": true,
+      "order_n_disagreeing": 0,
+      "n_items": 500,
+      "order_max_distinct": 1,
+      "repeat_stable_but_order_sensitive": false,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.0,
+        "answer_divergence": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
+        "correctness_divergence": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
+        "escalation_metric_strict_correctness": 0.0
+      },
+      "arm": "awq-4bit",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 8,
+      "disabled_kernels": "MarlinLinearKernel,MacheteLinearKernel",
+      "autotune": false,
+      "minutes": 23.6,
+      "seconds_per_pass": [
+        331.3,
+        331.2,
+        337.2,
+        342.7
+      ],
+      "fingerprints": [
+        "7f75d9ccb840153b",
+        "7f75d9ccb840153b",
+        "7f75d9ccb840153b",
+        "7f75d9ccb840153b"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 8,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 67858,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "compressed-tensors"
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.314,
+      "order_invariant": false,
+      "order_n_disagreeing": 157,
+      "n_items": 500,
+      "order_max_distinct": 3,
+      "repeat_stable_but_order_sensitive": true,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.314,
+        "answer_divergence": {
+          "strict": 0.096,
+          "strict_last": 0.096,
+          "permissive": 0.126
+        },
+        "correctness_divergence": {
+          "strict": 0.048,
+          "strict_last": 0.048,
+          "permissive": 0.04
+        },
+        "escalation_metric_strict_correctness": 0.048
+      },
+      "arm": "bnb-nf4",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 8,
+      "disabled_kernels": "MarlinLinearKernel,MacheteLinearKernel",
+      "autotune": false,
+      "minutes": 8.3,
+      "seconds_per_pass": [
+        114.7,
+        114.8,
+        119.6,
+        118.6
+      ],
+      "fingerprints": [
+        "e0158eeea2d7764d",
+        "e0158eeea2d7764d",
+        "ea2e13a4d3836456",
+        "4b73c21cecfc1d90"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 8,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 67595,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "bitsandbytes"
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.0,
+      "order_invariant": true,
+      "order_n_disagreeing": 0,
+      "n_items": 500,
+      "order_max_distinct": 1,
+      "repeat_stable_but_order_sensitive": false,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.0,
+        "answer_divergence": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
+        "correctness_divergence": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
+        "escalation_metric_strict_correctness": 0.0
+      },
+      "arm": "gptq-4bit",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 8,
+      "disabled_kernels": "MarlinLinearKernel,MacheteLinearKernel",
+      "autotune": false,
+      "minutes": 12.7,
+      "seconds_per_pass": [
+        179.4,
+        179.3,
+        182.7,
+        181.6
+      ],
+      "fingerprints": [
+        "8654cc49557af725",
+        "8654cc49557af725",
+        "8654cc49557af725",
+        "8654cc49557af725"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 8,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 67883,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "compressed-tensors"
+      }
+    }
+  ],
+  "autotune_contrast": [
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.334,
+      "order_invariant": false,
+      "order_n_disagreeing": 167,
+      "n_items": 500,
+      "order_max_distinct": 3,
+      "repeat_stable_but_order_sensitive": true,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.334,
+        "answer_divergence": {
+          "strict": 0.074,
+          "strict_last": 0.074,
+          "permissive": 0.104
+        },
+        "correctness_divergence": {
+          "strict": 0.042,
+          "strict_last": 0.042,
+          "permissive": 0.03
+        },
+        "escalation_metric_strict_correctness": 0.042
+      },
+      "arm": "gptq-4bit",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 8,
+      "disabled_kernels": null,
+      "autotune": true,
+      "minutes": 3.8,
+      "seconds_per_pass": [
+        49.9,
+        50.0,
+        48.6,
+        50.1
+      ],
+      "fingerprints": [
+        "1d0b368eb6aa0956",
+        "1d0b368eb6aa0956",
+        "0b0e10138989d2b8",
+        "3350b0ade7845993"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 8,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 67948,
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "compressed-tensors"
+      }
+    }
+  ],
+  "model_generality": [
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.0,
+      "order_invariant": true,
+      "order_n_disagreeing": 0,
+      "n_items": 500,
+      "order_max_distinct": 1,
+      "repeat_stable_but_order_sensitive": false,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.0,
+        "answer_divergence": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
+        "correctness_divergence": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
+        "escalation_metric_strict_correctness": 0.0
+      },
+      "arm": "bf16",
+      "model_key": "phi-3.5-mini",
+      "max_num_seqs": 8,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 16.5,
+      "seconds_per_pass": [
+        226.0,
+        226.2,
+        224.2,
+        224.9
+      ],
+      "fingerprints": [
+        "64c1acb7a1cda75b",
+        "64c1acb7a1cda75b",
+        "64c1acb7a1cda75b",
+        "64c1acb7a1cda75b"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 8,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 5473,
+        "revision": "2fe192450127e6a83f7441aef6e3ca586c338b77",
+        "dtype": "torch.bfloat16",
+        "quantization": null
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.372,
+      "order_invariant": false,
+      "order_n_disagreeing": 186,
+      "n_items": 500,
+      "order_max_distinct": 3,
+      "repeat_stable_but_order_sensitive": true,
+      "by_level": {
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.372,
+        "answer_divergence": {
+          "strict": 0.056,
+          "strict_last": 0.056,
+          "permissive": 0.132
+        },
+        "correctness_divergence": {
+          "strict": 0.026,
+          "strict_last": 0.026,
+          "permissive": 0.052
+        },
+        "escalation_metric_strict_correctness": 0.026
+      },
+      "arm": "gptq-4bit",
+      "model_key": "phi-3.5-mini",
+      "max_num_seqs": 8,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 5.6,
+      "seconds_per_pass": [
+        72.5,
+        72.6,
+        76.4,
+        74.2
+      ],
+      "fingerprints": [
+        "4f3b9e7f7a6a256a",
+        "4f3b9e7f7a6a256a",
+        "efc23b7e429d72a5",
+        "41e4ce90f0b8000d"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 8,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 6332,
+        "revision": "2fe192450127e6a83f7441aef6e3ca586c338b77",
+        "dtype": "torch.bfloat16",
+        "quantization": "compressed-tensors"
+      }
+    }
+  ],
+  "unmeasured": [
+    "gptq-8bit@8+marlin-off"
+  ]
+}

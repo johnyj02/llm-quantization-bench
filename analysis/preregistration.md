@@ -766,7 +766,71 @@ published** as part of the artifact.
 3. **Pipeline floor** (§4.5) — the bf16 end-to-end double run, unchanged.
 
 If correctness-level reordering divergence exceeds 10 pp, the freeze is escalated before being
-made.
+made. **Outcome: it does not.** Worst strict-correctness divergence is 5.4% and worst
+permissive-correctness 7.0% (both gptq-4bit/awq-4bit at `max_num_seqs=32`, 500 items), so no
+escalation was triggered and `max_num_seqs = 64` is frozen.
+
+### 9a. Ordering as an accuracy statistic — CONFIRMATORY EXTENSION, explicitly not pre-data
+
+Registered **2026-08-29**, per planner ruling R17.4.
+
+🚨 **This is not pre-data and is not presented as such.** The three-ordering result below was
+already observed when this section was written, and the git history shows it. It is registered
+as a **pre-specified confirmatory extension of an exploratory finding** — discovery followed by
+pre-registered confirmation, which is normal practice. Dressing an already-seen result as
+pre-data is the version that costs us; stating the sequence plainly is the version that reads as
+integrity.
+
+**The exploratory finding, stated inline so the comparison is auditable.** Signed accuracy
+spread (max−min) across the three orderings above, 500 items, qwen2.5-3b:
+
+| arm | strict @8/32/64 | permissive @8/32/64 |
+|---|---|---|
+| bf16 | 0.00 / 0.00 / 0.00% | 0.00 / 0.00 / 0.00% |
+| gptq-8bit | 0.60 / 0.40 / 0.40% | 0.40 / 0.40 / 0.60% |
+| gptq-4bit | 0.60 / 1.00 / 1.00% | 0.20 / 0.20 / 1.60% |
+| awq-4bit | 0.80 / 0.40 / 1.00% | 1.40 / 0.40 / 1.00% |
+| bnb-nf4 | 1.60 / 0.20 / 0.20% | 0.40 / 0.20 / 0.20% |
+
+Phi-3.5-mini at `max_num_seqs=8`: bf16 0.00%/0.00%, gptq-4bit 0.60%/1.20%.
+
+**Estimator, frozen.** **Standard deviation of accuracy across orderings is the inferential
+quantity**; mean, min and max are reported as descriptive. ⚠️ **The range is NOT an estimand.**
+It is unstable and *grows with sample size*, so it cannot carry a population claim at any *n* —
+"accuracy has SD σ across random evaluation-set orderings" is defensible, "the spread is 1.6 pp"
+never will be. The paper may state an observed range only as a description of the orderings run.
+
+**Design, frozen.**
+
+| | |
+|---|---|
+| orderings | **10** — the 3 above plus 7 additional, seeds published with the artifact |
+| arms | bf16, gptq-4bit, awq-4bit, bnb-nf4 |
+| `max_num_seqs` | **64 only** (the frozen serving value) |
+| items | **500** — the same probe, unchanged |
+| model | qwen2.5-3b (audit model) |
+| primary rung | **rung 2 (permissive)**, with rung 1 (strict) reported alongside, per §2.2's headline contrast |
+| generations | 4 arms × 10 orderings × 500 = 20,000 (14,000 new) |
+
+- ⚠️ **Items are NOT traded for orderings.** Spread is *paired* across orderings, so sampling
+  variance largely cancels — but resolution does not. At 250 items one item is 0.4 pp while the
+  whole effect is ~8 items, so halving the probe would put the effect inside its own granularity.
+- **bf16 receives the same 10 orderings.** Exactly-zero across ten is a materially stronger
+  control than exactly-zero across three, and the control is what makes the effect attributable
+  to quantization rather than to the engine.
+
+**Claims permitted on this statistic.** That the shift is (i) *deterministic* given an ordering
+rather than sampling noise — the repetition floor is 0.000%, so it cannot be averaged away;
+(ii) *bidirectional*, so no ordering is correct and it cannot be calibrated away; and (iii)
+*attributable by intervention* to the Marlin/Machete kernel path, established by the paired
+±`VLLM_DISABLED_KERNELS` contrast.
+
+🚨 **Claim explicitly NOT permitted:** comparing our spread to published quantization deltas on
+other models, tasks, or protocols (e.g. Kurtic's 405B figure, Red Hat's GSM8K w4a16 delta).
+§0.1(b) is the claim that such figures are mutually incomparable, so building a headline on that
+comparison would turn the paper's own thesis against it. The comparative sentence — *the ordering
+spread is X% of the bit-width effect measured on the same items* — is permitted **only** against
+our own reference runs on the same items.
 
 **H7 framing, pre-committed.** For each published degradation figure cited, compute the 95%
 CI implied by that paper's own eval size and state whether the reported delta clears it.
