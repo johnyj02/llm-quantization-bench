@@ -1,0 +1,1304 @@
+[
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.0,
+    "order_invariant": true,
+    "order_n_disagreeing": 0,
+    "n_items": 500,
+    "order_max_distinct": 1,
+    "repeat_stable_but_order_sensitive": false,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.418,
+          0.418,
+          0.418
+        ],
+        "strict_last": [
+          0.418,
+          0.418,
+          0.418
+        ],
+        "permissive": [
+          0.476,
+          0.476,
+          0.476
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.0,
+        "strict_last": 0.0,
+        "permissive": 0.0
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.0,
+      "answer_divergence": {
+        "strict": 0.0,
+        "strict_last": 0.0,
+        "permissive": 0.0
+      },
+      "correctness_divergence": {
+        "strict": 0.0,
+        "strict_last": 0.0,
+        "permissive": 0.0
+      },
+      "escalation_metric_strict_correctness": 0.0
+    },
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "max_num_seqs": 8,
+    "cell": "phi-3.5-mini__bf16__at8__r2"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.372,
+    "order_invariant": false,
+    "order_n_disagreeing": 186,
+    "n_items": 500,
+    "order_max_distinct": 3,
+    "repeat_stable_but_order_sensitive": true,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.402,
+          0.396,
+          0.4
+        ],
+        "strict_last": [
+          0.402,
+          0.396,
+          0.4
+        ],
+        "permissive": [
+          0.402,
+          0.39,
+          0.398
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.006,
+        "strict_last": 0.006,
+        "permissive": 0.012
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.372,
+      "answer_divergence": {
+        "strict": 0.056,
+        "strict_last": 0.056,
+        "permissive": 0.132
+      },
+      "correctness_divergence": {
+        "strict": 0.026,
+        "strict_last": 0.026,
+        "permissive": 0.052
+      },
+      "escalation_metric_strict_correctness": 0.026
+    },
+    "arm": "gptq-4bit",
+    "model_key": "phi-3.5-mini",
+    "max_num_seqs": 8,
+    "cell": "phi-3.5-mini__gptq-4bit__at8__r2"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.456,
+    "order_invariant": false,
+    "order_n_disagreeing": 228,
+    "n_items": 500,
+    "order_max_distinct": 3,
+    "repeat_stable_but_order_sensitive": true,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.192,
+          0.196,
+          0.196
+        ],
+        "strict_last": [
+          0.192,
+          0.196,
+          0.196
+        ],
+        "permissive": [
+          0.366,
+          0.362,
+          0.362
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.004,
+        "strict_last": 0.004,
+        "permissive": 0.004
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.456,
+      "answer_divergence": {
+        "strict": 0.112,
+        "strict_last": 0.112,
+        "permissive": 0.206
+      },
+      "correctness_divergence": {
+        "strict": 0.042,
+        "strict_last": 0.042,
+        "permissive": 0.07
+      },
+      "escalation_metric_strict_correctness": 0.042
+    },
+    "arm": "awq-4bit",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 32,
+    "cell": "qwen2.5-3b__awq-4bit__at32__r2"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.47,
+    "order_invariant": false,
+    "order_n_disagreeing": 235,
+    "n_items": 500,
+    "order_max_distinct": 3,
+    "repeat_stable_but_order_sensitive": true,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.192,
+          0.188,
+          0.198
+        ],
+        "strict_last": [
+          0.192,
+          0.188,
+          0.198
+        ],
+        "permissive": [
+          0.36,
+          0.37,
+          0.364
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.01,
+        "strict_last": 0.01,
+        "permissive": 0.01
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.47,
+      "answer_divergence": {
+        "strict": 0.108,
+        "strict_last": 0.108,
+        "permissive": 0.2
+      },
+      "correctness_divergence": {
+        "strict": 0.038,
+        "strict_last": 0.038,
+        "permissive": 0.06
+      },
+      "escalation_metric_strict_correctness": 0.038
+    },
+    "arm": "awq-4bit",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 64,
+    "cell": "qwen2.5-3b__awq-4bit__at64__r2"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.436,
+    "order_invariant": false,
+    "order_n_disagreeing": 218,
+    "n_items": 500,
+    "order_max_distinct": 3,
+    "repeat_stable_but_order_sensitive": true,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.194,
+          0.186,
+          0.192
+        ],
+        "strict_last": [
+          0.194,
+          0.186,
+          0.192
+        ],
+        "permissive": [
+          0.366,
+          0.352,
+          0.358
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.008,
+        "strict_last": 0.008,
+        "permissive": 0.014
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.436,
+      "answer_divergence": {
+        "strict": 0.104,
+        "strict_last": 0.104,
+        "permissive": 0.192
+      },
+      "correctness_divergence": {
+        "strict": 0.04,
+        "strict_last": 0.04,
+        "permissive": 0.064
+      },
+      "escalation_metric_strict_correctness": 0.04
+    },
+    "arm": "awq-4bit",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 8,
+    "cell": "qwen2.5-3b__awq-4bit__at8__r2"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.0,
+    "order_invariant": true,
+    "order_n_disagreeing": 0,
+    "n_items": 500,
+    "order_max_distinct": 1,
+    "repeat_stable_but_order_sensitive": false,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.188,
+          0.188,
+          0.188
+        ],
+        "strict_last": [
+          0.188,
+          0.188,
+          0.188
+        ],
+        "permissive": [
+          0.362,
+          0.362,
+          0.362
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.0,
+        "strict_last": 0.0,
+        "permissive": 0.0
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.0,
+      "answer_divergence": {
+        "strict": 0.0,
+        "strict_last": 0.0,
+        "permissive": 0.0
+      },
+      "correctness_divergence": {
+        "strict": 0.0,
+        "strict_last": 0.0,
+        "permissive": 0.0
+      },
+      "escalation_metric_strict_correctness": 0.0
+    },
+    "arm": "awq-4bit",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 8,
+    "cell": "qwen2.5-3b__awq-4bit__at8__r2__fallback"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.0,
+    "order_invariant": true,
+    "order_n_disagreeing": 0,
+    "n_items": 500,
+    "order_max_distinct": 1,
+    "repeat_stable_but_order_sensitive": false,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.194,
+          0.194,
+          0.194
+        ],
+        "strict_last": [
+          0.194,
+          0.194,
+          0.194
+        ],
+        "permissive": [
+          0.394,
+          0.394,
+          0.394
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.0,
+        "strict_last": 0.0,
+        "permissive": 0.0
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.0,
+      "answer_divergence": {
+        "strict": 0.0,
+        "strict_last": 0.0,
+        "permissive": 0.0
+      },
+      "correctness_divergence": {
+        "strict": 0.0,
+        "strict_last": 0.0,
+        "permissive": 0.0
+      },
+      "escalation_metric_strict_correctness": 0.0
+    },
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 32,
+    "cell": "qwen2.5-3b__bf16__at32__r2"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.0,
+    "order_invariant": true,
+    "order_n_disagreeing": 0,
+    "n_items": 500,
+    "order_max_distinct": 1,
+    "repeat_stable_but_order_sensitive": false,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.194,
+          0.194,
+          0.194
+        ],
+        "strict_last": [
+          0.194,
+          0.194,
+          0.194
+        ],
+        "permissive": [
+          0.394,
+          0.394,
+          0.394
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.0,
+        "strict_last": 0.0,
+        "permissive": 0.0
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.0,
+      "answer_divergence": {
+        "strict": 0.0,
+        "strict_last": 0.0,
+        "permissive": 0.0
+      },
+      "correctness_divergence": {
+        "strict": 0.0,
+        "strict_last": 0.0,
+        "permissive": 0.0
+      },
+      "escalation_metric_strict_correctness": 0.0
+    },
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 64,
+    "cell": "qwen2.5-3b__bf16__at64__r2"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.0,
+    "order_invariant": true,
+    "order_n_disagreeing": 0,
+    "n_items": 500,
+    "order_max_distinct": 1,
+    "repeat_stable_but_order_sensitive": false,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.194,
+          0.194,
+          0.194
+        ],
+        "strict_last": [
+          0.194,
+          0.194,
+          0.194
+        ],
+        "permissive": [
+          0.394,
+          0.394,
+          0.394
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.0,
+        "strict_last": 0.0,
+        "permissive": 0.0
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.0,
+      "answer_divergence": {
+        "strict": 0.0,
+        "strict_last": 0.0,
+        "permissive": 0.0
+      },
+      "correctness_divergence": {
+        "strict": 0.0,
+        "strict_last": 0.0,
+        "permissive": 0.0
+      },
+      "escalation_metric_strict_correctness": 0.0
+    },
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 8,
+    "cell": "qwen2.5-3b__bf16__at8__r2"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.026,
+    "order_invariant": false,
+    "order_n_disagreeing": 13,
+    "n_items": 500,
+    "order_max_distinct": 2,
+    "repeat_stable_but_order_sensitive": true,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.268,
+          0.27,
+          0.268
+        ],
+        "strict_last": [
+          0.268,
+          0.27,
+          0.268
+        ],
+        "permissive": [
+          0.374,
+          0.376,
+          0.374
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.002,
+        "strict_last": 0.002,
+        "permissive": 0.002
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.026,
+      "answer_divergence": {
+        "strict": 0.008,
+        "strict_last": 0.008,
+        "permissive": 0.004
+      },
+      "correctness_divergence": {
+        "strict": 0.002,
+        "strict_last": 0.002,
+        "permissive": 0.002
+      },
+      "escalation_metric_strict_correctness": 0.002
+    },
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 32,
+    "cell": "qwen2.5-3b__bnb-nf4__at32__r2"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.014,
+    "order_invariant": false,
+    "order_n_disagreeing": 7,
+    "n_items": 500,
+    "order_max_distinct": 3,
+    "repeat_stable_but_order_sensitive": true,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.268,
+          0.268,
+          0.27
+        ],
+        "strict_last": [
+          0.268,
+          0.268,
+          0.27
+        ],
+        "permissive": [
+          0.374,
+          0.374,
+          0.376
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.002,
+        "strict_last": 0.002,
+        "permissive": 0.002
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.014,
+      "answer_divergence": {
+        "strict": 0.006,
+        "strict_last": 0.006,
+        "permissive": 0.004
+      },
+      "correctness_divergence": {
+        "strict": 0.002,
+        "strict_last": 0.002,
+        "permissive": 0.002
+      },
+      "escalation_metric_strict_correctness": 0.002
+    },
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 64,
+    "cell": "qwen2.5-3b__bnb-nf4__at64__r2"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.314,
+    "order_invariant": false,
+    "order_n_disagreeing": 157,
+    "n_items": 500,
+    "order_max_distinct": 3,
+    "repeat_stable_but_order_sensitive": true,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.27,
+          0.274,
+          0.258
+        ],
+        "strict_last": [
+          0.27,
+          0.274,
+          0.258
+        ],
+        "permissive": [
+          0.372,
+          0.376,
+          0.372
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.016,
+        "strict_last": 0.016,
+        "permissive": 0.004
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.314,
+      "answer_divergence": {
+        "strict": 0.096,
+        "strict_last": 0.096,
+        "permissive": 0.126
+      },
+      "correctness_divergence": {
+        "strict": 0.048,
+        "strict_last": 0.048,
+        "permissive": 0.04
+      },
+      "escalation_metric_strict_correctness": 0.048
+    },
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 8,
+    "cell": "qwen2.5-3b__bnb-nf4__at8__r2"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.314,
+    "order_invariant": false,
+    "order_n_disagreeing": 157,
+    "n_items": 500,
+    "order_max_distinct": 3,
+    "repeat_stable_but_order_sensitive": true,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.27,
+          0.274,
+          0.258
+        ],
+        "strict_last": [
+          0.27,
+          0.274,
+          0.258
+        ],
+        "permissive": [
+          0.372,
+          0.376,
+          0.372
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.016,
+        "strict_last": 0.016,
+        "permissive": 0.004
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.314,
+      "answer_divergence": {
+        "strict": 0.096,
+        "strict_last": 0.096,
+        "permissive": 0.126
+      },
+      "correctness_divergence": {
+        "strict": 0.048,
+        "strict_last": 0.048,
+        "permissive": 0.04
+      },
+      "escalation_metric_strict_correctness": 0.048
+    },
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 8,
+    "cell": "qwen2.5-3b__bnb-nf4__at8__r2__fallback"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.4,
+    "order_invariant": false,
+    "order_n_disagreeing": 200,
+    "n_items": 500,
+    "order_max_distinct": 3,
+    "repeat_stable_but_order_sensitive": true,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.264,
+          0.272,
+          0.262
+        ],
+        "strict_last": [
+          0.264,
+          0.272,
+          0.262
+        ],
+        "permissive": [
+          0.412,
+          0.414,
+          0.412
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.01,
+        "strict_last": 0.01,
+        "permissive": 0.002
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.4,
+      "answer_divergence": {
+        "strict": 0.088,
+        "strict_last": 0.088,
+        "permissive": 0.13
+      },
+      "correctness_divergence": {
+        "strict": 0.054,
+        "strict_last": 0.054,
+        "permissive": 0.036
+      },
+      "escalation_metric_strict_correctness": 0.054
+    },
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 32,
+    "cell": "qwen2.5-3b__gptq-4bit__at32__r2"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.396,
+    "order_invariant": false,
+    "order_n_disagreeing": 198,
+    "n_items": 500,
+    "order_max_distinct": 3,
+    "repeat_stable_but_order_sensitive": true,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.262,
+          0.26,
+          0.27
+        ],
+        "strict_last": [
+          0.262,
+          0.26,
+          0.27
+        ],
+        "permissive": [
+          0.414,
+          0.408,
+          0.424
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.01,
+        "strict_last": 0.01,
+        "permissive": 0.016
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.396,
+      "answer_divergence": {
+        "strict": 0.086,
+        "strict_last": 0.086,
+        "permissive": 0.146
+      },
+      "correctness_divergence": {
+        "strict": 0.048,
+        "strict_last": 0.048,
+        "permissive": 0.066
+      },
+      "escalation_metric_strict_correctness": 0.048
+    },
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 64,
+    "cell": "qwen2.5-3b__gptq-4bit__at64__r2"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.334,
+    "order_invariant": false,
+    "order_n_disagreeing": 167,
+    "n_items": 500,
+    "order_max_distinct": 3,
+    "repeat_stable_but_order_sensitive": true,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.272,
+          0.268,
+          0.266
+        ],
+        "strict_last": [
+          0.272,
+          0.268,
+          0.266
+        ],
+        "permissive": [
+          0.416,
+          0.418,
+          0.418
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.006,
+        "strict_last": 0.006,
+        "permissive": 0.002
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.334,
+      "answer_divergence": {
+        "strict": 0.074,
+        "strict_last": 0.074,
+        "permissive": 0.104
+      },
+      "correctness_divergence": {
+        "strict": 0.042,
+        "strict_last": 0.042,
+        "permissive": 0.03
+      },
+      "escalation_metric_strict_correctness": 0.042
+    },
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 8,
+    "cell": "qwen2.5-3b__gptq-4bit__at8__r2"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.334,
+    "order_invariant": false,
+    "order_n_disagreeing": 167,
+    "n_items": 500,
+    "order_max_distinct": 3,
+    "repeat_stable_but_order_sensitive": true,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.272,
+          0.268,
+          0.266
+        ],
+        "strict_last": [
+          0.272,
+          0.268,
+          0.266
+        ],
+        "permissive": [
+          0.416,
+          0.418,
+          0.418
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.006,
+        "strict_last": 0.006,
+        "permissive": 0.002
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.334,
+      "answer_divergence": {
+        "strict": 0.074,
+        "strict_last": 0.074,
+        "permissive": 0.104
+      },
+      "correctness_divergence": {
+        "strict": 0.042,
+        "strict_last": 0.042,
+        "permissive": 0.03
+      },
+      "escalation_metric_strict_correctness": 0.042
+    },
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 8,
+    "cell": "qwen2.5-3b__gptq-4bit__at8__r2__autotune"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.0,
+    "order_invariant": true,
+    "order_n_disagreeing": 0,
+    "n_items": 500,
+    "order_max_distinct": 1,
+    "repeat_stable_but_order_sensitive": false,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.262,
+          0.262,
+          0.262
+        ],
+        "strict_last": [
+          0.262,
+          0.262,
+          0.262
+        ],
+        "permissive": [
+          0.414,
+          0.414,
+          0.414
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.0,
+        "strict_last": 0.0,
+        "permissive": 0.0
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.0,
+      "answer_divergence": {
+        "strict": 0.0,
+        "strict_last": 0.0,
+        "permissive": 0.0
+      },
+      "correctness_divergence": {
+        "strict": 0.0,
+        "strict_last": 0.0,
+        "permissive": 0.0
+      },
+      "escalation_metric_strict_correctness": 0.0
+    },
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 8,
+    "cell": "qwen2.5-3b__gptq-4bit__at8__r2__fallback"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.318,
+    "order_invariant": false,
+    "order_n_disagreeing": 159,
+    "n_items": 500,
+    "order_max_distinct": 3,
+    "repeat_stable_but_order_sensitive": true,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.182,
+          0.18,
+          0.184
+        ],
+        "strict_last": [
+          0.182,
+          0.18,
+          0.184
+        ],
+        "permissive": [
+          0.4,
+          0.396,
+          0.396
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.004,
+        "strict_last": 0.004,
+        "permissive": 0.004
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.318,
+      "answer_divergence": {
+        "strict": 0.048,
+        "strict_last": 0.048,
+        "permissive": 0.104
+      },
+      "correctness_divergence": {
+        "strict": 0.042,
+        "strict_last": 0.042,
+        "permissive": 0.05
+      },
+      "escalation_metric_strict_correctness": 0.042
+    },
+    "arm": "gptq-8bit",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 32,
+    "cell": "qwen2.5-3b__gptq-8bit__at32__r2"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.298,
+    "order_invariant": false,
+    "order_n_disagreeing": 149,
+    "n_items": 500,
+    "order_max_distinct": 3,
+    "repeat_stable_but_order_sensitive": true,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.184,
+          0.184,
+          0.18
+        ],
+        "strict_last": [
+          0.184,
+          0.184,
+          0.18
+        ],
+        "permissive": [
+          0.39,
+          0.39,
+          0.396
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.004,
+        "strict_last": 0.004,
+        "permissive": 0.006
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.298,
+      "answer_divergence": {
+        "strict": 0.05,
+        "strict_last": 0.05,
+        "permissive": 0.1
+      },
+      "correctness_divergence": {
+        "strict": 0.04,
+        "strict_last": 0.04,
+        "permissive": 0.058
+      },
+      "escalation_metric_strict_correctness": 0.04
+    },
+    "arm": "gptq-8bit",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 64,
+    "cell": "qwen2.5-3b__gptq-8bit__at64__r2"
+  },
+  {
+    "n_passes": 4,
+    "orderings": [
+      0,
+      20260827,
+      20260828
+    ],
+    "repetition_passes": 2,
+    "repetition_floor": 0.0,
+    "repetition_stable": true,
+    "repetition_n_disagreeing": 0,
+    "order_divergence": 0.298,
+    "order_invariant": false,
+    "order_n_disagreeing": 149,
+    "n_items": 500,
+    "order_max_distinct": 3,
+    "repeat_stable_but_order_sensitive": true,
+    "by_level": {
+      "accuracy_by_ordering": {
+        "strict": [
+          0.186,
+          0.18,
+          0.186
+        ],
+        "strict_last": [
+          0.186,
+          0.18,
+          0.186
+        ],
+        "permissive": [
+          0.388,
+          0.384,
+          0.388
+        ]
+      },
+      "accuracy_spread": {
+        "strict": 0.006,
+        "strict_last": 0.006,
+        "permissive": 0.004
+      },
+      "n_orderings": 3,
+      "n_items_text": 500,
+      "n_items_scored": 500,
+      "n_items_unscored_no_gold": 0,
+      "text_divergence": 0.298,
+      "answer_divergence": {
+        "strict": 0.048,
+        "strict_last": 0.048,
+        "permissive": 0.098
+      },
+      "correctness_divergence": {
+        "strict": 0.036,
+        "strict_last": 0.036,
+        "permissive": 0.046
+      },
+      "escalation_metric_strict_correctness": 0.036
+    },
+    "arm": "gptq-8bit",
+    "model_key": "qwen2.5-3b",
+    "max_num_seqs": 8,
+    "cell": "qwen2.5-3b__gptq-8bit__at8__r2"
+  }
+]

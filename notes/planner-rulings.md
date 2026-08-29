@@ -1020,3 +1020,91 @@ held. **Do not reorder the narrative until the signed delta lands.**
 Then the intro's spine becomes *the apparatus moves the number more than the bit-width
 does*, instantiated twice — ordering and truncation. Nothing is dropped; the narrative
 reorders.
+
+---
+
+## R17 — The signed delta landed. Neither fork; build on the effect's CHARACTER, not its size
+
+Raw answer: `notes/planner-answers/R17-signed-delta.txt`. Numbers:
+`artifacts/determinism_reanalysis.json`, RUNLOG under `determinism-reanalyze`.
+
+### R17.1 🚨 My comparative claim was the paper's own diagnosed sin. Withdrawn.
+
+I proposed leading with *"1.6 pp exceeds Kurtic's 0.7 and is 16× RedHat's 0.1."* That is a
+**cross-model, cross-task, cross-protocol** comparison — Qwen-3B on a 500-item mixed probe
+against Llama-405B and against Llama-8B/GSM8K — and **§0.1(b) is the claim that such deltas
+are mutually incomparable**. *"Build the headline on that comparison and a reviewer turns the
+paper's own thesis against it."*
+
+The internally-valid version needs **our own** 4-bit delta on the same models and probe,
+which arrives with the reference runs. **Do not write the comparative sentence yet.**
+
+### R17.2 The claim to make instead — three properties, no magnitude comparison
+
+> Reordering the evaluation set — a parameter no published protocol reports — shifts 4-bit
+> accuracy by up to 1.6 points while leaving bf16 unchanged in all twelve configurations
+> tested. The shift is **deterministic** given an ordering rather than sampling noise, so it
+> cannot be averaged away; it is **bidirectional**, so no ordering is correct and it cannot
+> be calibrated away; and it is **attributable by intervention** to the Marlin kernel path,
+> which vLLM's batch-invariant mode does not cover.
+
+Stronger than either fork because it is about the effect's *character*. One sentence gets
+added after the reference runs: *the ordering spread is X% of the bit-width effect we measure
+on the same items.*
+
+- Wording: **"up to 1.6 points"**, never "points" plural.
+- The churn observation belongs in the **same paragraph**: churn at 3–13× the aggregate means
+  **the aggregate understates the instability** — the honest direction, and the link to the
+  flips literature §7 requires engaging.
+
+### R17.3 The range is the wrong estimand at ANY n. Report the distribution.
+
+My statistical worry was right, but the fix is not more samples of a bad estimator: range is
+unstable and **grows with sample size**. So report mean, SD, min, max across orderings, with
+**SD as the inferential quantity and range as descriptive**. *"Accuracy has SD σ across random
+evaluation-set orderings"* is defensible as a population claim; *"the spread is 1.6 pp"* never
+will be.
+
+**Extra-orderings job, scoped:** 4 arms (bf16, gptq-4bit, awq-4bit, bnb-nf4), `max_num_seqs=64`
+**only**, 500 items, **7 additional orderings → 10 total**. 14,000 generations, ~35 min at the
+measured 24,800 gen/h.
+
+- ⚠️ **Keep 500 items; do not trade items for orderings.** Spread is *paired* across orderings
+  so sampling variance largely cancels — but resolution does not. At 250 items one item is
+  0.4 pp and the whole effect is 8 items.
+- **bf16 gets the same 10 orderings.** Exactly-zero across ten is a much better control than
+  across three.
+
+### R17.4 Register it — as a confirmatory extension, explicitly NOT pre-data
+
+Before Sep 2, register: estimator (SD primary, range descriptive), 10 orderings, seeds, arms,
+`max_num_seqs=64`, and **rung 2 primary with rung 1 alongside** (per §2.2's headline contrast).
+
+🚨 **Do not file it as pre-data — the 3-ordering result is already seen.** Register as a
+*pre-specified confirmatory extension of an exploratory finding*, dated, with the exploratory
+numbers stated inline. *"Discovery followed by pre-registered confirmation is normal practice;
+dressing it as pre-data when the git history shows otherwise is the version that costs you.
+The distinction reads as integrity."*
+
+**Sep 2 freeze holds.**
+
+### R17.5 H8 IS CO-LEAD. Spine confirmed, magnitude claim provisional
+
+**Spine:** *the measurement apparatus moves the reported number more than the model change
+does*, instantiated by **two independent mechanisms** — ordering (H8) and truncation (H1).
+H8 goes **first** because it is complete, clean and mechanistically pinned; H1 follows because
+it is the larger effect and carries the live 2606.25519-vs-2504.04823 contradiction.
+*"Not two leads — one thesis, two instantiations."* The comparative half stays **provisional**
+until reference runs land: write H8, do not lock the intro's magnitude claim.
+
+### R17.6 Sequencing — all three, in this order; they do not compete
+
+1. **Submit job 3 NOW.** It closes G3, Anchor A, the `TRUNC_STOPSEQ` trigger and the
+   annotation pool — three of which feed Sep 2. *"Don't idle the slot behind a nice-to-have."*
+2. **Write the H8 section while it runs** (no GPU). ⚠️ **Source every statistic from a table
+   file rather than inlining numbers**, so the 10-ordering results update mechanically.
+3. **Extra-orderings job after job 3** — off the Sep 2 critical path, since the prereg needs
+   the *plan*, not the result.
+
+Noted: 24,800 gen/h makes the ~20 GPU-hour reference estimate conservative — the second time
+the schedule has moved in our favour.
