@@ -420,14 +420,27 @@ answers at the cost of exposure to batch-composition noise --- which is an
 argument for calibrating extraction rather than loosening it
 (\S\ref{sec:ladder}).
 
+\paragraph{These figures are a lower bound.}
+The probe underlying Table~\ref{tab:h8-spread} was generated before we discovered that
+the harness's few-shot BigBench-Hard configuration terminates generation almost
+immediately under chat templating (\S\ref{sec:intro}), so roughly two fifths of its
+items produced no answer under \emph{any} ordering. Items that are wrong under every
+ordering contribute no variance; they only enlarge the denominator. The reported
+spreads are therefore attenuated by approximately the inert fraction, and the true
+spread over answerable items is correspondingly larger. We report the diluted figures
+because they are what the pre-registered probe measured, and note the direction of the
+bias rather than adjusting them.
+
 \paragraph{Scope.}
 \todo{H8 scope --- restate once the 10-ordering confirmatory run (pre-registered,
-Appendix~\ref{app:prereg}) lands: SD over 10 orderings, 4 arms at $B=\hEightFrozenB$.
-Current figures are over \hEightOrderings{} orderings and the SD is
-correspondingly weakly estimated. Also add the one comparative sentence
---- ordering spread as a fraction of the bit-width effect measured on the SAME
-items --- which requires the reference runs and MUST NOT be sourced from
-published deltas on other models and tasks, which \S\ref{sec:related} argues are mutually incomparable.}
+Appendix~\ref{app:prereg}) lands: SD over 10 orderings, 4 arms at $B=\hEightFrozenB$,
+with the CORRECTED terminators, so it is not directly comparable to the
+\hEightOrderings{}-ordering figures above and supersedes rather than extends them.
+Current SD is weakly estimated at \hEightOrderings{} orderings. Also add the one
+comparative sentence --- ordering spread as a fraction of the bit-width effect measured
+on the SAME items --- which requires the reference runs and MUST NOT be sourced from
+published deltas on other models and tasks, which \S\ref{sec:related} argues are
+mutually incomparable.}
 
 \subsection{Truncation (H1)}
 \label{sec:h1}
