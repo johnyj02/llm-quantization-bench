@@ -1,0 +1,178 @@
+{
+  "stage": "pilot",
+  "run_id": "pilot-v1",
+  "smoke": false,
+  "max_num_seqs": 64,
+  "cells": [
+    {
+      "cell_id": "qwen2.5-3b|bf16",
+      "precision": "bf16",
+      "quant_config_hash": null,
+      "written": 300,
+      "skipped": 0,
+      "total": 300,
+      "minutes": 3.2,
+      "generations_per_hour": 5613
+    },
+    {
+      "cell_id": "qwen2.5-3b|gptq-8bit",
+      "precision": "gptq-8bit",
+      "quant_config_hash": "b8fe364b58da376b",
+      "written": 300,
+      "skipped": 0,
+      "total": 300,
+      "minutes": 2.1,
+      "generations_per_hour": 8655
+    },
+    {
+      "cell_id": "qwen2.5-3b|gptq-4bit",
+      "precision": "gptq-4bit",
+      "quant_config_hash": "4285d63706c2f769",
+      "written": 300,
+      "skipped": 0,
+      "total": 300,
+      "minutes": 1.9,
+      "generations_per_hour": 9270
+    },
+    {
+      "cell_id": "qwen2.5-3b|awq-4bit",
+      "precision": "awq-4bit",
+      "quant_config_hash": "e7377d975178f192",
+      "written": 300,
+      "skipped": 0,
+      "total": 300,
+      "minutes": 2.4,
+      "generations_per_hour": 7428
+    },
+    {
+      "cell_id": "qwen2.5-3b|bnb-nf4",
+      "precision": "bnb-nf4",
+      "quant_config_hash": null,
+      "written": 300,
+      "skipped": 0,
+      "total": 300,
+      "minutes": 2.4,
+      "generations_per_hour": 7426
+    },
+    {
+      "cell_id": "phi-3.5-mini|bf16",
+      "precision": "bf16",
+      "quant_config_hash": null,
+      "written": 300,
+      "skipped": 0,
+      "total": 300,
+      "minutes": 3.8,
+      "generations_per_hour": 4781
+    },
+    {
+      "cell_id": "phi-3.5-mini|gptq-8bit",
+      "precision": "gptq-8bit",
+      "quant_config_hash": "014bd87655686ed2",
+      "written": 300,
+      "skipped": 0,
+      "total": 300,
+      "minutes": 2.4,
+      "generations_per_hour": 7373
+    },
+    {
+      "cell_id": "phi-3.5-mini|gptq-4bit",
+      "precision": "gptq-4bit",
+      "quant_config_hash": "71d458108b597e29",
+      "written": 300,
+      "skipped": 0,
+      "total": 300,
+      "minutes": 2.2,
+      "generations_per_hour": 8049
+    },
+    {
+      "cell_id": "phi-3.5-mini|awq-4bit",
+      "precision": "awq-4bit",
+      "quant_config_hash": "0a3c7c0e290a7f16",
+      "written": 300,
+      "skipped": 0,
+      "total": 300,
+      "minutes": 2.4,
+      "generations_per_hour": 7528
+    },
+    {
+      "cell_id": "phi-3.5-mini|bnb-nf4",
+      "precision": "bnb-nf4",
+      "quant_config_hash": null,
+      "written": 300,
+      "skipped": 0,
+      "total": 300,
+      "minutes": 2.7,
+      "generations_per_hour": 6642
+    },
+    {
+      "cell_id": "llama-3.1-8b|bf16",
+      "precision": "bf16",
+      "quant_config_hash": null,
+      "written": 300,
+      "skipped": 0,
+      "total": 300,
+      "minutes": 4.1,
+      "generations_per_hour": 4438
+    },
+    {
+      "cell_id": "llama-3.1-8b|gptq-8bit",
+      "precision": "gptq-8bit",
+      "quant_config_hash": "565010cdaa638957",
+      "written": 300,
+      "skipped": 0,
+      "total": 300,
+      "minutes": 2.5,
+      "generations_per_hour": 7253
+    },
+    {
+      "cell_id": "llama-3.1-8b|gptq-4bit",
+      "precision": "gptq-4bit",
+      "quant_config_hash": "89ac5631ebff47d9",
+      "written": 300,
+      "skipped": 0,
+      "total": 300,
+      "minutes": 2.3,
+      "generations_per_hour": 7952
+    },
+    {
+      "cell_id": "llama-3.1-8b|awq-4bit",
+      "precision": "awq-4bit",
+      "quant_config_hash": "5030dd08d20bb473",
+      "written": 300,
+      "skipped": 0,
+      "total": 300,
+      "minutes": 2.5,
+      "generations_per_hour": 7311
+    },
+    {
+      "cell_id": "llama-3.1-8b|bnb-nf4",
+      "precision": "bnb-nf4",
+      "quant_config_hash": null,
+      "written": 300,
+      "skipped": 0,
+      "total": 300,
+      "minutes": 2.5,
+      "generations_per_hour": 7267
+    },
+    {
+      "cell_id": "qwen2.5-3b|awq-4bit-offload",
+      "precision": "awq-4bit",
+      "quant_config_hash": "e7377d975178f192",
+      "written": 300,
+      "skipped": 0,
+      "total": 300,
+      "minutes": 2.2,
+      "generations_per_hour": 8087
+    },
+    {
+      "cell_id": "qwen2.5-3b|awq-4bit-nooffload",
+      "precision": "awq-4bit",
+      "quant_config_hash": "184c722115d8d9bb",
+      "written": 300,
+      "skipped": 0,
+      "total": 300,
+      "minutes": 2.2,
+      "generations_per_hour": 8037
+    }
+  ]
+}
