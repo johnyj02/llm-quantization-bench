@@ -54,7 +54,23 @@ SMOKE = os.environ.get("SM_HP_SMOKE") == "1" or "--smoke" in sys.argv
 # the judge-validation sample is drawn from — and `A11` draws that sample blind, so
 # nothing downstream would notice. Same failure shape as the determinism smoke being
 # readable as a real measurement.
-RUN_ID = "pilot-v1-smoke" if SMOKE else "pilot-v1"
+# 🚨 BUMPED v1 -> v2 on 2026-08-29 (planner ruling R18.1). NOT cosmetic, and NOT a
+# deletion.
+#
+# `run_cell` skips any item already written under this `run_id`, so re-running as
+# `pilot-v1` after the BBH `until` fix would have skipped all 5,100 existing records --
+# regenerating NOTHING while printing `17/17 cells`. That is precisely the skip-on-resume
+# defect this file was filed for after `pilot-smoke-r2`.
+#
+# `pilot-v1` is deliberately RETAINED rather than deleted: it is the evidence for the BBH
+# terminator finding (5 of 6 subtasks at 0.0% for every arm including bf16 Llama-8B), which
+# the paper reports in the Introduction. Deleting it would destroy the artifact behind a
+# main-text claim.
+#
+# ⚠️ `gsm8k` and `arc_challenge_chat` should regenerate BIT-IDENTICALLY here, since `until`
+# is per-task and only BBH's changed. That is a free end-to-end determinism check, so
+# compare them rather than assuming.
+RUN_ID = "pilot-v2-smoke" if SMOKE else "pilot-v2"
 # Generations are the durable artifact, so they go to the CONTINUOUSLY SYNCED
 # checkpoint prefix rather than /opt/ml/model, which only uploads when the job ENDS.
 # A timeout at cell 14 of 17 would otherwise lose everything.

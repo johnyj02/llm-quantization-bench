@@ -37,14 +37,27 @@ The primary competence contrast is computed **only** on the *always-compliant st
 the set of items for which **every** arm produced a committed answer.
 
 - **Stratum definition.** Item `i` is in the stratum iff for all precision levels `p` in
-  the cell's precision set and all scorers `s` in rungs 1–4,
+  the cell's **contrasted** precision set and all scorers `s` in rungs 1–4,
   `compliance(i, p, s) ∈ {COMPLIANT, RECOVERABLE}` — i.e. never `ABSENT`.
-- Membership is determined by the **conjunction across all arms**, which makes the
-  subgroup pre-treatment-defined with respect to any single precision contrast, so the
+- Membership is determined by the **conjunction across the contrasted arms**, which makes
+  the subgroup pre-treatment-defined with respect to any single precision contrast, so the
   contrast within it is identified.
+- 🚨 **AMENDED 2026-08-29 (planner ruling R18.4.1): the conjunction is over the THREE
+  CONTRASTED arms — `bf16`, `gptq-4bit`, `awq-4bit` — not all five.** The stratum must be
+  pre-treatment-defined *with respect to the arms being compared*; requiring a committed
+  answer from arms we do not contrast (`gptq-8bit`, `bnb-nf4`) shrinks it multiplicatively
+  **for no identification benefit**. Under independence at 0.90 per-arm compliance that is
+  0.90³ = 0.73 rather than 0.90⁵ = 0.59.
+
+  ⚠️ **Registered BEFORE the re-scored numbers exist**, and that timing is the point. Job
+  3's pilot showed `COMPLIANT` at 2–6% for Qwen, but those figures are known to be
+  dominated by the BBH stop-sequence defect (§9b) and are being discarded and re-measured.
+  Amending the rule now, while no admissible number exists for it to be tuned to, is what
+  keeps this principled rather than convenient. `gptq-8bit` and `bnb-nf4` remain fully
+  reported everywhere else; they are simply not part of this conjunction.
 - The stratum is defined **per (model × task × budget_level × prompt_variant)**, and the
-  precision set is the full set for that arm (5 levels in the reference condition, 3 in
-  the sweep and zero-shot arms — `EXECUTOR-TASKS.md` §2.2).
+  contrasted precision set is `{bf16, gptq-4bit, awq-4bit}` in every condition
+  (`EXECUTOR-TASKS.md` §2.2).
 - **The stratum's size is reported as a first-class number**, not a footnote: as a count
   and as a fraction of items, per cell, in the main paper. If the stratum is small, that
   is itself the finding, and the competence contrast is reported as low-precision
@@ -60,12 +73,20 @@ would shrink the stratum for no inferential gain.
 **Pre-committed interpretation rules for stratum size:**
 - A small stratum does **not** license falling back to the full-sample competence contrast as
   primary. It licenses the Manski bounds of §1.3 carrying more of the argument.
-- **Minimum viable stratum, pre-specified: 50%.** The stratum intersects over 5 precision
-  arms, so it shrinks multiplicatively — at 0.90 compliance per arm and independence it would
-  be 0.90⁵ = 0.59, and higher in practice since compliance is correlated across arms.
+- **Minimum viable stratum, pre-specified: 50%. UNCHANGED, and deliberately so
+  (R18.4.2).** The stratum intersects over the three contrasted arms, so it shrinks
+  multiplicatively — at 0.90 compliance per arm and independence it would be 0.90³ = 0.73,
+  and higher in practice since compliance is correlated across arms.
   **If the stratum is <50% of items for a given (model, task), the stratum contrast is
-  EXPLORATORY for that cell and the Manski bounds become primary there.** Declared now so the
-  threshold cannot be chosen after seeing which cells would pass.
+  EXPLORATORY for that cell and the Manski bounds become primary there.** Declared before
+  any admissible compliance number exists, so the threshold cannot be chosen after seeing
+  which cells would pass.
+- ⚠️ **A cell failing the threshold is the design working, not a problem to be patched.**
+  Such cells report the **Manski bounds (§1.3) and the compliance-transition matrix (§1.2)
+  only — no point estimate.** Both were already pre-registered for exactly this case, so
+  the threshold was never a gate the study could fail; it is a switch between two
+  pre-specified estimands. The temptation this forecloses is lowering the threshold once
+  the numbers are in.
 
 ### 1.2 Compliance-transition matrix — reported as a finding, not conditioned away
 
@@ -839,6 +860,86 @@ neutral: **"many papers report aggregate deltas without a paired test"** — **n
 deltas are noise". We adopt Kübler et al.'s (ICLR 2026) paired McNemar test rather than
 arguing around it.
 
+### 9b. The BBH terminator change, and why the pilot's compliance figures are discarded
+
+Registered **2026-08-29**, per planner ruling R18.1.
+
+**What happened.** Job 3 (`run_id=pilot-v1`, 17 cells x 300 items) was generated with BBH's
+`until` taken verbatim from lm-eval's `_cot_fewshot_template_yaml` (v4.0):
+`["</s>", "Q", "\n\n"]`. Under our chat-templated prompts those terminators fire almost
+immediately, and **five of six BBH subtasks scored 0.0% for every model and every arm,
+including bf16 Llama-3.1-8B**:
+
+| subtask | `stop_reason` | `n_gen_tokens` | generation |
+|---|---|---|---|
+| `word_sorting` | `"Q"` | 1 | *(empty)* |
+| `boolean_expressions` | `"\n\n"` | 9 | "Let's evaluate the expression step by step." |
+| `object_counting` | `None` | 120 | *(worked -- its bulleted output never emits a blank line)* |
+
+**Change.** BBH adopts lm-eval's own **zero-shot** terminator set,
+`["</s>", "Q:", "<|im_end|>"]` (`_cot_zeroshot_template_yaml` v3.0) -- colon-terminated
+`Q:`, no `\n\n`, chat EOS. Both templates are vendored at `vendor/lm-eval-configs/bbh/`,
+so the difference is auditable. This is **an upstream fix inherited, not a deviation
+authored**: the few-shot config is a raw-continuation config that predates chat templating.
+
+**G2 is unaffected.** G2 asserts byte parity of *rendered prompts*; `until` is a generation
+parameter. (The executor initially read the gate as broader than it is.)
+
+🚨 **Consequences for this pre-registration, stated so no post-hoc reading is available:**
+
+1. **Every compliance, termination and truncation figure from `pilot-v1` is DISCARDED**, not
+   reinterpreted. `TRUNC_STOPSEQ` 26-45%, `ABSENT` 40-76% and `COMPLIANT` 2-6% are all
+   dominated by BBH producing empty generations across 6 of 8 task-conditions. BBH's pilot
+   cells are re-run before the freeze and those are the figures of record.
+2. **The apparent Qwen inversion is NOT interpreted** -- bf16 truncating more than AWQ
+   (135 vs 84 of 300) is consistent with bf16 writing more prose and hitting `\n\n` sooner.
+   Recorded here as a rejected reading, not a finding.
+3. **H1's budget axis on BBH is only measurable after this change.** With the old set the
+   stop sequence bound long before `max_gen_toks`, so the 1x/2x/4x sweep would have
+   measured nothing on BBH. The fix is a **precondition of H1 on BBH**, not a cleanup.
+4. **The zeroing itself is reported as a finding, in the Introduction** -- a harness
+   configuration silently scoring a benchmark at ~0 for every model, bf16 included. It is
+   **not** a hypothesis: it is not differential across precision, so it makes no claim about
+   quantization deltas. Reported upstream to lm-evaluation-harness.
+
+### 9c. GSM8K's hash arm is a demonstration, NOT an interaction level
+
+Registered **2026-08-29**, per planner ruling R18.2.
+
+Measured in the pilot (100 items, bf16): strict vs permissive is 1.0% vs 62.0% on
+qwen2.5-3b, 17.0% vs 75.0% on llama-3.1-8b, 30.0% vs 65.0% on phi-3.5-mini. Instruction-tuned
+models do not emit `####` unless the exemplars compel it, so **rung 1 on this arm measures
+marker compliance far more than competence.**
+
+- **A 1.0% score is a floor, and a floored metric has no variance for an interaction to
+  appear in.** The `gsm8k` (`answer_marker=hash`) arm is therefore **EXCLUDED as a level of
+  the precision x scoring interaction (H3)**; `gsm8k_cot` carries the primary interaction, as
+  already specified. This was previously argued; it is now empirically justified.
+- The arm is **RETAINED as a demonstration** of the marker-naturalness gradient's extreme
+  end, and reported as such.
+- **Also to be reported, per R18.2:** `gsm8k_cot`'s own strict-vs-permissive gap (the
+  gradient's other end, and the direct test of the monotonicity prediction), and the
+  **rank inversion** -- strict orders phi > llama > qwen while permissive orders
+  llama > phi > qwen, i.e. **the choice of scorer reorders the models.**
+
+### 9d. AWQ reproducibility -- existence claim registered, magnitude deferred
+
+Registered **2026-08-29**, per planner ruling R18.3.
+
+Two byte-different AWQ checkpoints of the **same recipe** (`e7377d975178f192`,
+`184c722115d8d9bb`), same 300 items, same engine: strict 20.0% vs 21.0%, permissive 39.67%
+vs 39.67%. A third cell re-ran the **same** hash and reproduced bit-identically, which is
+what makes the 1 pp attributable to the weights rather than to the pipeline.
+
+- **Registered claim (existence only):** *AWQ quantization is not bitwise reproducible
+  across runs of the same recipe, and the resulting weight difference moves strict accuracy
+  while leaving permissive unchanged.* The same-hash control is reported alongside it.
+- ⚠️ **No magnitude is claimed from 3/300.** `awq-4bit-nooffload` is added as an extra cell
+  in the Qwen reference run (500 items, one arm) and the magnitude is quoted from there.
+- **Job 1b** (re-quantize one AWQ arm at identical settings, ~30 min) separates *"AWQ is
+  inherently nondeterministic"* from *"`offload_device` changes the weights"*. These are
+  different claims and the ambiguity is not publishable now that the result is main text.
+
 ---
 
 ## 10. Annotation — adjudication rule, pre-specified before any disagreement is seen
@@ -846,7 +947,14 @@ arguing around it.
 - ≥250 items, stratified across 3 models × {bf16, 4-bit} × all tasks, **oversampling
   rung-1/2/3 disagreement cases**; agreement on the natural distribution is **also**
   reported. ≥120 double-annotated for IAA. Per-annotator counts reported.
-- Source pool is `run_id=pilot-v1` (`EXECUTOR-TASKS.md` O11), drawn with the **final
+- Source pool is **`run_id=pilot-v2`** (`EXECUTOR-TASKS.md` O11), drawn with the **final
+  ⚠️ **CHANGED from `pilot-v1` on 2026-08-29 (R18.1).** `pilot-v1` was generated with BBH's
+  broken terminator set and 5 of its 6 subtasks produced empty generations (§9b), so it is
+  not a usable annotation pool. `pilot-v1` is **retained, not deleted** — it is the evidence
+  for the terminator finding. `pilot-v2` regenerates all 17 cells with the corrected `until`.
+  `gsm8k` and `arc_challenge_chat` are expected to reproduce bit-identically, since `until`
+  is per-task, which is a free end-to-end determinism check rather than wasted compute.
+- (continued) drawn with the **final
   frozen** prompt templates and budgets.
 - **Blinding.** The condition column is **omitted from the annotation file entirely**, not
   hidden — a hidden column can be un-hidden. Annotators never see the precision condition,

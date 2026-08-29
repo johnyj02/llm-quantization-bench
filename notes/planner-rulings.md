@@ -1108,3 +1108,97 @@ until reference runs land: write H8, do not lock the intro's magnitude claim.
 
 Noted: 24,800 gen/h makes the ~20 GPU-hour reference estimate conservative — the second time
 the schedule has moved in our favour.
+
+---
+
+## R18 — Job 3 scored: BBH was zeroed by the apparatus, and G2 was never in the way
+
+Raw answer: `notes/planner-answers/R18-pilot-scored.txt`. Scores:
+`artifacts/scores/scores_pilot-v1.json`.
+
+### R18.1 🚨 Two things I got wrong, and lm-eval had already fixed the problem
+
+I reported BBH's stop sequences as a conflict between G2's parity gate and getting any
+data. Both halves of that were wrong.
+
+1. **G2 tests RENDERED PROMPTS, not `generation_kwargs`.** `until` is a generation
+   parameter, so changing it does not touch the gate. *"You're treating the gate as
+   broader than it is."*
+2. **The fix already exists upstream.** lm-eval's own
+   `_cot_zeroshot_template_yaml` (v3.0) uses `until: ["</s>", "Q:", "<|im_end|>"]` —
+   colon-terminated `Q:`, no `\n\n`, and a chat EOS — while `_cot_fewshot` (v4.0) is a
+   raw-continuation config that predates chat templating. Verified in
+   `vendor/lm-eval-configs/bbh/`; both files are vendored so the difference is auditable.
+
+**Adopted for the few-shot arm.** The deviation is documented as *inheriting an upstream
+fix*, not authoring one. Dropping BBH was **not available**: it is 6 of 8 task-conditions
+and carries the format gradient that R1.3 made §7's power backbone.
+
+- 🔬 **And it is the paper's most extreme instance of the thesis** (not optional, per the
+  planner): `bbh_cot_fewshot` silently scores ~0 under chat templating on 5/6 subtasks for
+  every model **including bf16 Llama-3.1-8B**. *The apparatus zeroes the benchmark; the
+  model is irrelevant.* Goes in the **introduction as the motivating extreme case**, not
+  as a fourth hypothesis — it is not differential across precision, so it says nothing
+  about quantization deltas directly.
+- **File it upstream with lm-evaluation-harness** (reproducible repro, five subtasks,
+  bf16). ⚠️ Deferred to the user: this is a public action inside the ARR anonymity window.
+- ⚠️ **H1's budget axis on BBH survives ONLY after this fix** — the stop sequence bound
+  long before `max_gen_toks`, so the sweep would have measured nothing. State that in the
+  H1 section: it is a **precondition, not a cleanup**.
+- **Re-run BBH's pilot cells before Sep 2.** R18.4 depends on it.
+
+### R18.2 GSM8K's hash arm: keep as demonstration, EXCLUDE as an interaction level
+
+A 1.0% strict score is a **floor, and floored metrics have no variance for an interaction
+to appear in**. So the arm has two roles and only one is admissible:
+
+- **Demonstration:** keep. qwen 1.0% strict vs 62.0% permissive is the marker-naturalness
+  gradient's extreme end, measured. Headline-grade.
+- **Level in the precision × scoring interaction:** exclude. `gsm8k_cot` carries the
+  primary interaction — as already ruled, now *empirically* justified rather than argued.
+
+**Two things I failed to extract:**
+1. **`gsm8k_cot`'s strict-vs-permissive gap** — the gradient's *other* end and the direct
+   test of the monotonicity prediction. I reported only the hash arm.
+2. 🔬 **A RANK INVERSION.** Strict orders phi (30) > llama (17) > qwen (1); permissive
+   orders llama (75) > phi (65) > qwen (62). **The scorer changes the model ranking.**
+   That is FormatSpread/xFinder instantiated for quantization eval, it is a memorable
+   table, and it is *stronger than the gap magnitude alone*.
+
+### R18.3 AWQ: existence claim now, magnitude later. And job 1b is back on the schedule
+
+State: *AWQ quantization is not bitwise reproducible across runs of the same recipe; the
+resulting weight difference moves strict accuracy by ~1 pp and permissive by 0 pp on 300
+items.* The **same-hash control cell stays in the text** — it is the reason the 1 pp is
+attributable to weights rather than to the pipeline.
+
+- **No magnitude on 3/300.** Add `awq-4bit-nooffload` as an extra cell in the Qwen
+  reference run (500 items, one arm, trivial) and quote the magnitude from there.
+- 🚨 **Job 1b joins the schedule** (~30 min, quant image). Now that this is main text,
+  *"AWQ is inherently nondeterministic"* and *"`offload_device` changes the weights"* are
+  **different claims and the ambiguity cannot be published.**
+- Placement: main text, in the H8 section — *the artifact-production step is also not
+  reproducible.*
+
+### R18.4 Re-score before interpreting anything. Two stratum rulings to register by Sep 2
+
+**Re-score after R18.1.** `TRUNC_STOPSEQ` 26–45%, `ABSENT` 40–76% and `COMPLIANT` 2–6%
+are all dominated by the BBH defect — BBH is 6 of 8 task-conditions and 5 of its subtasks
+produced empty generations. **Read nothing into the differential test yet.**
+
+⚠️ **Do not interpret the qwen inversion** (bf16 truncating more than AWQ, 135 vs 84 of
+300): almost certainly the same artifact, since bf16 writes more prose and hits `\n\n`
+sooner.
+
+**Register before Sep 2:**
+1. **Define the always-compliant stratum over the three CONTRASTED arms** (bf16, GPTQ-4,
+   AWQ-4), not all five. The stratum must be pre-treatment-defined with respect to the
+   arms being compared; demanding commitment from arms we do not contrast shrinks it for
+   no identification benefit. **Register now, before the re-scored numbers exist**, so it
+   is principled rather than convenient.
+2. **The 50% threshold STAYS.** Cells failing it report **Manski bounds and the
+   compliance-transition matrix only, no point estimate** — both already pre-registered
+   in §4.0 parts 2–3. That is the fallback working as designed, not a patch.
+
+**Note for the paper:** if `ABSENT` stays high after the BBH fix, that is a headline in
+its own right — *strict-match scoring discards the majority of generations.*

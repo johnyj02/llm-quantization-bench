@@ -1,0 +1,75 @@
+{
+  "n_passes": 4,
+  "orderings": [
+    0,
+    20260827,
+    20260828
+  ],
+  "repetition_passes": 2,
+  "repetition_floor": 0.0,
+  "repetition_stable": true,
+  "repetition_n_disagreeing": 0,
+  "order_divergence": 0.026,
+  "order_invariant": false,
+  "order_n_disagreeing": 13,
+  "n_items": 500,
+  "order_max_distinct": 2,
+  "repeat_stable_but_order_sensitive": true,
+  "by_level": {
+    "n_orderings": 3,
+    "n_items_text": 500,
+    "n_items_scored": 500,
+    "n_items_unscored_no_gold": 0,
+    "text_divergence": 0.026,
+    "answer_divergence": {
+      "strict": 0.008,
+      "strict_last": 0.008,
+      "permissive": 0.004
+    },
+    "correctness_divergence": {
+      "strict": 0.002,
+      "strict_last": 0.002,
+      "permissive": 0.002
+    },
+    "escalation_metric_strict_correctness": 0.002
+  },
+  "arm": "bnb-nf4",
+  "model_key": "qwen2.5-3b",
+  "max_num_seqs": 32,
+  "disabled_kernels": null,
+  "autotune": false,
+  "minutes": 5.4,
+  "seconds_per_pass": [
+    71.5,
+    71.7,
+    74.9,
+    74.3
+  ],
+  "fingerprints": [
+    "597ee4023380a306",
+    "597ee4023380a306",
+    "cf429d2b21c9b2fe",
+    "e8627a9da9263525"
+  ],
+  "hardware": {
+    "gpu": "NVIDIA L40S",
+    "cuda": "13.0",
+    "driver": "595.91.07"
+  },
+  "batch_invariance": {
+    "torch_bmm": "bmm_batch_invariant",
+    "_batch_invariant_MODE": true,
+    "allow_bf16_reduced_precision_reduction": false,
+    "allow_fp16_reduced_precision_reduction": false,
+    "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+  },
+  "engine_state": {
+    "max_num_seqs": 32,
+    "async_scheduling": false,
+    "enable_prefix_caching": false,
+    "num_gpu_blocks": 67595,
+    "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+    "dtype": "torch.bfloat16",
+    "quantization": "bitsandbytes"
+  }
+}

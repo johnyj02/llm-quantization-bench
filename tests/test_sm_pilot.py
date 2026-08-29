@@ -83,12 +83,25 @@ class TestRunIdIsolation:
         source = (Path(__file__).resolve().parents[1] / "sm_pilot.py").read_text()
         line = next(ln for ln in source.splitlines() if ln.startswith("RUN_ID ="))
         assert "SMOKE" in line, "RUN_ID must depend on SMOKE"
-        assert "pilot-v1-smoke" in line
-        assert re.search(r'else\s+"pilot-v1"', line)
+        assert "pilot-v2-smoke" in line
+        assert re.search(r'else\s+"pilot-v2"', line)
 
     def test_run_id_matches_the_registered_value(self):
-        """A8 and the artifact release (A24) both name pilot-v1 explicitly."""
-        assert sm_pilot.RUN_ID in ("pilot-v1", "pilot-v1-smoke")
+        """A8 and the artifact release (A24) both name the pilot run_id explicitly.
+
+        ⚠️ BUMPED v1 -> v2 on 2026-08-29 (R18.1), and this test failing is what it is
+        FOR. `run_cell` skips any item already written under a `run_id`, so re-running
+        the corrected BBH terminators as `pilot-v1` would have skipped all 5,100
+        existing records -- regenerating nothing while printing `17/17 cells`.
+
+        `pilot-v1` is retained, not deleted: it is the evidence for the BBH terminator
+        finding the paper reports in the Introduction.
+        """
+        assert sm_pilot.RUN_ID in ("pilot-v2", "pilot-v2-smoke")
+
+    def test_the_superseded_run_id_is_not_silently_reused(self):
+        """A future edit must not point this back at pilot-v1 and skip everything."""
+        assert "pilot-v1" not in sm_pilot.RUN_ID
 
 
 class TestR12Replicates:

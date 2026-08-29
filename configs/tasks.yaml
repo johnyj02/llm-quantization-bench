@@ -155,7 +155,10 @@ tasks:
   # This is a prediction of the hypothesis, not six arbitrary tasks (§2.2).
   # All six share vendor/lm-eval-configs/bbh/_cot_fewshot_template_yaml:
   #   max_gen_toks: 1024, num_fewshot: 3 (hardcoded), target_delimiter: ""
-  #   until: ["</s>", "Q", "\n\n"]     <-- bare capital Q; see PROBLEM 2
+  #   until: ["</s>", "Q", "\n\n"]     <-- ⚠️ NO LONGER USED. Bare capital Q zeroed 5 of
+  #                                        6 subtasks under chat templating; replaced
+  #                                        with lm-eval's own zero-shot set. See the
+  #                                        `until:` key below and planner ruling R18.1.
   #   filter: (?<=the answer is )(.*)(?=.)   <-- case-sensitive, lowercase
   # -------------------------------------------------------------------------
   bbh:
@@ -180,7 +183,35 @@ tasks:
       1x: 1024
       2x: 2048
       4x: 4096
-    until: ["</s>", "Q", "\n\n"]
+    # 🚨 CHANGED 2026-08-29 (planner ruling R18.1). Was `["</s>", "Q", "\n\n"]`, taken
+    # verbatim from lm-eval's `_cot_fewshot_template_yaml` (v4.0). Those terminators are
+    # correct for that config's RAW-CONTINUATION format, where the model continues
+    # "A: Let's think step by step." and emits "\n\nQ:" to begin the next exemplar --
+    # and they are catastrophic under a CHAT TEMPLATE, where the assistant emits its own
+    # formatting. Measured in job 3 (`run_id=pilot-v1`), llama-3.1-8b **bf16**:
+    #
+    #   word_sorting        stop_reason="Q"      n_gen_tokens=1    generation=""
+    #   boolean_expressions stop_reason="\n\n"   n_gen_tokens=9    "Let's evaluate the..."
+    #   object_counting     stop_reason=None     n_gen_tokens=120  (worked)
+    #
+    # **Five of six subtasks scored 0.0% for every model and every arm, bf16 included.**
+    # `object_counting` survived only because its bulleted output never emits a blank
+    # line. The apparatus zeroed the benchmark; the model was irrelevant.
+    #
+    # ⚠️ This is NOT a deviation we authored -- lm-eval already fixed it upstream. Its
+    # own `_cot_zeroshot_template_yaml` (v3.0) uses colon-terminated `Q:`, drops `\n\n`,
+    # and adds a chat EOS. We adopt that set for the few-shot arm. Both files are
+    # vendored at `vendor/lm-eval-configs/bbh/` so the difference is auditable.
+    #
+    # ⚠️ G2 is NOT affected: it asserts byte parity of RENDERED PROMPTS, and `until` is a
+    # generation parameter. I initially read the gate as broader than it is.
+    #
+    # ⚠️ H1's budget axis on BBH only becomes measurable AFTER this fix -- with the old
+    # set the stop sequence bound long before `max_gen_toks`, so sweeping the budget
+    # would have measured nothing. Precondition, not cleanup.
+    until: ["</s>", "Q:", "<|im_end|>"]
+    until_provenance: "lm-eval _cot_zeroshot_template_yaml v3.0 (NOT _cot_fewshot v4.0)"
+    until_changed: "2026-08-29, R18.1"
     strict_regex: '(?<=the answer is )(.*)(?=.)'
     strict_regex_case_sensitive: true        # log every capitalization-variant failure
     # ⚠️ VERIFIED DEFECT (2026-08-25): this regex is greedy with a MANDATORY
