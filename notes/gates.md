@@ -8,7 +8,7 @@ This is the running record. Evidence paths are repo-relative.
 | **G1** env + access | Aug 25 | ✅ **PASSED** | 2026-08-23 | `notes/access.md`, `notes/compute.md`, `pyproject.toml` |
 | **G2** prompt parity | Aug 27 | ✅ **PASSED** | 2026-08-26 | `artifacts/prompts/MANIFEST.json` (27 cells, 0 failures) |
 | **G3** scorers | Aug 28 | 🟡 partial | — | **265** tests green; ARC log-likelihood cross-val outstanding |
-| **G4** determinism (H8) | Aug 30 | 🟢 **measuring** | — | job 2 running (38,000 gen). Smoke evidence below is already substantive |
+| **G4** determinism (H8) | Aug 30 | ✅ **PASSED** | 2026-08-29 | job 2 complete: frontier at {8,32,64} × 3 levels; `max_num_seqs=64` frozen (R16.2) |
 | **PREREG** | **Sep 2** | 🟡 drafted | — | `analysis/preregistration.md`, all nine R-items written |
 | **G5a** anchors | Sep 2 | 🟡 unblocked | — | 9 quantized checkpoints exist (job 1 complete, 45.86 GB) |
 | **G5** reference runs | Sep 13 | 🟡 unblocked | — | substrate proven end-to-end; gated on G4's frozen `max_num_seqs` |
@@ -19,11 +19,25 @@ This is the running record. Evidence paths are repo-relative.
 
 ---
 
-## G4 — determinism · MEASURING (job 2 in flight)
+## G4 — determinism · PASSED 2026-08-29
 
-**The substrate is proven and the audit is running.** Job 1 delivered 9 checkpoints; job 2
-(38,000 generations) is measuring the frontier. The smoke already produced results that stand
-on their own, and they changed the gate's own criterion.
+**Job 2 is terminal and delivered all five of its criteria.** `max_num_seqs = 64` is frozen
+(R16.2) and recorded in `configs/models.yaml` as `max_num_seqs_resolved_by_audit: true`, which
+unblocks G5/G5a and job 3. The full frontier, the Marlin attribution and the per-arm throughput
+are in `notes/RUNLOG.md` under `determinism · Failed · 8755 s`.
+
+⚠️ **The job reads `Failed` and was not one.** Exit 1 is my own rule — non-zero when any cell
+could not be *measured* — and it fired for **one cell of 21** (`gptq-8bit@8+marlin-off`, which
+needs `libnvrtc-builtins.so.13.0`). The planner ruled to skip it (R16.3): the mechanism is
+already pinned by a clean 33.4→0.0 and 43.6→0.0, and the absence is itself a reportable finding.
+
+**One analysis outstanding, and it is not a gate condition.** R16.5 requires the **signed
+accuracy delta** between orderings, per arm — flip rate and accuracy shift are different
+quantities, and which one holds decides whether the claim is *"reordering moves reported
+accuracy more than 4-bit does"* or *"item-level churn exceeds published deltas while aggregates
+look fine."* Both publishable, different papers. Computable from generations already held via
+`--stage determinism --reanalyze` (no generation, ~$0.30). **The narrative does not reorder
+until it lands.**
 
 ### 🚨 R8's pass criterion was RETIRED before it could pass
 
@@ -55,6 +69,9 @@ process state.
 
 ### Divergence collapses by the answer level (R15.3)
 
+Smoke, 20 items — superseded in magnitude by the 500-item frontier below, but this is where the
+three-level requirement came from:
+
 | arm | text | strict answer | permissive answer |
 |---|---|---|---|
 | bf16 | 0.0% | 0.0% | 0.0% |
@@ -65,19 +82,25 @@ AWQ's traces differ 75% of the time and its committed answer never does. **And t
 rung is more order-sensitive than the strict one**, which cuts toward C1's "calibrate
 extraction, don't loosen it" framing.
 
-### What the running job must still deliver
+### ✅ All five criteria, delivered — 500 items, qwen2.5-3b unless noted
 
-1. The frozen `max_num_seqs`, **earned on the ordering axis** at {8, 32, 64} rather than
-   defaulted to 8 (R15.5). If order-sensitivity is flat, 64 is a 4× throughput win downstream.
-2. Whether **correctness**-level divergence clears 10 pp — R15.6's escalation trigger. At n=20
-   it is 2/20 with a Wilson CI of roughly 1–31%, so undecidable; the 500-item probe decides.
-3. **Marlin attribution**, paired ±`VLLM_DISABLED_KERNELS`, to pin the mechanism to a named
-   kernel rather than inferring it.
-4. Model generality on Phi-3.5-mini, the architectural outlier.
-5. A6's throughput deliverable per arm — already measured at bf16 ~3,900 gen/h vs gptq-4bit
-   ~15,600 gen/h, a ~4× small-batch advantage consistent with Kurtic at batch=1 (2.39×).
+| # | criterion | result |
+|---|---|---|
+| 1 | frozen `max_num_seqs`, earned on the **ordering** axis at {8,32,64} (R15.5) | **64** (R16.2). GPTQ-4's correctness difference across levels is noise (4.2 vs 4.8% ≈ 0.6 SE); 4× throughput on ~110k remaining generations. ⚠️ *text* divergence genuinely is worse at 64 (33.4→39.6%, ~3 SE) — reported, does not bind, since the claims are about scores not strings. |
+| 2 | does **correctness** divergence clear R15.6's 10 pp trigger? | **No.** Worst strict-correctness **5.4%** (gptq-4 @32); worst *permissive*-correctness **7.0%** (awq-4 @32) — computed, not inferred, per R16.1, since §2.2's headline is rung 1 **vs rung 2**. No escalation before the freeze. |
+| 3 | **Marlin attribution**, paired ±`VLLM_DISABLED_KERNELS` | **Pinned to a named kernel.** gptq-4 33.4→**0.0%**, awq-4 43.6→**0.0%**. bnb-nf4 31.4→31.4% = a **second, distinct, Marlin-independent** mechanism that *improves* with batch size (31.4→1.4%), backwards from every other arm. |
+| 4 | model generality on Phi-3.5-mini, the architectural outlier | **Same shape.** bf16 0.0%; gptq-4 37.2% text / 5.6% answer / 2.6% correctness. Rates transfer across architectures. |
+| 5 | A6 throughput per arm | ~24,800 gen/h at 500 items (vs 3,900–15,600 at 20 — fixed overhead amortises). A6 delivered without its own job. |
 
-Full run-by-run record with costs: `notes/RUNLOG.md`.
+Two results beyond the criteria: the **repetition floor is 0.000% in all 15 cells** (§9's
+pre-commitment binds here), and **autotune is ruled out empirically** — 33.4% with it off, 33.4%
+with it on, so R14.1's confound does not exist and the finding is not an autotune artifact.
+
+**Text divergence overstates the correctness impact by ~8–12×** (AWQ 47.0% → 3.8%). That is
+precisely why R15.3 ordered three levels, and it is the frontier — not the frozen value — that
+is the contribution: *it tells other people what they can get away with*.
+
+Full run-by-run record with costs: `notes/RUNLOG.md`. Planner rulings: R15, R16.
 
 ---
 
@@ -152,7 +175,7 @@ imposing one model's convention on another. Tested against all three profiles in
 
 ## G3 — scorers · PARTIAL
 
-**Done:** 142 tests green, ruff clean. Every fixture `EXECUTOR-TASKS.md` `A5` names is covered,
+**Done:** 265 tests green, ruff clean. Every fixture `EXECUTOR-TASKS.md` `A5` names is covered,
 plus rung monotonicity on a fixture set, the `found`/`committed` split, the three termination
 classes, the H2 false-positive floor, and rung 1b.
 

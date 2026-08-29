@@ -21,12 +21,29 @@ that can drift will drift — that already happened once with the ledger.
 | `EXECUTOR-PLAN.md` | **Scientific design** — hypotheses, factors, scoring semantics, statistics |
 | `analysis/preregistration.md` | The frozen analysis plan. **Freeze 2026-09-02.** Its value is the timestamp. |
 | `CLAUDE.md` | **How to actually run things**, and every trap paid for once already |
-| `notes/planner-rulings.md` | Planner's authoritative rulings (R1–R15), raw text in `notes/planner-answers/` |
+| `notes/planner-rulings.md` | Planner's authoritative rulings (R1–R16), raw text in `notes/planner-answers/` |
 | `notes/RUNLOG.md` | Every billable run: what it cost and what it taught us |
 | `notes/gates.md` | Live gate status |
 
 TASKS wins on execution, PLAN wins on science. TASKS §0.2 lists eleven intentional
 overrides; a conflict *not* listed there is a planning bug — stop and report it.
+
+### Asking the planner
+
+Scientific questions go to the **planner**, not the user (D13):
+
+```bash
+./ask-planner "question"                    # resumes its session — it remembers everything
+FORK=1 ./ask-planner "throwaway question"   # reads its context without writing to its history
+```
+
+Opus 5 (1M context) at `--effort max`, resuming session `54ba15b1-…`. Two rules:
+
+- ⚠️ **Batch the questions.** Each call re-sends the planner's whole context, so five
+  separate calls cost five times what one does.
+- ⚠️ **Save the answer unabridged to `notes/planner-answers/`, never read it through
+  `tail -n`.** A `tail -60` silently truncated R15 and lost two of its points. Then
+  distil it into `notes/planner-rulings.md` as an R-number.
 
 ## 1. The one architectural rule
 
@@ -129,6 +146,14 @@ mid-session, so never hardcode it; `submit_job.py` appends `-r2`, `-r3` on colli
 ⚠️ **A non-zero exit is not always a failed run.** `sm_verify.py` and `sm_quantize.py`
 exit non-zero if *any* check or arm failed, so SageMaker marks the job `Failed` even when
 it produced its full report. **Read the report before concluding the run was lost.**
+
+`sm_determinism.py` no longer does this: it separates **load-bearing** cells (the sweep —
+the frontier *is* the contribution) from **corroborating** ones (a further Marlin arm once
+the mechanism is pinned, Phi generality), and only the former fail the job. Both lists are
+printed and stored in `determinism.json` (`unmeasured` / `unmeasured_optional`), so exit 0
+never means "everything ran". Job 2 read `Failed` on the strength of one optional cell of
+21 while the whole sweep had completed — three separate times a finished run has had to be
+talked back out of looking like a lost one.
 
 ## 5. Why `--smoke` always comes first
 

@@ -594,8 +594,21 @@ def main() -> int:
         print(f"  {arm:10} -> {resolved[arm][0]}")
     print()
 
+    # ⚠️ TWO lists, not one. The sweep is load-bearing — the frontier IS the
+    # contribution, so a missing sweep cell must fail the job. The corroborating
+    # probes are not, and conflating them cost real confusion: job 2 exited 1 and
+    # therefore read `Failed` in the console on the strength of ONE optional cell
+    # (`gptq-8bit@8+marlin-off`, which needs a CUDA library the image lacks) while
+    # 15/15 sweep cells, the autotune contrast and the Phi probe had all completed.
+    # Three separate times a complete run has had to be talked back out of looking
+    # like a lost one.
+    #
+    # Never silently: both lists go in the report AND are printed, so a tolerated
+    # absence is visible rather than swallowed. Failing closed is right; reporting a
+    # finished study as a failure is not the way to do it.
     cells: list[dict] = []
-    unmeasured: list[str] = []
+    unmeasured: list[str] = []            # load-bearing: exit non-zero
+    unmeasured_optional: list[str] = []   # corroborating: report, do not fail
 
     for level in levels:
         print(f"=== max_num_seqs = {level} ===")
@@ -618,6 +631,8 @@ def main() -> int:
         if c.get("order_invariant") is False and not c["disabled_kernels"]
     })
     marlin: list[dict] = []
+    marlin_pinned: list[str] = []
+    marlin_missing: list[str] = []
     if order_sensitive and not SMOKE:
         print(f"=== Marlin attribution probe (PAIRED ordering test): "
               f"{order_sensitive} ===")
@@ -629,7 +644,7 @@ def main() -> int:
                 disabled_kernels=DISABLED_KERNELS_FALLBACK,
             )
             if analysis is None:
-                unmeasured.append(f"{arm}@{SWEEP_FLOOR}+marlin-off")
+                marlin_missing.append(f"{arm}@{SWEEP_FLOOR}+marlin-off")
             else:
                 marlin.append(analysis)
                 baseline = next(
@@ -638,9 +653,15 @@ def main() -> int:
                      and not c["disabled_kernels"]), None)
                 if baseline and analysis.get("order_invariant") and \
                         baseline.get("order_invariant") is False:
+                    marlin_pinned.append(arm)
                     print(f"    🔬 {arm}: order divergence "
                           f"{baseline['order_divergence']:.3%} -> 0 with Marlin "
                           f"disabled. The mechanism is a NAMED KERNEL.")
+        # R16.3: attribution is an EXISTENCE claim about a named kernel, so one clean
+        # arm establishes it and further arms corroborate. If NO arm pinned, the
+        # mechanism is only inferred and a missing cell is load-bearing.
+        if marlin_missing:
+            (unmeasured_optional if marlin_pinned else unmeasured).extend(marlin_missing)
         print()
 
     # ------------------------------------------------------------------
@@ -684,7 +705,10 @@ def main() -> int:
                     arm, SWEEP_FLOOR, phi_items, specs, phi_cfg, phi_paths,
                     model_key=phi_key)
                 if analysis is None:
-                    unmeasured.append(f"{phi_key}/{arm}@{SWEEP_FLOOR}")
+                    # Generality on a second architecture STRENGTHENS the claim; its
+                    # absence does not invalidate the Qwen frontier, which is what the
+                    # gate is about. Reported, not fatal.
+                    unmeasured_optional.append(f"{phi_key}/{arm}@{SWEEP_FLOOR}")
                 else:
                     phi.append(analysis)
         print()
@@ -701,7 +725,9 @@ def main() -> int:
         "marlin_attribution": marlin,
         "autotune_contrast": autotune_contrast,
         "model_generality": phi,
+        "marlin_mechanism_pinned_on": marlin_pinned,
         "unmeasured": unmeasured,
+        "unmeasured_optional": unmeasured_optional,
     }
     (OUTPUT_DIR / "determinism.json").write_text(json.dumps(report, indent=2))
 
@@ -746,8 +772,18 @@ def main() -> int:
     print()
     print(f"report -> {OUTPUT_DIR / 'determinism.json'}")
 
+    # Tolerated absences are printed whether or not they change the exit code, so
+    # "it exited 0" can never be read as "everything ran".
+    if unmeasured_optional:
+        print(f"\nUNMEASURED, TOLERATED (corroborating, not load-bearing): "
+              f"{unmeasured_optional}")
+        if marlin_pinned:
+            print(f"    Marlin attribution already pinned on: {marlin_pinned} — "
+                  f"a further arm corroborates an existence claim (R16.3).")
+        print("    Recorded in determinism.json under `unmeasured_optional`. State "
+              "the absence in the paper; do not imply full coverage.")
     if unmeasured:
-        print(f"\nUNMEASURED CELLS: {unmeasured}")
+        print(f"\nUNMEASURED, LOAD-BEARING: {unmeasured}")
         return 1
     return 0
 
