@@ -288,14 +288,31 @@ def main() -> int:
     )
     parser.add_argument("--wait", action="store_true", help="block and stream logs")
     parser.add_argument(
+        "--reanalyze",
+        action="store_true",
+        help="recompute a stage's ANALYSIS from stored raw outputs, generating nothing. "
+             "Cells are cached by tag, so a new analysis field would otherwise need the "
+             "whole run repeated to surface it.",
+    )
+    parser.add_argument(
         "--i-have-confirmation",
         action="store_true",
         help="the user has explicitly confirmed THIS submission (D10). Required.",
     )
     args = parser.parse_args()
 
-    config = build_config(args.stage, {"smoke": 1} if args.smoke else {})
+    overrides: dict = {}
+    if args.smoke:
+        overrides["smoke"] = 1
+    if args.reanalyze:
+        overrides["reanalyze"] = 1
+    config = build_config(args.stage, overrides)
     spec = STAGES[args.stage]
+    if args.reanalyze:
+        # No generation and no engine, so it is minutes. A short leash bounds a hang.
+        config["max_run"] = min(config["max_run"], 3600)
+        config["job_name"] = config["job_name"] + "-reanalyze"
+
     if args.smoke:
         # Short leash and a distinct name, so a smoke run can never be
         # mistaken for the real thing in the job list or in S3.

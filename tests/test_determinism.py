@@ -474,3 +474,50 @@ def test_one_ordering_is_refused():
     passes = [RepeatOutputs(fmt="bf16", max_num_seqs=8, repeat_idx=0, ordering_seed=0,
                             outputs={"a": "x"})]
     assert "error" in divergence_by_level(passes, {})
+
+
+# ---------------------------------------------------------------------------
+# The signed accuracy delta. Flip rate and accuracy SHIFT are different
+# quantities, and which one this is decides the paper's introduction.
+# ---------------------------------------------------------------------------
+
+def test_churn_without_accuracy_shift_is_distinguished():
+    """5% of items flip, aggregate accuracy identical.
+
+    -> "item-level churn exceeds published deltas even though aggregates look fine",
+    which plugs into Dutta et al.'s flips. NOT the same claim as accuracy moving.
+    """
+    items = {
+        "a": {"gold": "1", "task": "gsm8k_cot", "subtask": None},
+        "b": {"gold": "2", "task": "gsm8k_cot", "subtask": None},
+    }
+    passes = [
+        RepeatOutputs(fmt="gptq-4bit", max_num_seqs=8, repeat_idx=0, ordering_seed=0,
+                      outputs={"a": "The answer is 1.", "b": "The answer is 9."}),
+        # a breaks, b fixes -> two flips, same total correct
+        RepeatOutputs(fmt="gptq-4bit", max_num_seqs=8, repeat_idx=1,
+                      ordering_seed=20260827,
+                      outputs={"a": "The answer is 9.", "b": "The answer is 2."}),
+    ]
+    r = divergence_by_level(passes, items)
+    assert r["correctness_divergence"]["strict"] == 1.0, "both items flipped"
+    assert r["accuracy_by_ordering"]["strict"] == [0.5, 0.5]
+    assert r["accuracy_spread"]["strict"] == 0.0, "aggregate accuracy did NOT move"
+
+
+def test_accuracy_shift_is_reported_signed():
+    """Accuracy itself moves -> the far stronger claim."""
+    items = {
+        "a": {"gold": "1", "task": "gsm8k_cot", "subtask": None},
+        "b": {"gold": "2", "task": "gsm8k_cot", "subtask": None},
+    }
+    passes = [
+        RepeatOutputs(fmt="gptq-4bit", max_num_seqs=8, repeat_idx=0, ordering_seed=0,
+                      outputs={"a": "The answer is 1.", "b": "The answer is 2."}),
+        RepeatOutputs(fmt="gptq-4bit", max_num_seqs=8, repeat_idx=1,
+                      ordering_seed=20260827,
+                      outputs={"a": "The answer is 9.", "b": "The answer is 2."}),
+    ]
+    r = divergence_by_level(passes, items)
+    assert r["accuracy_by_ordering"]["strict"] == [1.0, 0.5]
+    assert r["accuracy_spread"]["strict"] == 0.5

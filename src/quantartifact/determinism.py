@@ -529,6 +529,8 @@ def divergence_by_level(
         return {"error": "need >=2 orderings to measure order divergence"}
 
     levels = ("strict", "strict_last", "permissive")
+    # n_correct per (rung, ordering index), so signed accuracy per ordering falls out.
+    n_correct: dict[str, list[int]] = {rung: [0] * len(ordering) for rung in levels}
     text_diff = 0
     answer_diff = {rung: 0 for rung in levels}
     correct_diff = {rung: 0 for rung in levels}
@@ -563,11 +565,34 @@ def divergence_by_level(
                 answer_diff[rung] += 1
             if len({bool(s[rung]["correct"]) for s in scored}) > 1:
                 correct_diff[rung] += 1
+            for index, one in enumerate(scored):
+                if one[rung]["correct"]:
+                    n_correct[rung][index] += 1
+
+    accuracy = {
+        rung: [round(c / n_scored, 6) for c in counts] if n_scored else []
+        for rung, counts in n_correct.items()
+    }
 
     def rate(count: int, total: int) -> float | None:
         return round(count / total, 6) if total else None
 
     return {
+        # 🚨 PER-ORDERING ACCURACY, and the SIGNED spread between orderings. Flip rate
+        # and accuracy shift are DIFFERENT QUANTITIES, and which one this is decides the
+        # paper's introduction:
+        #   accuracy itself moves by points  -> "reordering alone moves reported accuracy
+        #                                        more than 4-bit does"
+        #   items churn, aggregate is stable -> "item-level churn exceeds published
+        #                                        deltas even though aggregates look fine"
+        # The second plugs straight into Dutta et al.'s "flips" and "Accuracy is Not All
+        # You Need", which §7 already requires us to engage. Both publishable, different
+        # papers -- so it must be MEASURED, not inferred from the flip rate.
+        "accuracy_by_ordering": accuracy,
+        "accuracy_spread": {
+            rung: (round(max(v) - min(v), 6) if v else None)
+            for rung, v in accuracy.items()
+        },
         "n_orderings": len(ordering),
         "n_items_text": n_text,
         "n_items_scored": n_scored,

@@ -1,0 +1,38 @@
+Escalation read confirmed: 5.4% strict-correctness against a >10pp trigger — it does not fire, and §9 stays bound to the repetition floor (0.000%).
+
+**One caveat on that.** Your table has no *permissive*-correctness column, and per §2.2 the headline contrast is rung 1 vs rung 2 — so permissive correctness matters as much as strict. AWQ's permissive-*answer* divergence is ~20%. Scaling by your strict answer→correctness ratio (~0.38) implies ~7-8%, under the trigger, but compute it rather than infer it. It's free and it's the only number that could still fire.
+
+## Q1 — Freeze 64. Your reasoning holds and the arithmetic backs it.
+
+GPTQ-4's correctness difference is noise: 4.2% vs 4.8% on n=500 is 21 vs 24 items, ~0.6 SE. NF4's is not: 4.8% → 0.2% is a 23-item swing. Throughput applies to ~110k remaining generations.
+
+Two conditions:
+- **Text divergence genuinely is worse at 64** (33.4 → 39.6 is ~3 SE, not noise). Report it honestly; it doesn't bind the decision because our claims are about scores, not strings, but don't let it look like you missed it.
+- **Report the full frontier at all three metric levels**, not just the frozen value. The frontier is the contribution — it tells other people what they can get away with.
+
+NF4 improving with batch size is backwards from #51187 and worth one hypothesis in the text: larger reductions are more robust to permutation if the divergence comes from a data-dependent reduction whose result concentrates. Offer it as a hypothesis, not a finding.
+
+## Q2 — Skip. Your framing is worth more than the datapoint.
+
+Third confirmation of a mechanism already pinned by a clean 33.4→0.0 and 43.6→0.0, against a rebuild plus a queue cycle on a wall-clock-bound schedule. Not close.
+
+And *"for W8A16 there is no non-Marlin path available in a standard vLLM image without additional CUDA tooling"* is a real finding. Report it with the kernel named and the compile failure quoted — plus the **three-instance pattern** (gcc/Triton, nvcc/flashinfer, nvrtc/humming): reproducibility features that require runtime compilation which standard images lack. That is on-thesis, not an aside.
+
+## Q3 — H8 is well past sufficient. Do not chase NF4.
+
+You have: zero repetition floor everywhere, bf16 exactly order-invariant, four quantized arms not, mechanism pinned to a named kernel by intervention, a second Marlin-independent mechanism, autotune ruled out empirically, model generality confirmed, a frontier, and divergence quantified at three metric levels. That is a complete standalone result.
+
+"A second distinct mechanism exists, is Marlin-independent, and behaves oppositely" is an honest, complete existence claim. Chasing it costs unbounded source-reading against the Sep 2 freeze, on the arm with the least external validity anyway — vLLM's own RFC #39583 proposes moving bitsandbytes out-of-tree with "performance is not great." Cite the RFC, state two candidate explanations (in-flight per-load quantization; the concentration hypothesis above) as explicitly unresolved, and move on.
+
+## The framing consequence — and the one number I need before drafting
+
+H8 has outgrown "medium priority, may become a headline." Order-induced correctness divergence of 4-5% sits **above many of the published quantization deltas this paper audits** (Kurtic's corrected 405B figure is 0.7 points; RedHat's GSM8K w4a16 delta is 0.1). A nuisance parameter that nobody reports moving the measured quantity more than the effect being measured *is* the paper's thesis — delivered by H8 rather than by the decomposition.
+
+**But the precise claim depends on a number you haven't reported: the signed accuracy delta between orderings, per arm.** Flip rate and accuracy shift are different quantities.
+
+- If accuracy itself moves by points → "reordering alone moves reported accuracy more than 4-bit does." Devastating.
+- If 5% of items flip while aggregate accuracy is stable → "item-level churn exceeds published deltas even though aggregates look fine." Still strong, and it plugs straight into Dutta et al.'s flips and "Accuracy is Not All You Need," which §7 already requires us to engage.
+
+Both are publishable; they are different papers. Compute it from the generations you have — it's free, and it decides the introduction.
+
+Pending that: **H8 becomes co-lead with H1**, and the intro's spine becomes *the apparatus moves the number more than the bit-width does*, instantiated twice — ordering and truncation. Nothing gets dropped; the narrative reorders. Don't act on that until the signed delta lands.

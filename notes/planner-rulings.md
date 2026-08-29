@@ -946,3 +946,77 @@ It matters beyond scheduling, three ways:
 ~4–6 h. The reference block now looks like **~20 GPU-hours rather than §2.6's 22–35**,
 because 4-bit is fast in this regime. *"The schedule is ahead of plan, which is the
 first time I've been able to say that."*
+
+## R16 — Job 2's result: freeze 64, skip the missing cell, H8 becomes co-lead
+
+Raw answer: `notes/planner-answers/R16-job2-frontier-and-freeze.txt`.
+
+### R16.1 Escalation read confirmed — but compute permissive correctness, don't infer it
+
+5.4% strict-correctness against a >10 pp trigger does not fire, and §9 stays bound to the
+repetition floor (0.000%).
+
+⚠️ **Caveat I had missed:** my table had no *permissive*-correctness column, and §2.2 makes
+the headline contrast rung 1 **vs rung 2** — so permissive correctness matters as much as
+strict. Computed rather than inferred: **worst is 7.0% (awq-4bit @ 32)**, under the trigger.
+The planner's scaled estimate of ~7–8% was right, but *"compute it rather than infer it —
+it's the only number that could still fire."*
+
+### R16.2 Freeze `max_num_seqs = 64`
+
+GPTQ-4's correctness difference is noise (4.2% vs 4.8% = 21 vs 24 items of 500, ~0.6 SE);
+NF4's is not (4.8% → 0.2%, a 23-item swing). Throughput applies to ~110k remaining
+generations.
+
+Two conditions, both now recorded in `configs/models.yaml`:
+- **Text divergence genuinely IS worse at 64** (33.4 → 39.6%, ~3 SE, *not* noise). Report
+  honestly; it does not bind the decision because our claims are about scores rather than
+  strings, *"but don't let it look like you missed it."*
+- **Report the full frontier at all three metric levels**, not just the frozen value —
+  *"the frontier is the contribution; it tells other people what they can get away with."*
+
+NF4 improving with batch size is backwards from #51187. Offer **as a hypothesis, not a
+finding**: larger reductions may be more robust to permutation if the divergence comes from
+a data-dependent reduction whose result concentrates.
+
+### R16.3 Skip the missing `gptq-8bit` Marlin cell — the framing is worth more
+
+Third confirmation of a mechanism already pinned by a clean 33.4→0.0 and 43.6→0.0, against
+a rebuild plus a queue cycle on a wall-clock-bound schedule. *"Not close."*
+
+Report instead: *"for W8A16 there is no non-Marlin path available in a standard vLLM image
+without additional CUDA tooling"*, with the kernel named and the compile failure quoted —
+**plus the three-instance pattern** (gcc/Triton, nvcc/flashinfer, nvrtc/humming):
+reproducibility features that require runtime compilation which standard images lack.
+*"That is on-thesis, not an aside."*
+
+### R16.4 H8 is well past sufficient. Do NOT chase the NF4 mechanism.
+
+*"A second distinct mechanism exists, is Marlin-independent, and behaves oppositely"* is an
+honest, complete existence claim. Chasing it costs unbounded source-reading against the
+Sep 2 freeze, on the arm with the **least external validity anyway** — vLLM's own RFC
+#39583 proposes moving bitsandbytes out-of-tree with *"performance is not great."* Cite the
+RFC, state two candidate explanations as explicitly unresolved, move on.
+
+### R16.5 🔬 H8 BECOMES CO-LEAD WITH H1 — pending one number
+
+Order-induced correctness divergence of 4–5% sits **above many of the published quantization
+deltas this paper audits** (Kurtic's corrected 405B figure is 0.7 points; RedHat's GSM8K
+w4a16 delta is 0.1). *"A nuisance parameter that nobody reports moving the measured quantity
+more than the effect being measured IS the paper's thesis — delivered by H8 rather than by
+the decomposition."*
+
+**But the precise claim depends on the SIGNED ACCURACY DELTA between orderings, per arm,
+which I had not reported.** Flip rate and accuracy shift are different quantities:
+
+| outcome | claim |
+|---|---|
+| accuracy itself moves by points | *"reordering alone moves reported accuracy more than 4-bit does."* Devastating. |
+| items churn, aggregate stable | *"item-level churn exceeds published deltas even though aggregates look fine."* Still strong, and plugs into Dutta et al.'s flips / "Accuracy is Not All You Need", which §7 already requires engaging. |
+
+**Both publishable; they are different papers.** Free to compute from generations already
+held. **Do not reorder the narrative until the signed delta lands.**
+
+Then the intro's spine becomes *the apparatus moves the number more than the bit-width
+does*, instantiated twice — ordering and truncation. Nothing is dropped; the narrative
+reorders.

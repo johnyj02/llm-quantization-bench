@@ -102,6 +102,14 @@ CONFIGS = Path(__file__).parent / "configs"
 
 SMOKE = os.environ.get("SM_HP_SMOKE") == "1" or "--smoke" in sys.argv
 
+# Recompute the ANALYSIS from raw passes already on disk, generating nothing.
+#
+# Cells are cached by tag, so adding a new analysis field (here: per-ordering accuracy
+# and the signed spread) would otherwise require re-running 38,000 generations to
+# surface it. The raw outputs persist, so the analysis is a pure function over them --
+# this needs the probe re-materialised only for GOLD, and no engine at all.
+REANALYZE = os.environ.get("SM_HP_REANALYZE") == "1" or "--reanalyze" in sys.argv
+
 # 🚨 SMOKE RESULTS GO SOMEWHERE ELSE ENTIRELY, and this is a correctness issue,
 # not hygiene. A probe cell is keyed by (arm, max_num_seqs) — `bf16_at_8` — with no
 # reference to the probe SIZE. So with a shared directory the resume check would
@@ -489,9 +497,55 @@ def measure_cell(
 ORDER_SWEEP_LEVELS: tuple[int, ...] = (8, 32, 64)
 
 
+def reanalyze() -> int:
+    """Recompute every cell's analysis from its stored raw passes. No generation."""
+    models = yaml.safe_load((CONFIGS / "models.yaml").read_text())["models"]
+    raws = sorted(PROBE_DIR.glob("raw_*.json"))
+    if not raws:
+        print(f"nothing to re-analyse in {PROBE_DIR}")
+        return 1
+    print(f"re-analysing {len(raws)} cells from stored passes — NO generation")
+
+    # Gold, per model. The probe is tokenizer-specific, so it is re-materialised per
+    # model; item_ids are stable, which is what makes the join possible at all.
+    gold: dict[str, dict[str, dict]] = {}
+    for model_key in {r.stem.split("__")[0].removeprefix("raw_") for r in raws}:
+        if model_key not in models:
+            continue
+        print(f"  materialising probe for gold: {model_key}")
+        gold[model_key] = {i["item_id"]: i for i in build_probe(models[model_key], model_key)}
+
+    out = []
+    for raw_path in raws:
+        raw = json.loads(raw_path.read_text())
+        stem = raw_path.stem.removeprefix("raw_")
+        model_key, arm = stem.split("__")[0], stem.split("__")[1]
+        level = int(stem.split("__")[2].removeprefix("at"))
+        outputs = [
+            RepeatOutputs(fmt=arm, max_num_seqs=level, repeat_idx=i,
+                          outputs=e["outputs"], ordering_seed=e["ordering_seed"])
+            for i, e in enumerate(raw["passes"])
+        ]
+        analysis = order_sensitivity(outputs)
+        analysis["by_level"] = divergence_by_level(outputs, gold.get(model_key, {}))
+        analysis.update({"arm": arm, "model_key": model_key, "max_num_seqs": level,
+                         "cell": stem})
+        out.append(analysis)
+        acc = (analysis["by_level"].get("accuracy_by_ordering") or {}).get("strict")
+        spread = (analysis["by_level"].get("accuracy_spread") or {}).get("strict")
+        print(f"  {stem:44} accuracy/ordering {acc}  signed spread "
+              f"{'-' if spread is None else f'{spread:.2%}'}")
+
+    (OUTPUT_DIR / "determinism_reanalysis.json").write_text(json.dumps(out, indent=2))
+    print(f"report -> {OUTPUT_DIR / 'determinism_reanalysis.json'}")
+    return 0
+
+
 def main() -> int:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     PROBE_DIR.mkdir(parents=True, exist_ok=True)
+    if REANALYZE:
+        return reanalyze()
 
     models = yaml.safe_load((CONFIGS / "models.yaml").read_text())["models"]
     specs, calibration = load_specs(CONFIGS / "quant.yaml")

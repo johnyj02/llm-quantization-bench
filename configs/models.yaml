@@ -52,8 +52,26 @@ serving:
   # #51187 (44 co-resident seqs -> 3 distinct outputs in 5 repeats;
   # max_num_seqs=8 -> 5/5 identical) on OTHER hardware. A7 overwrites it,
   # then it is frozen and identical across all arms. REPORTED IN THE PAPER.
-  max_num_seqs: 8
-  max_num_seqs_resolved_by_audit: false   # A7 flips this to true
+  # ✅ FROZEN AT 64 BY THE A7 AUDIT (planner ruling R16.Q1), earned on the ORDERING
+  # axis rather than defaulted to the conservative value.
+  #
+  # Order-induced divergence is FLAT across {8,32,64} for GPTQ and AWQ
+  # (gptq-8bit 29.8/31.8/29.8%, gptq-4bit 33.4/40.0/39.6%, awq-4bit 43.6/45.6/47.0%),
+  # so 8 buys nothing there. bnb-NF4 is DRAMATICALLY better at 64 (text 31.4% -> 1.4%,
+  # correctness 4.8% -> 0.2%), and 64 is substantially faster on a bandwidth-bound
+  # decode across the ~110k generations still to run.
+  #
+  # ⚠️ TWO HONEST CAVEATS, both reported in the paper rather than buried:
+  #  - gptq-4bit correctness divergence is marginally worse at 64 (4.8% vs 4.2%): 24 vs
+  #    21 items of 500, ~0.6 SE, i.e. noise.
+  #  - gptq-4bit TEXT divergence genuinely is worse at 64 (39.6% vs 33.4%, ~3 SE, NOT
+  #    noise). It does not bind the decision because our claims are about SCORES rather
+  #    than strings, but it is stated so it cannot look overlooked.
+  #
+  # The repetition floor is 0.000% at every level for every arm, so §9's noise-floor
+  # pre-commitment binds to that and is unaffected by this choice.
+  max_num_seqs: 64
+  max_num_seqs_resolved_by_audit: true    # A7 (job 2), 2026-08-29
   disabled_kernels: null         # VLLM_DISABLED_KERNELS, set only if A7 requires it
 
 hardware:
