@@ -1321,3 +1321,88 @@ self-infliction objection.
 
 Optional upstream contribution, **not before Sep 2**: a *question* issue asking whether
 `bbh_cot_fewshot` is intended for use with `apply_chat_template`, citing those two artifacts.
+
+---
+
+## R20 — The throughput number was measured while BBH emitted nothing. Scope by fraction, not hours
+
+Raw answer: `notes/planner-answers/R20-throughput-budget.txt`.
+
+### R20.1 Scoping rule, pre-committed so no round-trip is needed
+
+*"Scoping against another guess repeats the exact error."* Express the probe's budget as a
+**fraction of remaining GPU, not absolute hours: the template probe gets ≤15% of total
+remaining budget.** Self-scaling, and it forces the trade automatically.
+
+| measured R (fixed BBH) | probe scope | generations |
+|---|---|---|
+| **≥ 6,000 gen/h** | full: 3 models × 3 arms × 2 levels × {`gsm8k_cot` 500, BBH 1500} | 36,000 |
+| **1,500–6,000** | **default:** 3 models × 3 arms × 2 levels × {500, 500} | 18,000 |
+| **< 1,500** | floor: **2 models**, otherwise unchanged | 12,000 |
+
+⚠️ **My arithmetic was wrong** and the planner caught it: I called the {500,500} option
+"12,000"; it is 9 cells × 2 levels × 1,000 items = **18,000**. 12,000 is the *2-model* floor.
+
+**The floor for a delta-invariance claim rather than a gesture — all five required:**
+1. both levels on the **same items**;
+2. **≥2 models** (one is anecdotal — the first question is whether invariance is
+   model-specific, and this is the cheapest generality available);
+3. **both tasks** (BBH carries the largest template effect, `gsm8k_cot` the primary
+   interaction — dropping either guts it);
+4. **all 3 contrasted arms**, so invariance is not method-specific;
+5. the decision rule registered **before** running.
+
+⇒ my option (b), one model, is **below the floor and rejected**.
+
+If R < ~1,000 gen/h the probe stops being the problem: the reference runs alone would be
+~110 h and the whole plan needs re-scoping.
+
+### R20.2 The prereg commits to n, not to wall clock — but freeze AFFORDABLE counts
+
+My reasoning was right: a rate revision does not touch item counts, factor levels,
+estimators or decision rules. **But there is one path where it does, and it is the one that
+matters:** if the honest rate makes the full counts unaffordable, **the counts have to
+change — and n is pre-registered.** Freezing n and then discovering it must be cut is
+precisely the failure the freeze exists to prevent.
+
+Sequence: pilot-v2 lands → measure R at scale → recompute the remaining budget → fits the
+runway, freeze as planned; does not fit, apply the trim order and **freeze the TRIMMED
+counts.** *"Freeze affordable counts, not aspirational ones."*
+
+**Trim order, revised now that the template factor defends the headline:** ARC few-shot arm
+→ conditional stop-seq arm → zero-shot arm (H5) → `gsm8k` secondary 500→250. **The template
+probe never goes below its 12,000 floor.** Never trim: BBH below 250/subtask, the token
+sweep, the H6 mode pairing, the noise floor, the determinism audit.
+
+### R20.3 🔬 The planner's unasked question — and the measurement REFUTES the worry
+
+It raised something neither of us had checked: BBH's median is now 294–618 generated tokens
+against a **1024** cap, so *"if most items complete naturally, almost nothing is
+budget-truncated at 1× and raising the cap cannot recover anything — the sweep would measure
+zero on BBH by construction, and H1, a co-lead, would rest entirely on `gsm8k_cot`."* That
+would have forced a change to a **pre-registered factor level before Sep 2**.
+
+**Checked against smoke r3's fixed-BBH generations. The worry does not hold:**
+
+```
+finish_reason: {'stop': 22, 'length': 8}     8 of 30 = 27% hit the cap
+max n_gen_tokens = 1024 = the cap exactly
+```
+
+| cell | BBH cap-hit at 1× |
+|---|---|
+| qwen bf16 | 2/6 = 33% |
+| qwen gptq-4bit | 1/6 = 17% |
+| qwen awq-4bit | 1/6 = 17% |
+| phi gptq-4bit | 2/6 = 33% |
+| llama gptq-4bit | 2/6 = 33% |
+
+🚨 **The MEDIAN was the wrong statistic for this question.** 294–618 against a 1024 cap looks
+like comfortable headroom; the *distribution* has a long tail that saturates the cap, and the
+cap-hit **rate** is what H1 needs. Truncation exists on both tasks — BBH ~27% at 1024, `gsm8k`
+6–24% at 256 — so **H1's budget sweep has room on both and no pre-registered factor level
+needs changing.** Confirm on pilot-v2's full 120 BBH items/cell, since n=30 here.
+
+**Lesson worth keeping:** a central-tendency statistic cannot answer a question about
+saturation. Both times this study nearly mis-read BBH it was by trusting a summary statistic
+over the distribution — first the throughput rate, then the median token count.
