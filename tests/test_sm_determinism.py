@@ -322,3 +322,64 @@ class TestOrderingsMode:
 
     def test_bf16_is_included_so_the_control_gets_the_same_orderings(self):
         assert '"bf16", "gptq-4bit", "awq-4bit", "bnb-nf4"' in self.SOURCE
+
+
+class TestPreregAndCodeAgree:
+    """🚨 The prereg is the one document where declared-vs-enforced drift is fatal.
+
+    Its entire value is the timestamp: if `analysis/preregistration.md` §9a names one set
+    of ordering seeds and the code runs another, the registration certifies nothing and a
+    reviewer who notices caps acceptance at ~25% (`EXECUTOR-PLAN.md` §4.0). Given this
+    project has been bitten six times by a value declared in one place and not honoured in
+    another, the prereg gets the same treatment as the engine settings.
+    """
+
+    PREREG = (Path(__file__).resolve().parents[1]
+              / "analysis" / "preregistration.md").read_text()
+
+    def test_every_registered_ordering_seed_is_in_the_code(self):
+        from quantartifact.determinism import ORDERING_SEEDS_EXTENDED  # noqa: PLC0415
+
+        # The seed row pins them as a backtick-quoted comma list; parse rather than trust.
+        row = next(line for line in self.PREREG.splitlines()
+                   if "Seeds, PINNED HERE" in line)
+        registered = [int(s.strip()) for s in
+                      row.split("`")[1].split(",")]
+        assert registered == list(ORDERING_SEEDS_EXTENDED), (
+            f"prereg §9a registers {registered} but the code runs "
+            f"{list(ORDERING_SEEDS_EXTENDED)}"
+        )
+
+    def test_prereg_registers_ten_orderings(self):
+        assert "**10**" in self.PREREG
+
+    def test_prereg_names_sd_as_the_estimand_not_range(self):
+        """R17.3: range is unstable and grows with n, so it cannot carry a population
+        claim. If the prereg ever says otherwise, the analysis is unregistered."""
+        assert "Standard deviation of accuracy across orderings is the inferential" \
+            in self.PREREG
+        # And that the range is explicitly demoted, since that is the part a later editor
+        # would be tempted to soften.
+        assert "The range is NOT an estimand" in self.PREREG
+
+    def test_prereg_records_that_the_10_ordering_run_supersedes(self):
+        """The 3-ordering spreads were attenuated by inert BBH items, so pooling them
+        would mix two populations. Registered before the run so the supersession cannot
+        look like a post-hoc choice."""
+        assert "SUPERSEDES THE 3-ORDERING FIGURES" in self.PREREG
+
+    def test_frozen_batch_size_matches_the_audited_value(self):
+        import yaml  # noqa: PLC0415
+
+        configs = Path(__file__).resolve().parents[1] / "configs"
+        serving = yaml.safe_load((configs / "models.yaml").read_text())["serving"]
+        assert serving["max_num_seqs_resolved_by_audit"] is True
+        frozen = serving["max_num_seqs"]
+        # §9's freeze statement and §9a's design table must BOTH name it, so the value
+        # cannot drift in one place while the other still certifies the old one.
+        assert f"`max_num_seqs = {frozen}` is frozen" in self.PREREG, (
+            f"§9 must record the frozen value {frozen}"
+        )
+        assert f"**{frozen} only** (the frozen serving value)" in self.PREREG, (
+            f"§9a's design table must pin {frozen}"
+        )

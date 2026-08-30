@@ -881,7 +881,7 @@ never will be. The paper may state an observed range only as a description of th
 
 | | |
 |---|---|
-| orderings | **10** — the 3 above plus 7 additional, seeds published with the artifact |
+| orderings | **10** — the 3 above plus 7 additional. Seeds, PINNED HERE rather than promised: `0, 20260827, 20260828, 20260829, 20260830, 20260831, 20260901, 20260902, 20260903, 20260904`. The first three are the original seeds unchanged and in order, so the 3-ordering result stays exactly recoverable as a prefix. Defined in `quantartifact.determinism.ORDERING_SEEDS_EXTENDED`. |
 | arms | bf16, gptq-4bit, awq-4bit, bnb-nf4 |
 | `max_num_seqs` | **64 only** (the frozen serving value) |
 | items | **500** — the same probe, unchanged |
@@ -895,6 +895,15 @@ never will be. The paper may state an observed range only as a description of th
 - **bf16 receives the same 10 orderings.** Exactly-zero across ten is a materially stronger
   control than exactly-zero across three, and the control is what makes the effect attributable
   to quantization rather than to the engine.
+
+🚨 **THIS RUN SUPERSEDES THE 3-ORDERING FIGURES RATHER THAN EXTENDING THEM, and the two
+must not be pooled.** The 3-ordering result was measured before the BBH terminator change
+(§9b), so roughly two fifths of its probe items produced no answer under any ordering. Items
+that are wrong under every ordering contribute no variance and only enlarge the denominator,
+so those spreads are **attenuated** — the 1.6 pp figure is a conservative floor. This run uses
+the corrected terminators, so its SD is computed on a different (answerable) population.
+Registered before the run so the supersession cannot later look like a choice made after
+seeing which set of numbers was more favourable.
 
 **Claims permitted on this statistic.** That the shift is (i) *deterministic* given an ordering
 rather than sampling noise — the repetition floor is 0.000%, so it cannot be averaged away;

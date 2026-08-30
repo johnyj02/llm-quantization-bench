@@ -7,7 +7,7 @@ This is the running record. Evidence paths are repo-relative.
 |---|---|---|---|---|
 | **G1** env + access | Aug 25 | ✅ **PASSED** | 2026-08-23 | `notes/access.md`, `notes/compute.md`, `pyproject.toml` |
 | **G2** prompt parity | Aug 27 | ✅ **PASSED** | 2026-08-26 | `artifacts/prompts/MANIFEST.json` (27 cells, 0 failures) |
-| **G3** scorers | Aug 28 | 🟡 partial | — | **265** tests green; ARC log-likelihood cross-val outstanding |
+| **G3** scorers | Aug 28 | 🟡 partial | — | **** tests green; ARC log-likelihood cross-val outstanding |
 | **G4** determinism (H8) | Aug 30 | ✅ **PASSED** | 2026-08-29 | job 2 complete: frontier at {8,32,64} × 3 levels; `max_num_seqs=64` frozen (R16.2) |
 | **PREREG** | **Sep 2** | 🟡 drafted | — | `analysis/preregistration.md`, all nine R-items written |
 | **G5a** anchors | Sep 2 | 🟡 unblocked | — | 9 quantized checkpoints exist (job 1 complete, 45.86 GB) |
@@ -175,7 +175,7 @@ imposing one model's convention on another. Tested against all three profiles in
 
 ## G3 — scorers · PARTIAL
 
-**Done:** 265 tests green, ruff clean. Every fixture `EXECUTOR-TASKS.md` `A5` names is covered,
+**Done:**  tests green, ruff clean. Every fixture `EXECUTOR-TASKS.md` `A5` names is covered,
 plus rung monotonicity on a fixture set, the `found`/`committed` split, the three termination
 classes, the H2 false-positive floor, and rung 1b.
 
