@@ -75,6 +75,16 @@ STAGES: dict[str, dict] = {
         # Isolation of its own writes is by run_id (`pilot-v1-smoke`), not by prefix.
         "smoke_isolates_checkpoints": False,
     },
+    "template": {
+        "entry_point": "sm_template.py",
+        "description": "prereg 3b-bis: the prompt-template FACTOR, both levels, 18 cells",
+        # ~3.8 h projected (scripts/project_budget.py). 12 h caps a hang at ~$34 while
+        # leaving generous room -- a cap costs nothing unless it fires (R13.4).
+        "max_run": 43200,
+        # READS job 1's checkpoints, so the smoke must see the study prefix. Its own
+        # outputs are isolated by run_id (`template-v1-smoke`), not by prefix.
+        "smoke_isolates_checkpoints": False,
+    },
     "determinism": {
         "entry_point": "sm_determinism.py",
         "description": "A7/H8: per-format bitwise disagreement + max_num_seqs frontier",
