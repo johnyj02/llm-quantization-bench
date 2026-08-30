@@ -245,6 +245,62 @@ GSM8K strict 24.64 vs flexible 77.63 **despite** 5-shot exemplars that demonstra
 
 ---
 
+## 3b-bis. Chat template is a TWO-LEVEL FACTOR — supersedes §3b item 1
+
+Registered **2026-08-29**, planner ruling R19.1/R19.2. **This replaces §3b's "chat template ON,
+FIXED, not a factor"** and promotes §3b item 2 from a calibration probe to the study's
+delta-invariance test.
+
+**Why the change.** §3b fixed the template ON because making it a factor would double the
+matrix. Two costs of that surfaced later. First, the depressed strict scores the paper reports
+are plausibly *caused* by the template — R1.2 diagnosed `--apply_chat_template` as the mechanism
+behind arXiv:2601.14277's 24.64-vs-77.63 collapse, and we then adopted it. Second, BBH's
+terminators broke under it (§9b). Patching each consequence while holding the choice fixed
+leaves the headline open to *"this is your configuration, not a property of quantization
+evaluation as practised."* **A level artifact is not a delta artifact** — that is the paper's
+own reframe, so the template belongs on the level axis and the claim belongs on the invariance.
+
+| level | prompt | BBH terminators |
+|---|---|---|
+| **`chat`** (PRIMARY) | `apply_chat_template=True`, single-turn | `["</s>", "Q:", "<|im_end|>"]` |
+| **`raw`** (robustness) | `apply_chat_template=False`, raw continuation | `["</s>", "Q", "\n\n"]` |
+
+🚨 **The terminator set is part of each level's DEFINITION, not a constant.** At `raw`,
+lm-eval's `_cot_fewshot` set is correct *by construction* — it was written for that format. At
+`chat` it is not, so the level uses lm-eval's own `_cot_zeroshot` set. Declaring the terminators
+per level is what makes the formatting assumption explicit and testable rather than inherited.
+
+**`chat` remains primary**, because lm-eval's default is `apply_chat_template=False` yet
+`evaluator.py:183` **warns the user to enable it for instruct/chat variants** — which all three
+of our models are. Evaluating instruct models in a format their own harness warns against would
+be the less defensible primary.
+
+⚠️ **`raw` is a MAIN-TEXT robustness arm, not an appendix item**, reported as a test that could
+have failed.
+
+**Scope, frozen:** 3 models × 3 contrasted arms (`bf16`, `gptq-4bit`, `awq-4bit`) ×
+{`gsm8k_cot` 500, BBH 1500} = **9 cells, ~18,000 generations.** Not one model on one task.
+
+**🚨 DECISION RULE, PRE-REGISTERED BEFORE THE PROBE RUNS.** This is what makes it a test rather
+than a defence, and it is recorded while no `raw`-level number exists:
+
+1. **If the strict-vs-permissive interaction holds in SIGN and rough MAGNITUDE under both
+   levels** → `chat` is primary, `raw` is reported as robustness, and the self-infliction
+   objection is **answered empirically rather than argued**.
+2. **If they DIVERGE** → the divergence **is the finding**: the prompt template is a
+   **moderator** of the measured quantization effect. That is the *stronger* result, directly
+   on-thesis, and is reported as the primary framing rather than buried.
+
+**Both branches are publishable and neither is preferred in advance.** We pre-commit to
+reporting whichever obtains, and to **not** relabelling branch 2 as a limitation if it occurs.
+
+⚠️ **What this does NOT license.** The probe is 9 cells at the 1x budget, not a full factorial
+replication. It licenses a statement about the *interaction's* invariance, not about every
+hypothesis under both templates. H1's budget sweep, H4's decomposition and the annotation pool
+remain `chat`-only.
+
+---
+
 ## 3c. H6 negative control — THREE arms, and why two were not enough
 
 `EXECUTOR-TASKS.md` §2.2 states *"the gap between the modes **is** the extraction cost,

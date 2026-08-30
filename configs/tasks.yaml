@@ -155,10 +155,13 @@ tasks:
   # This is a prediction of the hypothesis, not six arbitrary tasks (§2.2).
   # All six share vendor/lm-eval-configs/bbh/_cot_fewshot_template_yaml:
   #   max_gen_toks: 1024, num_fewshot: 3 (hardcoded), target_delimiter: ""
-  #   until: ["</s>", "Q", "\n\n"]     <-- ⚠️ NO LONGER USED. Bare capital Q zeroed 5 of
-  #                                        6 subtasks under chat templating; replaced
-  #                                        with lm-eval's own zero-shot set. See the
-  #                                        `until:` key below and planner ruling R18.1.
+  #   until: ["</s>", "Q", "\n\n"]     <-- used at the `raw` TEMPLATE LEVEL ONLY, where it
+  #                                        is correct by construction. Under chat templating
+  #                                        it zeroed 5 of 6 subtasks (median 1-7 generated
+  #                                        tokens) because the exemplars put blank lines only
+  #                                        BETWEEN Q/A pairs while a chat model paragraphs
+  #                                        mid-answer. See `until_by_template` below,
+  #                                        prereg 3b-bis, and planner ruling R19.1.
   #   filter: (?<=the answer is )(.*)(?=.)   <-- case-sensitive, lowercase
   # -------------------------------------------------------------------------
   bbh:
@@ -209,9 +212,18 @@ tasks:
     # ⚠️ H1's budget axis on BBH only becomes measurable AFTER this fix -- with the old
     # set the stop sequence bound long before `max_gen_toks`, so sweeping the budget
     # would have measured nothing. Precondition, not cleanup.
+    # 🚨 PER-TEMPLATE-LEVEL, because the terminator set is part of the DEFINITION of each
+    # level of the template factor (prereg 3b-bis, R19.1) -- not a constant that was patched.
+    #   chat : lm-eval's _cot_zeroshot_template_yaml v3.0 set. Correct for chat prose.
+    #   raw  : lm-eval's _cot_fewshot_template_yaml v4.0 set. Correct BY CONSTRUCTION for
+    #          raw continuation -- it was written for exactly that format.
+    # `until` stays as the PRIMARY (chat) value so existing consumers keep working.
     until: ["</s>", "Q:", "<|im_end|>"]
-    until_provenance: "lm-eval _cot_zeroshot_template_yaml v3.0 (NOT _cot_fewshot v4.0)"
-    until_changed: "2026-08-29, R18.1"
+    until_by_template:
+      chat: ["</s>", "Q:", "<|im_end|>"]
+      raw:  ["</s>", "Q", "\n\n"]
+    until_provenance: "chat=_cot_zeroshot v3.0; raw=_cot_fewshot v4.0 (both vendored)"
+    until_changed: "2026-08-29, R18.1 then R19.1"
     strict_regex: '(?<=the answer is )(.*)(?=.)'
     strict_regex_case_sensitive: true        # log every capitalization-variant failure
     # ⚠️ VERIFIED DEFECT (2026-08-25): this regex is greedy with a MANDATORY

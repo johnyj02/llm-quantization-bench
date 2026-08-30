@@ -241,7 +241,11 @@ for lm_eval_task, task, subtask, limit in payload["plan"]:
         lm_eval_task, tokenizer, task=task, subtask=subtask,
         prompt_variant="fewshot_cot", model_key=cell["model_key"],
         model_repo=cell["base_repo"], model_revision=cell["revision"],
-        num_fewshot=config.get("num_fewshot"), apply_chat_template=True,
+        num_fewshot=config.get("num_fewshot"),
+        # ⚠️ PER-TEMPLATE-LEVEL, not hardcoded (prereg 3b-bis / R19.1). The pilot passes
+        # "chat", which is the primary level; sm_template.py drives both levels through
+        # this same script so the two cannot diverge in any other respect.
+        apply_chat_template=(payload["template_level"] == "chat"),
         fewshot_as_multiturn=False, limit=limit,
     ))
     # prompt_token_ids carried through so vLLM never re-tokenizes -- text input
@@ -255,7 +259,12 @@ for lm_eval_task, task, subtask, limit in payload["plan"]:
         runner,
         run_id=payload["run_id"], cell_id=cell["cell_id"], task=task, subtask=subtask,
         items=items, prompt_variant="fewshot_cot", budget_level="1x",
-        max_gen_toks=config["max_gen_toks"]["1x"], until=config["until"],
+        # The terminator set is part of the DEFINITION of each template level: at `raw`
+        # lm-eval's few-shot set is correct by construction, at `chat` it is not. Tasks
+        # without a per-level override fall back to their single `until`.
+        max_gen_toks=config["max_gen_toks"]["1x"],
+        until=(config.get("until_by_template") or {}).get(
+            payload["template_level"], config["until"]),
         quant_config_hash=cell["quant_config_hash"],
         output_root=Path(payload["generations_root"]),
     )
@@ -282,6 +291,10 @@ def run_one_cell(cell: dict, plan: list, max_num_seqs: int, base_repo: str) -> d
     """
     out_path = GENERATIONS_ROOT / f".{cell['cell_id'].replace('|', '__')}.counts.json"
     payload = {
+        # The pilot is the PRIMARY level only. The template factor's `raw` level is a
+        # separate stage (sm_template.py); prereg 3b-bis keeps the annotation pool and
+        # H1's budget sweep chat-only.
+        "template_level": "chat",
         "cell": {**cell, "base_repo": base_repo},
         "plan": plan,
         "max_num_seqs": max_num_seqs,
