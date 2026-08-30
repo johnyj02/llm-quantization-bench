@@ -383,3 +383,51 @@ class TestPreregAndCodeAgree:
         assert f"**{frozen} only** (the frozen serving value)" in self.PREREG, (
             f"§9a's design table must pin {frozen}"
         )
+
+
+class TestCellTagDistinguishesOrderingCount:
+    """🚨 REGRESSION, the R17.3 run (2026-08-30, 417 s, $0.32).
+
+    The run announced *"4 arms x 10 orderings"* and `passes/cell : 11`, then printed
+    `[skip ] qwen2.5-3b__bf16__at64__r2  already measured` for every cell, reused job 2's
+    THREE-ordering results, and exited `Completed`. An SD computed from that output would
+    have been a fabricated statistic in the paper.
+
+    Cause: the redesign runs every ordering inside ONE cell, so `ordering_seed` is 0 and
+    contributes nothing to the tag -- making a 3-ordering and a 10-ordering cell share a
+    name. `cell_tag`'s own docstring already stated the governing principle ("anything that
+    changes what a cell measures must change its name") and listed three cases; the
+    ordering COUNT was not one of them.
+
+    ⚠️ The smoke could not have caught it: `--smoke` writes to a separate prefix and so had
+    no prior cells to collide with. **A rehearsal in a clean prefix cannot detect a cache
+    collision in a dirty one** -- which is why this is pinned in a test instead.
+    """
+
+    def test_three_and_ten_ordering_cells_have_different_tags(self):
+        three = sm_determinism.cell_tag("bf16", 64, n_orderings=3)
+        ten = sm_determinism.cell_tag("bf16", 64, n_orderings=10)
+        assert three != ten, (
+            "a 3-ordering and a 10-ordering cell are different measurements and must not "
+            "share a resume key"
+        )
+
+    def test_default_ordering_count_leaves_the_tag_unchanged(self):
+        """Existing filenames must stay valid, and reanalyze's parser reads segments 0-2."""
+        from quantartifact.determinism import ORDERING_SEEDS  # noqa: PLC0415
+
+        assert sm_determinism.cell_tag("bf16", 64) == \
+            sm_determinism.cell_tag("bf16", 64, n_orderings=len(ORDERING_SEEDS))
+
+    def test_measure_cell_passes_the_ordering_count(self):
+        source = (Path(__file__).resolve().parents[1] / "sm_determinism.py").read_text()
+        assert "n_orderings=len(orderings)" in source, (
+            "the tag is only correct if the ACTIVE ordering count reaches it"
+        )
+
+    def test_the_extended_run_gets_a_distinct_tag(self):
+        from quantartifact.determinism import ORDERING_SEEDS_EXTENDED  # noqa: PLC0415
+
+        tag = sm_determinism.cell_tag(
+            "bf16", 64, n_orderings=len(ORDERING_SEEDS_EXTENDED))
+        assert tag.endswith("ord10x"), tag

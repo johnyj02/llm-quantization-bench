@@ -167,6 +167,7 @@ def cell_tag(
     repeats: int = REPEATS,
     ordering_seed: int = 0,
     autotune: bool = False,
+    n_orderings: int | None = None,
 ) -> str:
     """Filesystem-safe identity for one probe cell. Also its resume key.
 
@@ -182,12 +183,28 @@ def cell_tag(
       "confirm" nothing at all.
     * The repeat count is in there for the same reason — a 1-pass ordering cell and
       a 3-repeat sweep cell are different measurements.
+    * 🚨 **The NUMBER OF ORDERINGS**, added 2026-08-30 after it cost a real run. The
+      redesign runs every ordering inside ONE cell, so ``ordering_seed`` is 0 and
+      contributes nothing — which made a 3-ordering cell and a 10-ordering cell share the
+      tag ``qwen2.5-3b__bf16__at64__r2``. The R17.3 run therefore announced
+      *"4 arms x 10 orderings"*, skipped all four cells as ``already measured``, reused job
+      2's THREE-ordering results, and exited ``Completed`` in 417 s. An SD computed from
+      that would have been a fabricated statistic in the paper.
+
+      ⚠️ Appended only when it differs from the default, so every filename already written
+      stays valid and ``reanalyze``'s parser (which reads segments 0–2) is unaffected.
+
+      ⚠️ **The smoke could not have caught this**: ``--smoke`` writes to a separate
+      ``determinism-smoke/`` prefix, so it had no prior cells to collide with. A rehearsal
+      in a clean prefix cannot detect a cache collision in a dirty one.
     """
     parts = [model_key, arm, f"at{max_num_seqs}", f"r{repeats}"]
     if ordering_seed:
         parts.append(f"ord{ordering_seed}")
     if autotune:
         parts.append("autotune")
+    if n_orderings is not None and n_orderings != len(ORDERING_SEEDS):
+        parts.append(f"ord{n_orderings}x")
     if disabled_kernels:
         parts.append("fallback")
     return "__".join(parts)
@@ -402,8 +419,12 @@ def measure_cell(
 
     Returns the analysis dict, or None if the cell could not be measured.
     """
+    # ⚠️ `n_orderings` MUST be passed. It is what distinguishes a 3-ordering cell from a
+    # 10-ordering one at the same arm and level; omitting it is what made the R17.3 run
+    # silently reuse job 2's results.
     tag = cell_tag(arm, level, disabled_kernels, model_key=model_key,
-                   repeats=repetition_passes, autotune=autotune)
+                   repeats=repetition_passes, autotune=autotune,
+                   n_orderings=len(orderings))
     result_path = PROBE_DIR / f"{tag}.json"
 
     if SMOKE and result_path.exists():
