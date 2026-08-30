@@ -175,7 +175,7 @@ imposing one model's convention on another. Tested against all three profiles in
 
 ## G3 — scorers · PARTIAL
 
-**Done:**  tests green, ruff clean. Every fixture `EXECUTOR-TASKS.md` `A5` names is covered,
+**Done:** 305 tests green, ruff clean. Every fixture `EXECUTOR-TASKS.md` `A5` names is covered,
 plus rung monotonicity on a fixture set, the `found`/`committed` split, the three termination
 classes, the H2 false-positive floor, and rung 1b.
 
