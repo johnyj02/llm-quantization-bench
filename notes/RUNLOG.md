@@ -652,6 +652,47 @@ non-Marlin path available in a standard vLLM image without additional CUDA tooli
   measured 7,099 gen/h selects FULL by the rate table, but FULL is 22.4% of remaining budget
   against a 15% cap, so it steps down to **DEFAULT: 18,000 generations, 3.8 h, $10.53 =
   14.8%.** The fraction rule binds and forces the trade automatically.
+
+### 🎯 pilot-v2 RE-SCORED (R18.4) — the figures of record
+
+Everything the BBH defect had suppressed moved substantially. bf16 cells, v1 -> v2:
+
+| model | strict | permissive |
+|---|---|---|
+| llama-3.1-8b | 33.0% -> **46.7%** | 52.3% -> **67.3%** |
+| phi-3.5-mini | 35.3% -> **46.7%** | 47.0% -> **58.3%** |
+| qwen2.5-3b | 16.7% -> **24.0%** | 37.0% -> **45.7%** |
+
+- ✅ **BBH scores across the gradient now.** llama bf16 by subtask: boolean 10%, dyck 10%,
+  logical_deduction 55%, multistep 60%, object_counting 85%, word_sorting 60%. The residual
+  zeros (dyck for qwen/phi, word_sorting for phi, multistep for qwen) are plausible task
+  difficulty for small models, not the apparatus.
+- ✅ **R18.4's stratum worry is ANSWERED: the 2-6% COMPLIANT figure was the artifact.**
+  ABSENT fell 226->135 (qwen), 154->86 (llama), 152->77 (phi); COMPLIANT rose 6->69,
+  40->110, 61->121. Committed (COMPLIANT+RECOVERABLE) is now 55-74% per arm.
+- 🚨 **BUT THE ALWAYS-COMPLIANT STRATUM IS STILL BELOW 50% IN MOST CELLS**, computed over
+  R18.4.1's 3-arm conjunction (bf16 x gptq-4bit x awq-4bit):
+
+  | | ARC | BBH subtasks | `gsm8k` | pooled |
+  |---|---|---|---|---|
+  | llama | 100% | 10-100% | **15%** | 48% |
+  | phi | 95% | 25-100% | **27%** | 65% |
+  | qwen | 74% | 30-100% | **1%** | 45% |
+
+  Per prereg 1.1, sub-50% cells are EXPLORATORY with **Manski bounds primary**. ARC passes
+  everywhere; `multistep_arithmetic_two` and `object_counting` pass; **`gsm8k` fails in all
+  three models**, for the same reason R18.2 excluded it as an interaction level -- models do
+  not emit `####`, so they are ABSENT at the strict marker.
+  ⚠️ **This is the registered fallback firing, not a defect** (R18.4.2 pre-committed to it).
+  But the EXTENT is worth a planner check: if most cells fall back, H4's centrepiece
+  decomposition rests largely on bounds the prereg itself admits may be uninformative.
+- **AWQ replicate (R12.1) at 300 items:** offload 29.0%/51.7%, nooffload 28.7%/52.3% --
+  strict **-0.33 pp**, permissive **+0.67 pp**, both smaller than v1's 1.0 pp. The same-hash
+  duplicate cell is **bit-identical** (29.0/51.7/18.7 twice), so the pipeline control holds
+  and the sub-1-pp difference is attributable to the weights. Existence claim stands;
+  magnitude still needs the 500-item reference cell (R18.3).
+- **Truncation is now real everywhere:** 4.0-20.7% at 1x, highest on qwen AWQ.
+
 - ⚠️ **Wall clock remains the real constraint, not money.** 28.1 h of GPU across ~56 cells
   with a quota of 1 on a shared account means queue waits dominate; observed waits run
   20 min - 2.5 h per submission. The mitigation is bundling phases into few large jobs rather
