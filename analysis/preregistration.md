@@ -876,11 +876,36 @@ including bf16 Llama-3.1-8B**:
 | `boolean_expressions` | `"\n\n"` | 9 | "Let's evaluate the expression step by step." |
 | `object_counting` | `None` | 120 | *(worked -- its bulleted output never emits a blank line)* |
 
-**Change.** BBH adopts lm-eval's own **zero-shot** terminator set,
-`["</s>", "Q:", "<|im_end|>"]` (`_cot_zeroshot_template_yaml` v3.0) -- colon-terminated
-`Q:`, no `\n\n`, chat EOS. Both templates are vendored at `vendor/lm-eval-configs/bbh/`,
-so the difference is auditable. This is **an upstream fix inherited, not a deviation
-authored**: the few-shot config is a raw-continuation config that predates chat templating.
+**Mechanism, stated precisely** (the first version of this section got it wrong). `until`
+works exactly as specified; the problem is what the strings *mean* in each prompt format. In
+the exemplars, blank lines occur **only between Q/A pairs and never inside an answer** --
+verified in the rendered prompt -- so `\n\n` marks exactly one event under raw continuation:
+the model has finished and begun inventing the next question. Under chat templating,
+`A: Let's think step by step.` is the last thing the *user* said, the assistant opens a fresh
+turn with no obligation to continue that text, and its own **paragraphing** emits `\n\n`
+mid-answer. Separately, every `"Q"` stop has `n_gen_tokens=1` and empty text: the model's first
+token continued the Q/A **transcript** instead of answering. `object_counting` survives only
+because its exemplar answers are long bulleted lists with single newlines, which the model
+imitates. **The terminators encode a formatting assumption, and the chat template invalidates
+it.**
+
+**Change (R19.1): the terminator set becomes part of the definition of each template level**,
+not a patched constant. At **chat-OFF** lm-eval's `_cot_fewshot` set is correct *by
+construction*; at **chat-ON** BBH uses `["</s>", "Q:", "<|im_end|>"]`, which is lm-eval's own
+`_cot_zeroshot_template_yaml` (v3.0) set. Both templates are vendored at
+`vendor/lm-eval-configs/bbh/`, so the difference is auditable.
+
+⚠️ **Not a "deviation" and not an "upstream fix inherited"** -- both were earlier
+mischaracterisations. It is a consequence of the template being a declared factor: each level
+carries the terminators its prompt format requires.
+
+**Relevant fact about the library, cited by line rather than asserted:** lm-eval's default is
+`apply_chat_template=False`, while `evaluator.py:183` **warns the user to enable it for
+instruct/chat variants** -- which all three of our models are. So chat-ON follows lm-eval's own
+recommendation, and the library simultaneously recommends chat templates for instruct models
+and ships a `bbh_cot_fewshot` config incompatible with that recommendation. That is an
+observation about two of its configs, **not** a claim about anyone's results: we never ran
+lm-eval's own generation pipeline.
 
 **G2 is unaffected.** G2 asserts byte parity of *rendered prompts*; `until` is a generation
 parameter. (The executor initially read the gate as broader than it is.)
@@ -897,10 +922,21 @@ parameter. (The executor initially read the gate as broader than it is.)
 3. **H1's budget axis on BBH is only measurable after this change.** With the old set the
    stop sequence bound long before `max_gen_toks`, so the 1x/2x/4x sweep would have
    measured nothing on BBH. The fix is a **precondition of H1 on BBH**, not a cleanup.
-4. **The zeroing itself is reported as a finding, in the Introduction** -- a harness
-   configuration silently scoring a benchmark at ~0 for every model, bf16 included. It is
-   **not** a hypothesis: it is not differential across precision, so it makes no claim about
-   quantization deltas. Reported upstream to lm-evaluation-harness.
+4. **The zeroing is reported in METHOD, not the Introduction** (R19.4, correcting R18.1).
+   It is **not** a hypothesis -- it is not differential across precision, so it makes no claim
+   about quantization deltas -- and the corrected diagnosis does not support an
+   introduction-grade universal claim. The Introduction's motivating extreme case is **H8's
+   ordering result**, which is fully measured and mechanistically pinned by intervention.
+   🚨 **No upstream bug report is filed.** The earlier plan to file one rested on a claim --
+   *"anyone running BBH with a chat model silently gets zeros"* -- that cannot be supported
+   without running lm-eval's own pipeline, which we did not do. At most, after Sep 2, a
+   *question* issue asking whether `bbh_cot_fewshot` is intended for use with
+   `apply_chat_template`.
+5. **The residual `Q:` stops after the fix are DATA, not defect.** Verified on GPU: BBH median
+   generated tokens rose 1-7 -> 294-618, and 2 of 6 llama `word_sorting` items still stop at
+   token 2 with empty output because the model began writing the next question. Those are
+   genuine `ABSENT` compliance failures and are scored as such. The old `\n\n` stop made every
+   subtask look like this, which is why the two could not previously be distinguished.
 
 ### 9c. GSM8K's hash arm is a demonstration, NOT an interaction level
 

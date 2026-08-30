@@ -1202,3 +1202,122 @@ sooner.
 
 **Note for the paper:** if `ABSENT` stays high after the BBH fix, that is a headline in
 its own right — *strict-match scoring discards the majority of generations.*
+
+---
+
+## R19 — R18.1 SUPERSEDED. The template becomes a FACTOR, not an assumption to patch
+
+Raw answer: `notes/planner-answers/R19-chat-template-reopened.txt`.
+
+🚨 **Raised by the USER, not by me, and they were right.** I had reported the BBH zeroing as
+a library bug and "fixed" it by swapping terminators. The user's objection: *"if the
+assumption no longer holds, maybe we shouldn't have assumed. Maybe chat template is not the
+way to go. What do other papers use? Shouldn't we do what is right rather than just saying
+our assumption was wrong?"* The planner's opening: *"You and the user are both right, and my
+R18.1 ruling was built on your mis-framing plus my own failure to ask what the generation
+path actually read."*
+
+### R19.0 What I got wrong, on the record
+
+| I claimed | actual |
+|---|---|
+| "a real bug in a widely used library" | **Unsupported.** I never ran lm-eval's own pipeline, so *"anyone running BBH with a chat model gets zeros"* cannot be asserted. **Upstream filing WITHDRAWN.** |
+| "lm-eval's own setting, so we are harness-faithful" | The *value* is lm-eval's (our vendored copy is byte-identical), but generation read **our** `configs/tasks.yaml`. lm-eval was never in the generation path (O9). |
+| "chat templates break stop sequences" | Wrong mechanism. `until` works exactly as specified. |
+| "swapping terminators is the fix" | A patch that preserved the untested assumption. |
+
+**The actual mechanism, measured.** llama bf16, per subtask — median `n_gen_tokens` and what
+stopped it: dyck 7 (`\n\n` 20/20), multistep 7 (`\n\n` 20/20), logical_deduction 11 (`\n\n`
+20/20), word_sorting 7 (`\n\n` 15, `Q` 5), boolean_expressions 1 (**`Q` 16**), object_counting
+**92** (natural EOS 19/20 — survives). Every `Q` stop has `n_gen_tokens=1` and empty text: the
+model's first token continued the Q/A **transcript** instead of answering. The `\n\n` stops
+fire at token ~7 — the model writes one sentence then a **paragraph break**. In the exemplars,
+blank lines occur **only between Q/A pairs and never inside an answer** (verified in the
+rendered prompt), so `\n\n` is a perfect terminator for raw continuation and meaningless for
+chat prose. `object_counting` survives only because its exemplar answers are long bulleted
+lists with single newlines, which the model imitates.
+
+⇒ **The terminators encode a FORMATTING ASSUMPTION that the chat template invalidates.**
+
+**And the fact I had not checked before asking:** lm-eval's default is
+`apply_chat_template=False`, but `evaluator.py:183` **warns you to enable it for instruct/chat
+variants**. All three of our models are instruct variants. So chat-ON follows lm-eval's own
+recommendation — and lm-eval simultaneously recommends chat templates for instruct models and
+ships a `bbh_cot_fewshot` config incompatible with that recommendation.
+
+### R19.1 🎯 Template = a TWO-LEVEL FACTOR; the terminator set is part of each level
+
+None of my four options. *"Stop treating the template as an assumption to patch around."*
+
+The paper's own reframe is that **a level artifact is not a delta artifact**. Template setting
+is a *level* factor — so the headline claim is not measured *under* a template choice, it is
+the delta's **invariance across** template choices.
+
+**This dissolves the BBH problem rather than patching it:** at chat-OFF lm-eval's terminators
+are **correct by construction**; at chat-ON they need the adapted set. Each level carries the
+terminators appropriate to its own prompt format, **documented as part of the factor
+definition**. No deviation to apologise for, and the formatting assumption becomes explicit
+and testable instead of inherited.
+
+- **chat-ON is PRIMARY** — lm-eval's recommendation for instruct variants and how these models
+  are deployed; chat-OFF would evaluate instruct models in a format their own harness warns
+  against.
+- 🚨 **chat-OFF is a MANDATORY MAIN-TEXT robustness arm, not an appendix item**, presented as
+  *"a test that could have failed. That inverts the self-infliction objection instead of
+  arguing with it."*
+
+### R19.2 The off-template probe is promoted to the test that DEFENDS the paper
+
+R1.2(b)'s probe was gsm8k-only, one model, 2 arms, labelled "calibration". All three of my
+proposed expansions granted:
+
+**Scope: 3 models × 3 contrasted arms (bf16, GPTQ-4, AWQ-4) × {`gsm8k_cot` 500, BBH 1500}
+= 9 cells, ~18,000 generations, ~45 min.**
+
+**Decision rule, pre-registered BEFORE running** — this is what makes it a test rather than a
+defence:
+- Interaction **sign and rough magnitude hold under both** → chat-ON primary, chat-OFF
+  robustness, **self-infliction answered empirically**.
+- They **diverge** → the divergence *is* the finding: the template is a **moderator** of the
+  measured quantization effect. *Stronger* than the invariance case, and directly on-thesis.
+
+Either branch publishable.
+
+### R19.3 The anchor papers' protocol is CHECKABLE — go read it (~20 min, no compute)
+
+Do **not** file it as unknown. Two of three are documented:
+- **Kurtic et al. (2411.02355)** released code and used lm-evaluation-harness — the setting is
+  in their repo/configs.
+- **RedHatAI** model cards publish their eval commands.
+- **arXiv:2601.14277** is already established as chat-formatted (R1.2 rests on that).
+
+H7's protocol-comparability claim depends on this, and **guessing would be the exact failure
+§0.1(b) diagnoses.**
+
+The *general* claim — most papers don't report the setting — is likely true and worth having,
+but **only as a counted survey**: add a column to the H7 audit table recording whether each
+cited paper reports its template setting, as **N reported of M checked**.
+
+### R19.4 BBH comes OUT of the Introduction
+
+The corrected diagnosis does not support an introduction-grade universal claim. What it
+supports, in **Method**:
+
+> The terminator set shipped with `bbh_cot_fewshot` encodes a formatting assumption specific
+> to raw-continuation prompting — blank lines occur only between exemplar pairs. Under chat
+> templating the model's own paragraphing triggers it, truncating at a median of 7 generated
+> tokens on five of six subtasks we tested.
+
+Verified in our pipeline, claims nothing about anyone else's runs, and directly justifies the
+template factor. On lm-eval, defensible **without** running their pipeline because it cites two
+artifacts by line: *the default is `apply_chat_template=False` while `evaluator.py:183`
+recommends enabling it for instruct variants, and the BBH few-shot terminators are incompatible
+with that recommendation.* An observation about the library's configs, **not** about user
+outcomes.
+
+**The Introduction's motivating extreme case reverts to H8's ordering result** — fully
+measured, mechanistically pinned by intervention, and not vulnerable to any version of the
+self-infliction objection.
+
+Optional upstream contribution, **not before Sep 2**: a *question* issue asking whether
+`bbh_cot_fewshot` is intended for use with `apply_chat_template`, citing those two artifacts.
