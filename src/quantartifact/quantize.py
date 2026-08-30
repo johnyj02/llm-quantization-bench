@@ -422,15 +422,28 @@ def quantize_model(
     out_root: Path,
     *,
     dry_run: bool = False,
+    dest_override: Path | None = None,
 ) -> Path:
     """Quantize one (model, precision) and write it to disk.
 
     Cheap: ~10-15 min for a 3B, ~30 min for an 8B, and only ~1 GB VRAM, because
     sequential layer onloading is the default. The ~16 GB requirement is **host**
     RAM, which is why the instance has 64 GiB.
+
+    ⚠️ `dest_override` exists ONLY for job 1b's replicate (R18.3), which must rebuild a
+    bit-identical recipe to a DIFFERENT path so the two can be byte-compared. The digest is
+    still computed from the recipe and is unaffected -- that is the point, since a changed
+    digest would make the comparison meaningless.
+
+    🚨 It was added because the first attempt suffixed the destination in the PARENT process
+    while this function recomputed its own path from `out_root`. The child therefore found
+    the original study checkpoint already present, returned it, and the parent then failed
+    looking for a suffixed directory that was never written. Nothing was damaged -- the
+    idempotence guard below is what protected job 1's artifact -- but the run was wasted.
+    A derived path cannot be overridden from the outside unless it is passed in.
     """
     digest = config_hash(spec, calibration, model_revision)
-    destination = output_dir(out_root, model_key, spec, digest)
+    destination = dest_override or output_dir(out_root, model_key, spec, digest)
 
     if destination.exists() and (destination / "config.json").exists():
         return destination  # idempotent: already produced by this exact recipe

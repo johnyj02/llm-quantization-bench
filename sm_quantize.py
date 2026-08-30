@@ -205,6 +205,11 @@ if payload["calibration_override"]:
 path = quantize_model(
     payload["model_repo"], payload["model_revision"], payload["model_key"],
     specs[payload["arm"]], calibration, Path(payload["checkpoint_dir"]),
+    # ⚠️ Must travel explicitly. quantize_model derives its own destination from
+    # checkpoint_dir, so a suffix applied only in the parent is invisible here -- which is
+    # exactly how job 1b's first attempt skipped the work and returned the ORIGINAL
+    # checkpoint's path.
+    dest_override=(Path(payload["dest_override"]) if payload.get("dest_override") else None),
 )
 print(f"__ARM_OK__ {path}")
 """
@@ -226,6 +231,9 @@ def quantize_arm_subprocess(
         "arm": arm,
         "configs": str(CONFIGS),
         "checkpoint_dir": str(CHECKPOINT_DIR),
+        # Only set for --replicate. The parent already resolved the suffixed path; the
+        # child cannot re-derive it, so it is passed rather than recomputed.
+        "dest_override": str(destination) if REPLICATE else None,
         # The parent may have shrunk the calibration budget for --smoke; the child
         # re-reads quant.yaml, so that override has to travel explicitly or the
         # smoke would silently run the FULL 512x2048 budget.
