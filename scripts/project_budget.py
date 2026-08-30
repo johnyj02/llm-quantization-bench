@@ -37,7 +37,20 @@ RATE_ARC = 200_000      # gen/h. Effectively free -- `until` includes "." so rep
 OVERHEAD_MIN_PER_CELL = 2.6   # engine load + model download, amortised over 17 cells
 RATE_USD_PER_HOUR = 2.80      # USE1-Train:ml.g6e.2xlarge
 
-SPENT_USD = 29.77       # 22 jobs through pilot-v2; regenerate with scripts/logrun.sh
+SPENT_USD = 35.43       # 24 jobs through the template probe; regenerate with logrun.sh
+
+# ⚠️ THE 15%-OF-REMAINING CAP IS LIFTED (user decision, 2026-08-30: "going above budget is
+# fine"). R20.1 introduced it to force a trade automatically when the honest rate was
+# unknown, and it did its job -- it stepped the template probe down from FULL to DEFAULT
+# before any rate existed. The rate is now measured and the all-in projection is ~$110
+# against a $370-440 allowance, so the cap is now binding on nothing real. Scope decisions
+# below revert to the RATE table and to scientific value.
+#
+# ⚠️ It is lifted, NOT deleted, and the distinction matters: WALL CLOCK is still the binding
+# constraint (quota 1 on a shared account, observed queue waits 20 min - 2.5 h), so a phase
+# that triples in generations still triples its slot occupancy. Spend freely on items and
+# sparingly on CELLS -- per-cell overhead was 75% of pilot-v2's billable time.
+BUDGET_FRACTION_CAP = None
 
 
 def hours(bbh: int = 0, gsm8k: int = 0, arc: int = 0, cells: int = 0) -> float:
@@ -120,10 +133,10 @@ def main() -> int:
     print(f"{'ALL-IN PROJECTION':28} {'':>6}   ${grand * RATE_USD_PER_HOUR + SPENT_USD:>7.2f}")
     print(f"{'§2.6 all-in budget':28} {'':>6}    $370-440")
     print()
-    # R20.1's rule: the probe takes <=15% of REMAINING budget.
     share = probe_h / grand
-    print(f"probe share of remaining: {share:.1%}  "
-          f"({'OK, <=15%' if share <= 0.15 else 'EXCEEDS 15% -> step down one row'})")
+    cap = "no cap (lifted 2026-08-30)" if BUDGET_FRACTION_CAP is None else \
+        f"cap {BUDGET_FRACTION_CAP:.0%}"
+    print(f"probe share of remaining: {share:.1%}   [{cap}]")
     # §2.6's schedule trigger.
     ref_h = hours(**REFERENCE)
     print(f"reference-run block: {ref_h:.1f} h GPU. §2.6 requires a report-back if this "

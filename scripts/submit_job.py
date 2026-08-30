@@ -298,6 +298,14 @@ def main() -> int:
     )
     parser.add_argument("--wait", action="store_true", help="block and stream logs")
     parser.add_argument(
+        "--replicate",
+        action="store_true",
+        help="JOB 1b (R18.3): re-quantize ONE arm at a bit-identical recipe into a "
+             "'-rep2' path, so the two can be byte-compared. Resolves whether AWQ is "
+             "inherently nondeterministic or whether `offload_device` changed the weights "
+             "-- two different main-text claims whose ambiguity cannot be published.",
+    )
+    parser.add_argument(
         "--reanalyze",
         action="store_true",
         help="recompute a stage's ANALYSIS from stored raw outputs, generating nothing. "
@@ -316,12 +324,25 @@ def main() -> int:
         overrides["smoke"] = 1
     if args.reanalyze:
         overrides["reanalyze"] = 1
+    if args.replicate:
+        overrides["replicate"] = 1
     config = build_config(args.stage, overrides)
     spec = STAGES[args.stage]
     if args.reanalyze:
         # No generation and no engine, so it is minutes. A short leash bounds a hang.
         config["max_run"] = min(config["max_run"], 3600)
         config["job_name"] = config["job_name"] + "-reanalyze"
+
+    if args.replicate:
+        if args.stage != "quantize":
+            raise SystemExit("--replicate applies to --stage quantize only")
+        # One arm, ~30 min observed for qwen AWQ with offload. 2 h caps a hang.
+        config["max_run"] = min(config["max_run"], 7200)
+        config["job_name"] = config["job_name"] + "-replicate"
+        # ⚠️ The study prefix, NOT the smoke prefix: the replicate must sit beside the
+        # checkpoint it is compared against, and it is a real artifact rather than junk.
+        # Its distinct `-rep2` directory is what keeps it from being mistaken for the study
+        # checkpoint, and the recipe digest stays in the name as proof of identity.
 
     if args.smoke:
         # Short leash and a distinct name, so a smoke run can never be

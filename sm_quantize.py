@@ -44,6 +44,27 @@ CONFIGS = Path(__file__).parent / "configs"
 
 SMOKE = os.environ.get("SM_HP_SMOKE") == "1" or "--smoke" in sys.argv
 
+# JOB 1b (planner ruling R18.3). Re-quantizes ONE arm at a BIT-IDENTICAL recipe and writes
+# it to a distinct path, so the two can be byte-compared.
+#
+# WHY IT IS NEEDED. Job 1 left two qwen AWQ checkpoints that are byte-different
+# (`e7377d975178f192` with `offload_device=cpu`, `184c722115d8d9bb` without), and
+# `pilot-v2` showed they score within ~0.7 pp of each other. That is now a MAIN-TEXT claim,
+# and it is ambiguous between two very different statements:
+#
+#     "AWQ quantization is not reproducible run-to-run"      <- a property of the method
+#     "`offload_device` changes the resulting weights"       <- a property of one setting
+#
+# The ambiguity cannot be published. This resolves it in one comparison: rebuild
+# `e7377d975178f192`'s recipe EXACTLY and diff. Differ => AWQ is inherently
+# nondeterministic. Identical => the earlier difference was caused by `offload_device`.
+REPLICATE = os.environ.get("SM_HP_REPLICATE") == "1" or "--replicate" in sys.argv
+
+# The one arm job 1b rebuilds. Kept explicit rather than derived so this can never
+# accidentally rebuild the whole matrix.
+REPLICATE_TARGET = ("qwen2.5-3b", "awq-4bit")
+REPLICATE_SUFFIX = "-rep2"
+
 import yaml  # noqa: E402
 
 models = yaml.safe_load((CONFIGS / "models.yaml").read_text())["models"]
@@ -52,7 +73,21 @@ specs, calibration = load_specs(CONFIGS / "quant.yaml")
 # Only offline-quantizable arms. bnb-NF4 is in-flight, so it has no checkpoint.
 arms = [key for key, spec in specs.items() if not spec.in_flight]
 
-if SMOKE:
+if REPLICATE:
+    # 🚨 IDENTICAL RECIPE, DIFFERENT PATH. The recipe hash is NOT altered -- that is the
+    # whole point, since a changed hash would make the comparison meaningless. Only the
+    # destination directory is suffixed, and the suffix is applied at write time below.
+    if SMOKE:
+        raise SystemExit("--replicate and --smoke are mutually exclusive: the smoke uses a "
+                         "deliberately wrong 8x256 calibration, so a replicate built under "
+                         "it would compare nothing.")
+    model_key, arm_key = REPLICATE_TARGET
+    models = {model_key: models[model_key]}
+    arms = [arm_key]
+    print(f"REPLICATE MODE (job 1b, R18.3): rebuilding {model_key}/{arm_key} at a "
+          f"bit-identical recipe into a '{REPLICATE_SUFFIX}' path for byte comparison")
+
+elif SMOKE:
     # One model, a tiny calibration set, but ONE ARM PER METHOD — proves the whole
     # code path (dataset fetch, llmcompressor recipe, weight write, checkpoint
     # sync) in minutes rather than hours.
@@ -243,6 +278,22 @@ for model_key, model in models.items():
         destination = output_dir(CHECKPOINT_DIR, model_key, spec, digest)
 
         label = f"{model_key}/{arm}"
+
+        if REPLICATE:
+            # Suffix the DIRECTORY only. `digest` stays in the name, so the artifact
+            # itself carries the proof that the recipe was identical -- a reviewer can
+            # see that `...__awq-4bit__<digest>` and `...__awq-4bit__<digest>-rep2` were
+            # built from the same recipe without taking our word for it.
+            original = destination
+            destination = destination.with_name(destination.name + REPLICATE_SUFFIX)
+            label += " (replicate)"
+            print(f"[rep ] comparing against {original.name}")
+            if destination.exists():
+                # Never skip: the question is whether a FRESH build reproduces, so a
+                # cached replicate answers nothing.
+                assert CHECKPOINT_DIR in destination.parents, destination
+                shutil.rmtree(destination)
+                print(f"[rep ] discarded a previous replicate at {destination.name}")
 
         # ⚠️ SMOKE NEVER SKIPS. A rehearsal exists to exercise the code path, and a
         # previous smoke has already written these exact hashes into the smoke
