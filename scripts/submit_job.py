@@ -298,6 +298,13 @@ def main() -> int:
     )
     parser.add_argument("--wait", action="store_true", help="block and stream logs")
     parser.add_argument(
+        "--orderings",
+        action="store_true",
+        help="R17.3 / prereg 9a: 10 orderings at the frozen batch size, 4 arms, so the "
+             "ordering spread becomes an SD rather than a range over three draws. Range "
+             "is unstable and grows with n, so it cannot carry a population claim.",
+    )
+    parser.add_argument(
         "--replicate",
         action="store_true",
         help="JOB 1b (R18.3): re-quantize ONE arm at a bit-identical recipe into a "
@@ -326,12 +333,22 @@ def main() -> int:
         overrides["reanalyze"] = 1
     if args.replicate:
         overrides["replicate"] = 1
+    if args.orderings:
+        overrides["orderings"] = 1
     config = build_config(args.stage, overrides)
     spec = STAGES[args.stage]
     if args.reanalyze:
         # No generation and no engine, so it is minutes. A short leash bounds a hang.
         config["max_run"] = min(config["max_run"], 3600)
         config["job_name"] = config["job_name"] + "-reanalyze"
+
+    if args.orderings:
+        if args.stage != "determinism":
+            raise SystemExit("--orderings applies to --stage determinism only")
+        # 4 arms x 500 items x 11 passes = 22,000 generations. At the measured mixed rate
+        # (~6,000 gen/h on this probe's composition) that is ~4 h; 12 h caps a hang.
+        config["max_run"] = min(config["max_run"], 43200)
+        config["job_name"] = config["job_name"] + "-orderings"
 
     if args.replicate:
         if args.stage != "quantize":

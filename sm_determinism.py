@@ -86,6 +86,7 @@ from quantartifact.determinism import (  # noqa: E402
     DETERMINISM_VERSION,
     DISABLED_KERNELS_FALLBACK,
     ORDERING_SEEDS,
+    ORDERING_SEEDS_EXTENDED,
     PROBE_COMPOSITION,
     REPEATS,
     SWEEP_FLOOR,
@@ -109,6 +110,19 @@ SMOKE = os.environ.get("SM_HP_SMOKE") == "1" or "--smoke" in sys.argv
 # surface it. The raw outputs persist, so the analysis is a pure function over them --
 # this needs the probe re-materialised only for GOLD, and no engine at all.
 REANALYZE = os.environ.get("SM_HP_REANALYZE") == "1" or "--reanalyze" in sys.argv
+
+# R17.3's confirmatory extension, pre-registered in `analysis/preregistration.md` §9a.
+# Ten orderings at the FROZEN batch size only, so the ordering spread becomes an SD rather
+# than a range over three draws.
+#
+# ⚠️ Registered explicitly as a **pre-specified confirmatory extension of an exploratory
+# finding**, NOT as pre-data: the 3-ordering result was already seen when §9a was written,
+# and the git history shows it. Stating the sequence is what makes it read as integrity.
+#
+# ⚠️ This runs AFTER the BBH terminator fix (R19.1), so its numbers **supersede** the
+# 3-ordering figures rather than extending them -- job 2's probe had ~2/5 of its items inert
+# and its spreads are therefore attenuated. The two must not be pooled.
+SD_MODE = os.environ.get("SM_HP_ORDERINGS") == "1" or "--orderings" in sys.argv
 
 # 🚨 SMOKE RESULTS GO SOMEWHERE ELSE ENTIRELY, and this is a correctness issue,
 # not hygiene. A probe cell is keyed by (arm, max_num_seqs) — `bf16_at_8` — with no
@@ -553,7 +567,39 @@ def main() -> int:
 
     arms = list(AUDIT_ARMS)
     levels = list(ORDER_SWEEP_LEVELS)
-    if SMOKE:
+    orderings = ORDERING_SEEDS
+
+    if SD_MODE:
+        # R17.3's scope, frozen: 4 arms at the FROZEN batch size ONLY, 500 items, 10
+        # orderings. `gptq-8bit` is dropped because it is the dose-response arm and the
+        # SD claim is about the 4-bit methods plus the control.
+        #
+        # ⚠️ **bf16 gets the same 10 orderings.** Exactly-zero across ten is a materially
+        # stronger control than exactly-zero across three, and the control is what makes
+        # the effect attributable to quantization rather than to the engine.
+        #
+        # ⚠️ Items are NOT traded for orderings (R17.3). Spread is PAIRED across orderings
+        # so sampling variance largely cancels, but resolution does not: at 250 items one
+        # item is 0.4 pp while the whole effect is ~8 items.
+        arms = ["bf16", "gptq-4bit", "awq-4bit", "bnb-nf4"]
+        levels = [max(ORDER_SWEEP_LEVELS)]
+        orderings = ORDERING_SEEDS_EXTENDED
+        print(f"ORDERINGS MODE (R17.3): {len(arms)} arms x {len(orderings)} orderings "
+              f"at max_num_seqs={levels[0]} only")
+    if SMOKE and SD_MODE:
+        # ⚠️ ORDER MATTERS AND THIS BLOCK EXISTS BECAUSE OF IT. Written as a plain
+        # `if SMOKE:` after the SD_MODE block, the smoke would have overridden arms and
+        # levels while LEAVING `orderings` extended -- rehearsing 3 arms x 3 levels x 11
+        # passes, which is neither the smoke's scope nor the real run's. A rehearsal must
+        # exercise the path it is rehearsing, at a smaller size, not a third configuration
+        # that exists nowhere.
+        #
+        # So: keep SD_MODE's SHAPE (frozen level, all 10 orderings -- the new code path)
+        # and shrink only the arms, which the item cap in the probe already handles.
+        arms = ["bf16", "gptq-4bit"]
+        print(f"SMOKE + ORDERINGS: {arms} at max_num_seqs={levels[0]}, "
+              f"{len(orderings)} orderings, 20 items")
+    elif SMOKE:
         # bf16 + gptq-4bit + awq-4bit: the three that carry the prediction. AWQ is
         # the one that matters most (R15.2) -- it HAS the guard GPTQ lacks, so AWQ
         # coming out order-invariant shows the source-level asymmetry CAUSES the
@@ -563,7 +609,11 @@ def main() -> int:
         print("SMOKE MODE: bf16 + gptq-4bit + awq-4bit at max_num_seqs=8, 20 items")
 
     n_probe = len(PROBE_COMPOSITION) and sum(PROBE_COMPOSITION.values())
-    passes_per_cell = 2 + len([s for s in ORDERING_SEEDS if s != 0])
+    # ⚠️ Derived from the ACTIVE orderings, not the module default. With --orderings
+    # these differ by 7, and a stale count would misreport the run's size in the log
+    # and in the report -- the same declared-vs-enforced gap that has bitten five
+    # times already.
+    passes_per_cell = 2 + len([s for s in orderings if s != 0])
 
     print(f"audit model  : {AUDIT_MODEL} ({model['repo']})")
     print(f"arms         : {arms}")
@@ -571,8 +621,8 @@ def main() -> int:
     print("               R8's repeat-based criterion measured an axis with no")
     print("               variance and called a 65%-unstable arm 'stable')")
     print(f"passes/cell  : {passes_per_cell}  (2 at ordering 0 for the repetition")
-    print(f"               floor, + {len(ORDERING_SEEDS) - 1} reordered), orderings "
-          f"{list(ORDERING_SEEDS)}")
+    print(f"               floor, + {len(orderings) - 1} reordered), orderings "
+          f"{list(orderings)}")
     print(f"generations  : {len(arms) * len(levels) * passes_per_cell * n_probe:,} "
           f"for the sweep")
     print()
@@ -613,7 +663,8 @@ def main() -> int:
     for level in levels:
         print(f"=== max_num_seqs = {level} ===")
         for arm in arms:
-            analysis = measure_cell(arm, level, items, specs, model, resolved)
+            analysis = measure_cell(arm, level, items, specs, model, resolved,
+                                    orderings=orderings)
             if analysis is None:
                 unmeasured.append(f"{arm}@{level}")
             else:
@@ -717,7 +768,8 @@ def main() -> int:
         "gate": "G4",
         "determinism_version": DETERMINISM_VERSION,
         "audit_model": AUDIT_MODEL,
-        "orderings": list(ORDERING_SEEDS),
+        "orderings": list(orderings),
+        "sd_mode": SD_MODE,
         "order_sweep_levels": levels,
         "probe_composition": PROBE_COMPOSITION,
         "n_items": len(items),

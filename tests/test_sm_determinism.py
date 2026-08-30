@@ -277,3 +277,48 @@ class TestOrderSweepLevels:
         source = inspect.getsource(sm_determinism.main)
         smoke_arms = source[source.index('arms = ["bf16"'):]
         assert "awq-4bit" in smoke_arms.split("]")[0]
+
+
+class TestOrderingsMode:
+    """R17.3 / prereg §9a: 10 orderings at the frozen batch size.
+
+    The derived-value wiring is pinned because this project has now been bitten five
+    times by a value set in one place and silently not honoured in another
+    (`desc_act`, `async_scheduling`, `add_bos_token`, the pilot's `until`, job 1b's
+    destination path). `orderings` is the sixth candidate: set in `main()`, and needed by
+    `measure_cell`, by the pass-count arithmetic, by the log line and by the report.
+    """
+
+    SOURCE = (Path(__file__).resolve().parents[1] / "sm_determinism.py").read_text()
+
+    def test_extended_seeds_are_ten_and_prefix_the_original_three(self):
+        from quantartifact.determinism import (  # noqa: PLC0415
+            ORDERING_SEEDS,
+            ORDERING_SEEDS_EXTENDED,
+        )
+        assert len(ORDERING_SEEDS_EXTENDED) == 10
+        assert ORDERING_SEEDS_EXTENDED[:3] == ORDERING_SEEDS, (
+            "the 3-ordering result must stay recoverable as a prefix"
+        )
+        assert len(set(ORDERING_SEEDS_EXTENDED)) == 10, "seeds must be distinct"
+        assert ORDERING_SEEDS_EXTENDED[0] == 0, "ordering 0 is the unshuffled reference"
+
+    def test_active_orderings_reach_measure_cell(self):
+        assert "orderings=orderings" in self.SOURCE
+
+    def test_pass_count_uses_the_active_orderings(self):
+        assert "len([s for s in orderings if s != 0])" in self.SOURCE, (
+            "a stale count would misreport the run's size by 7 passes per cell"
+        )
+
+    def test_report_records_the_active_orderings_and_the_mode(self):
+        assert '"orderings": list(orderings)' in self.SOURCE
+        assert '"sd_mode": SD_MODE' in self.SOURCE
+
+    def test_smoke_plus_orderings_keeps_the_orderings_shape(self):
+        """A rehearsal must exercise the path it rehearses, not a third configuration."""
+        assert "if SMOKE and SD_MODE:" in self.SOURCE
+        assert "elif SMOKE:" in self.SOURCE
+
+    def test_bf16_is_included_so_the_control_gets_the_same_orderings(self):
+        assert '"bf16", "gptq-4bit", "awq-4bit", "bnb-nf4"' in self.SOURCE

@@ -225,6 +225,23 @@ REPEATS = 3
 # make the disagreement rates non-comparable between the two stages.
 ORDERING_SEEDS: tuple[int, ...] = (0, 20260827, 20260828)
 
+# R17.3's confirmatory extension. Ten orderings, so the SD across orderings becomes a
+# defensible population statistic rather than a range over three draws.
+#
+# ⚠️ **The estimand is the SD, not the range.** Range is unstable and GROWS with sample
+# size, so it cannot carry a population claim at any n -- "accuracy has SD sigma across
+# random evaluation-set orderings" is defensible, "the spread is 1.6 pp" never will be.
+# The range is reported as descriptive only.
+#
+# ⚠️ The first three are the ORIGINAL seeds, unchanged and in order, so the 3-ordering
+# result stays exactly recoverable as a prefix of the 10-ordering one. The seven new seeds
+# are arbitrary but FIXED and published; they are dates rather than random draws only so
+# that they are obviously not cherry-picked after the fact.
+ORDERING_SEEDS_EXTENDED: tuple[int, ...] = (
+    0, 20260827, 20260828,
+    20260829, 20260830, 20260831, 20260901, 20260902, 20260903, 20260904,
+)
+
 # The A7 probe: 500 items spanning all three answer formats, so a
 # format-dependent nondeterminism cannot hide.
 PROBE_COMPOSITION: dict[str, int] = {
