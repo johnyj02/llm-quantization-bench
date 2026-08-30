@@ -1,0 +1,48 @@
+Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.
+You and the user are both right, and my R18.1 ruling was built on your mis-framing plus my own failure to ask what the generation path actually read. **Withdraw the upstream filing as I specified it** — you never ran lm-eval's pipeline, so "anyone running BBH with a chat model gets zeros" is unsupported.
+
+The user's objection is the correct one and it has a clean answer: stop treating the template as an assumption to patch around.
+
+## Q1 — None of (a)–(d) as posed. Template becomes a two-level factor, and the terminator set is part of each level's definition.
+
+The paper's own reframe says a level artifact is not a delta artifact. The template setting is a **level** factor. So the headline claim isn't measured *under* a template choice — it's the delta's **invariance across** template choices.
+
+That dissolves the BBH problem rather than patching it: **at chat-OFF, lm-eval's terminators are correct by construction**; at chat-ON they need the adapted set. Each level carries the terminators appropriate to its prompt format, documented as part of the factor definition. No deviation to apologise for, and the formatting assumption becomes explicit and testable instead of inherited.
+
+**Primary: chat-ON.** It's lm-eval's own recommendation for instruct variants (`evaluator.py:183`) and matches deployment; chat-OFF would evaluate instruct models in a format their harness warns against. **But chat-OFF is a mandatory main-text robustness arm, not an appendix item**, and must be presented as a test that could have failed. That inverts the self-infliction objection instead of arguing with it.
+
+## Q2 — Yes to (i), (ii), and (iii). This is now the probe that defends the paper.
+
+Promote it from calibration to the delta-invariance test, and scope it properly: **3 models × 3 contrasted arms (bf16, GPTQ-4, AWQ-4) × {gsm8k_cot 500, BBH 1500}** = 9 cells, **~18,000 generations, ~45 min** at your measured rate. Not one model on gsm8k.
+
+**Pre-register the decision rule before running it:**
+- Interaction sign and rough magnitude hold under both → chat-ON primary, chat-OFF robustness, self-infliction answered empirically.
+- They diverge → the divergence *is* the finding: the template is a moderator of the measured quantization effect, which is a stronger result than the invariance case and directly on-thesis.
+
+Either branch is publishable. Registering the rule now is what makes it a test rather than a defence.
+
+## Q3 — Don't treat it as unknown. It's checkable, and it's ~20 minutes of reading.
+
+I don't have their settings verified and won't guess. But two of the three are documented:
+
+- **Kurtic et al. (2411.02355)** released code and used lm-evaluation-harness — the setting is in their repo/configs.
+- **RedHatAI** model cards publish their eval commands.
+- **arXiv:2601.14277** is already established as chat-formatted (that diagnosis is what R1.2 rests on).
+
+Check those, because H7's protocol-comparability claim depends on it and guessing would be the exact failure §0.1(b) diagnoses.
+
+The *general* claim — most papers don't report the setting — is very likely true and worth having, but only as a counted survey: **add a column to the H7 audit table recording whether each cited paper reports its template setting**, with N reported out of M checked. That's cheap (reading, no compute), defensible, and a table reviewers will use.
+
+## Q4 — Downgrade it out of the Introduction. Keep the honest version in Method and Discussion.
+
+The corrected diagnosis doesn't support an introduction-grade universal claim. What it supports:
+
+> The terminator set shipped with `bbh_cot_fewshot` encodes a formatting assumption specific to raw-continuation prompting — blank lines occur only between exemplar pairs. Under chat templating the model's own paragraphing triggers it, truncating at a median of 7 generated tokens on five of six subtasks we tested.
+
+That's verified in our pipeline, makes no claim about anyone else's runs, and is the direct justification for the template factor.
+
+On lm-eval, this much is defensible without running their pipeline, because it cites two artifacts by line: **the library's default is `apply_chat_template=False` while `evaluator.py:183` recommends enabling it for instruct variants, and the BBH few-shot terminators are incompatible with that recommendation.** Observation about the library's configs, not about user outcomes. Method section.
+
+**The Introduction's motivating extreme case reverts to H8's ordering result** — fully measured, mechanistically pinned by intervention, and not vulnerable to any version of the self-infliction objection.
+
+If you still want an upstream contribution, the defensible form is a *question* issue asking whether `bbh_cot_fewshot` is intended for use with `apply_chat_template`, citing those two artifacts. Optional, and not before Sep 2.
