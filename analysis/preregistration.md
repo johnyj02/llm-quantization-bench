@@ -1093,6 +1093,89 @@ what makes the 1 pp attributable to the weights rather than to the pipeline.
 
 ---
 
+### 9f. Invocation noise — THREE estimand classes, and the estimator (not a number)
+
+Registered **2026-08-31**, planner rulings R21–R23. ⚠️ **Registered as a pre-specified
+extension informed by pilot data already seen** (§9b's category (b)), with the exploratory
+numbers stated inline. Not pre-data, and the git history shows it.
+
+**What was found.** `pilot-v1` and `pilot-v2` ran the same items in the same order with only
+BBH's `until` differing. `gsm8k` and `arc_challenge_chat` should have been bit-identical. They
+were not: llama diverged 41–45% of items in **all five arms**, phi on its two base-repo arms
+(bf16 45%, bnb-NF4 55%) and not its three checkpoint arms, qwen 0% in all seven. Every recorded
+config field on a differing pair is byte-identical. **This affects `bf16`, so it is not H8's
+mechanism.** Full record and three refuted hypotheses: `notes/cross-invocation.md`.
+
+🚨 **THREE CLASSES, because the noise behaves differently depending on what crosses an
+invocation boundary.** A single floor would be wrong in both directions.
+
+| class | quantities | invocation noise |
+|---|---|---|
+| **1. none** | anything computed by re-scoring **one fixed set** of generations: rung monotonicity, compliance labels, §8's trace scan, the found/committed split, per-item rung agreement | **exactly zero** — no boundary crossed |
+| **2. partially cancelling** | a **within-arm** difference of two rungs (the strict−permissive gap) | reduced: the two rungs share the same text, so the noise is common and largely cancels. Pilot max 1.67 pp vs 4.44 pp for raw strict accuracy |
+| **3. compounding** | anything **contrasting arms**: precision main effects, §1.1's competence contrast, §1.3's Manski bounds, H4's components, **and H3's interaction** | two independent invocations, variances **add** |
+
+⚠️ **H3's interaction is class 3, not class 1.** Its *outer* difference is between arms, so two
+invocation noises subtract and their variances add. Measured pilot movement **2.78 pp**, worse
+than either raw accuracy delta on that cell. An earlier ruling placed it in class 1 by
+conflating "the scoring axis is within-invocation" with "the interaction is"; it is not.
+
+**The effect is CHURN, not bias, and therefore shrinks as 1/√n.** Measured per-item correctness
+churn is **1.7–5.6%** (mean 3.5%) with near-symmetric direction (44 flips, |net| 20 summed). A
+resampling check confirms `SD(Δ) = 100·√(churn/n)` to within the finite-population correction
+(observed/predicted 0.766; FPC predicts 0.58–0.92 over the tested range, observed 0.56–0.94).
+
+🚨 **THEREFORE THE PREREGISTERED QUANTITY IS THE ESTIMATOR, NOT A NUMBER.** The pilot's floor was
+measured at **n=180**; the reference condition is **n=2,719**, ~15× larger, so the floor falls by
+~√15. Baking the pilot figure into a threshold would cripple H3 with a number that does not
+apply to it.
+
+- **Estimator, frozen:** the per-arm invocation SD, estimated from the **K=2 cells at reference
+  n** (below), pooled across cells. Class-3 claims additionally carry a **×√2** for contrasting
+  two independently-invoked arms.
+- **Pre-commitment:** no class-3 claim is made for an effect smaller than the pooled
+  class-3 floor. Class-2 claims bind to the class-2 floor. Class-1 claims bind to the
+  **repetition floor (0.000%)**, unchanged.
+- **Preliminary estimate, cited as such with its n:** at n=180 the per-arm SD is 1.39 pp;
+  extrapolated to n=2,719 it is **0.36 pp**, and **0.25 pp** after K=2 averaging, giving a
+  class-3 interaction floor of roughly **0.36 pp**. These are predictions, superseded by the
+  K=2 measurement at full n.
+- ⚠️ **The one cell that may be bias rather than churn:** phi/bnb-NF4 flipped 9 up and 1 down.
+  If a cell's churn is systematically asymmetric its shift does **not** shrink with n. Per-cell
+  flip asymmetry is therefore reported alongside the floor, and any cell failing a two-sided
+  binomial check on direction is excluded from the pooled churn estimate and reported separately.
+
+**K=2 repetition, frozen — coverage follows the ESTIMAND, not the empirical screen.**
+
+**3 models × {bf16, gptq-4bit, awq-4bit} = 9 cells, plus llama/gptq-8bit = 10 cells at K=2**,
+run inside `main-v1` so the two invocations are contemporaneous (days-apart reruns would add
+driver and software drift as a confound).
+
+- ⚠️ **Qwen is included despite showing 0.00%.** At n=180 one item is 0.56 pp, so "0.00" means
+  *fewer than one item flipped* — not zero with confidence. Qwen also carries the largest rung
+  gaps (19–23 pp) and therefore the most H3 signal, making it the worst possible place for an
+  unmeasured floor.
+- ⚠️ **Stratifying on the empirical screen was rejected**: it biases the pooled floor upward by
+  measuring only where the effect was already seen, and leaves the signal-carrying cells
+  unmeasured.
+- llama/gptq-8bit is added because it is the **worst observed** interaction movement (2.78 pp),
+  and leaving the observed worst case without a floor estimate is what a reviewer picks first.
+- The remaining dose-response arms (bnb-NF4, other gptq-8bit cells) report against the **pooled**
+  floor, stated as an assumption.
+
+### 9g. The always-compliant stratum is itself invocation-dependent
+
+Registered **2026-08-31** (R23). §1.1 defines the stratum as items where **every contrasted arm
+committed** — but if invocation noise flips commitment, the stratum is not a fixed set of items
+across invocations. §1.1 is a §4.0 identification item and explicitly cannot be patched later,
+so the definition is pinned now.
+
+🚨 **Frozen choice: the stratum is defined as items committed in ALL INVOCATIONS OF ALL
+CONTRASTED ARMS** — the stricter, smaller, invocation-stable version — rather than on K=2-averaged
+commitment. Chosen because it is the version that **cannot be accused of being
+invocation-shopped**. Both stratum sizes are reported, so the cost of the stricter choice is
+visible rather than hidden.
+
 ### 9e. Execution provenance — which registered plans have been run, and where the output is
 
 ⚠️ **This section records WHERE, not WHAT.** A pre-registration's value is the plan; importing

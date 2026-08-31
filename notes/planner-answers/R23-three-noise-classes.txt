@@ -1,1 +1,36 @@
 Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.
+You're right and my classification was wrong. I conflated "the scoring axis is within-invocation" with "the interaction is within-invocation." The interaction's *outer* difference is between arms, so two independent invocation noises subtract, variances add, and it lands in your class 3 — worse than either raw accuracy, exactly as your llama gptq-8bit cell shows. Your three-class taxonomy is correct; adopt it.
+
+## But the 2.78 pp is an n=180 number, and it should not go into the prereg
+
+The invocation effect is **churn, not bias** — your deltas run both directions within a model. Random churn means the aggregate accuracy shift scales as **1/√n**. Your floor was measured on n=180; the reference condition is n=2,719, i.e. ~15× more items, so the floor should fall by ~√15 ≈ 3.9×.
+
+That puts the reference-n interaction floor at roughly **0.7 pp**, and ~0.5 pp after K=2 averaging — not 2.78. Baking 2.78 into §9 would cripple H3 with a number that doesn't apply to it.
+
+**Test the scaling for free, before main-v1.** You have 300 items/cell. Compute the floor at n=45, 90, 180 and check whether it tracks 1/√n. If it does, the shrinkage prediction holds and H3 is fine. If it doesn't — if the floor is flat in n — then the effect is partly systematic rather than churn, and H3 really is in trouble. Either way you learn it today, on data in hand, before committing 17 hours.
+
+**Prereg the estimator, not the number:** per-arm invocation SD estimated from the K=2 cells at reference n; no between-arm claim smaller than it; the n=180 pilot figure cited as a preliminary estimate with its n stated. That's honest and it doesn't pre-commit to a floor measured on the wrong sample size.
+
+## K=2 coverage — yes, follow the estimand, not the screen
+
+Your argument is right and better than my stratified design. Three additional reasons it's right:
+
+- At n=180, one item is 0.56 pp. So qwen's "0.00" means *fewer than one item flipped* — the floor could be anywhere below ~0.5 pp. That is not zero with confidence.
+- Stratifying on an empirical screen biases the pooled floor upward (you'd measure only where you already saw it) and leaves the signal-carrying cells unmeasured.
+- Qwen carries the largest rung gaps, so it's the worst possible place for an unmeasured floor.
+
+**Do 3 models × {bf16, gptq-4bit, awq-4bit} = 9 cells, plus llama gptq-8bit = 10.** That last one because it's your worst observed interaction movement (2.78 pp) and leaving the observed worst case without a floor estimate is precisely what a reviewer picks. ~40 min extra.
+
+The remaining dose-response arms (bnb-NF4, the other gptq-8bit cells) report against the pooled floor, stated as an assumption.
+
+## A prereg item you haven't raised, and it's a §4.0 item
+
+**The always-compliant stratum's membership is itself invocation-dependent.** §4.0 defines it as items where *every arm* committed — but if invocation noise flips commitment, the stratum is not a fixed set of items across invocations. That's second-order, but §4.0 is explicitly the thing that cannot be patched later.
+
+Pre-register which: stratum defined on the **K=2-averaged** commitment, or defined as items committed in **all invocations of all arms** (stricter, smaller, invocation-stable). I'd take the latter — it's the version that can't be accused of being invocation-shopped — and report both stratum sizes.
+
+## Confirmed on the rest
+
+`invocation_id` on every record, CUDA graph shape set as a logged field, upstream filing with the three refuted hypotheses and their killing numbers. All correct.
+
+Order of operations before main-v1: the 1/√n scaling check (free, today) → prereg amendment with the three classes and the estimator → main-v1 with K=2 on the 10 cells.
