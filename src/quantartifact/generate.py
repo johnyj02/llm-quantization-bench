@@ -571,14 +571,21 @@ class VLLMRunner:
         )
         # R14.3 item 6: assert the values as they reached SamplingParams, not as we
         # believe we passed them. Same failure shape as `async_scheduling`.
-        neutral = {
-            "temperature": 0.0, "top_p": 1.0, "top_k": -1,
-            "repetition_penalty": 1.0, "presence_penalty": 0.0, "frequency_penalty": 0.0,
+        # ⚠️ `top_k` has TWO sentinel spellings for "disabled" and vLLM normalises between
+        # them: we pass -1 ("consider all tokens") and 0.26.0 reports back 0. Both mean the
+        # same thing. The first version of this assertion compared against -1 alone and
+        # failed a job on a representation difference rather than a semantic one -- so the
+        # accepted set is explicit, and the assertion still catches a REAL value like 20
+        # (which is what Qwen's generation_config.json would supply).
+        neutral: dict[str, tuple] = {
+            "temperature": (0.0,), "top_p": (1.0,), "top_k": (-1, 0),
+            "repetition_penalty": (1.0,), "presence_penalty": (0.0,),
+            "frequency_penalty": (0.0,),
         }
         wrong = {
             field: getattr(params, field)
-            for field, expected in neutral.items()
-            if getattr(params, field, expected) != expected
+            for field, allowed in neutral.items()
+            if getattr(params, field, allowed[0]) not in allowed
         }
         if wrong or params.seed != self.spec.seed:
             raise PreflightError(

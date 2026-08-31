@@ -157,3 +157,41 @@ class TestFreezeLineIsDocumented:
         """H6's mode contrast is incomplete until the log-likelihood arms exist; that
         must be stated in the stage rather than discovered later."""
         assert "log-likelihood arms are NOT in this stage" in SOURCE
+
+
+class TestSamplingIsPinnedNeutral:
+    """🚨 The paper REPORTS greedy decoding with no penalties, so it must be enforced.
+
+    vLLM's `generation_config` defaults to "auto", which reads the model's own
+    generation_config.json — and Qwen2.5-3B-Instruct ships `repetition_penalty 1.05` and
+    `top_k 20` while Phi-3.5-mini ships nothing. `temperature=0` makes top_p/top_k
+    inoperative, but repetition_penalty modifies the logits BEFORE the argmax, so a leaked
+    1.05 would silently change greedy output on one model and not another.
+    """
+
+    GEN = (REPO / "src" / "quantartifact" / "generate.py").read_text()
+
+    def test_all_six_sampling_fields_are_passed_explicitly(self):
+        for field in ("temperature=0.0", "top_p=1.0", "top_k=-1",
+                      "repetition_penalty=1.0", "presence_penalty=0.0",
+                      "frequency_penalty=0.0"):
+            assert field in self.GEN, f"{field} must be pinned, not left to a default"
+
+    def test_engine_ignores_the_models_generation_config(self):
+        assert 'generation_config: str = "vllm"' in self.GEN, (
+            'the default "auto" reads the model\'s file and makes decoding model-dependent'
+        )
+        assert '"generation_config": self.spec.generation_config' in self.GEN, (
+            "declaring it on EngineSpec is useless unless it is forwarded to LLM()"
+        )
+
+    def test_top_k_accepts_both_disabled_sentinels(self):
+        """REGRESSION: the first assertion compared against -1 alone and failed a job
+        because vLLM 0.26 reports back 0. Both spellings mean 'all tokens'."""
+        assert '"top_k": (-1, 0)' in self.GEN
+
+    def test_the_assertion_would_still_catch_a_real_value(self):
+        """Accepting two sentinels must not become accepting anything: Qwen's 20 must
+        still fail."""
+        neutral = {"top_k": (-1, 0)}
+        assert 20 not in neutral["top_k"]
