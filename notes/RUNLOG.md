@@ -999,4 +999,17 @@ demonstrated rather than asserted.** That is a better position than the argument
 
 - MY BUG: asserted top_k==-1 but vLLM 0.26 normalises -1 to 0; both mean disabled. Failed fast at the right place in ~1 min of compute. Assertion now accepts both sentinels and still rejects a real value like Qwen's 20
 - FailureReason: `AlgorithmError: ExecuteUserScriptError: ExitCode 1 ErrorMessage "" Command "/usr/local/bin/python3.11 sm_diagnose.py --stage diagnose", exit code: 1 `
-- <!-- TODO: what it taught us, and what changed as a result -->
+- **My bug, and the assertion behaved correctly in the way that matters.** I pinned
+  `top_k=-1` and then asserted the constructed `SamplingParams` reported `-1` back; vLLM
+  0.26 normalises it to `0`. Both spellings mean *"consider all tokens"*, so a
+  representation difference failed a job on a semantic non-issue.
+- ✅ **It fired BEFORE any generation was written**, at the right place, for ~1 min of
+  compute — most of the 4 min wall clock was SageMaker pulling the container from ECR. A
+  check that occasionally false-positives on a sentinel spelling is far cheaper than one
+  that never fires and lets an unverified sampling configuration produce data.
+- Fixed by making the accepted set **explicit** (`top_k` may be `-1` or `0`) rather than by
+  weakening the check. It still rejects a real value, which is the whole point: Qwen's
+  `generation_config.json` would supply **20**.
+- 4 tests added: all six sampling fields explicitly passed, `generation_config="vllm"` both
+  declared **and** forwarded to `LLM()`, both `top_k` sentinels accepted, and `20` still
+  rejected.
