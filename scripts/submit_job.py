@@ -75,6 +75,16 @@ STAGES: dict[str, dict] = {
         # Isolation of its own writes is by run_id (`pilot-v1-smoke`), not by prefix.
         "smoke_isolates_checkpoints": False,
     },
+    "diagnose": {
+        "entry_point": "sm_diagnose.py",
+        "description": "ONE cheap job, TWO open questions: was the old sampling config "
+                       "neutral, and does cross-invocation divergence survive the fix?",
+        # 4 probes, 6 invocations, 40 items each. Minutes. 1 h caps a hang.
+        "max_run": 3600,
+        # READS job 1's checkpoints AND the stored pilot-v2 baseline it compares against,
+        # so it must see the study prefix. It writes only under `diagnose-v1__*` run_ids.
+        "smoke_isolates_checkpoints": False,
+    },
     "reference": {
         "entry_point": "sm_reference.py",
         "description": "THE MAIN RUN, run_id=main-v1: 15 cells x 4,238 items = 63,570 gens",

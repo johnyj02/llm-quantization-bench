@@ -334,6 +334,25 @@ def read_back_engine_state(llm, spec: EngineSpec) -> dict[str, Any]:
             problems.append("engine reports prefix caching ENABLED (vLLM #39389)")
         observed["num_gpu_blocks"] = getattr(cache_cfg, "num_gpu_blocks", None)
 
+    # 🚨 RECORDED AS A FIELD, NOT AS A HYPOTHESIS (planner ruling R22). The
+    # cross-invocation nondeterminism of `notes/cross-invocation.md` is undiagnosed; three
+    # explanations have been refuted, and `num_gpu_blocks` above was one of them (it is
+    # byte-identical across invocations). `cudagraph_mode=FULL_AND_PIECEWISE` captures
+    # graphs at a startup-chosen batch-size set, so if THAT set differs between invocations
+    # then dispatch differs. Nobody is betting on it -- the point is that a future reader
+    # or reviewer can check, instead of having to re-derive the question. It belongs in the
+    # record anyway under the standing assert-what-you-declare rule.
+    compilation_cfg = getattr(config, "compilation_config", None)
+    if compilation_cfg is not None:
+        for field in ("cudagraph_mode", "cudagraph_capture_sizes",
+                      "max_cudagraph_capture_size", "compile_ranges_endpoints"):
+            value = getattr(compilation_cfg, field, None)
+            # Enums and lists both need to survive JSON.
+            observed[field] = (
+                list(value) if isinstance(value, (list, tuple)) else
+                (str(value) if value is not None else None)
+            )
+
     if model_cfg is not None:
         # R14.3 item 4: the revision as LOADED. The HF cache can serve a different
         # commit than the pin.
