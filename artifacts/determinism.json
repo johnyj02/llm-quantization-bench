@@ -7,6 +7,7 @@
     20260827,
     20260828
   ],
+  "sd_mode": false,
   "order_sweep_levels": [
     8,
     32,
@@ -37,6 +38,28 @@
       "order_max_distinct": 1,
       "repeat_stable_but_order_sensitive": false,
       "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.272,
+            0.272,
+            0.272
+          ],
+          "strict_last": [
+            0.272,
+            0.272,
+            0.272
+          ],
+          "permissive": [
+            0.488,
+            0.488,
+            0.488
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
         "n_orderings": 3,
         "n_items_text": 500,
         "n_items_scored": 500,
@@ -59,18 +82,18 @@
       "max_num_seqs": 8,
       "disabled_kernels": null,
       "autotune": false,
-      "minutes": 12.6,
+      "minutes": 25.4,
       "seconds_per_pass": [
-        165.6,
-        165.0,
-        164.5,
-        164.7
+        356.0,
+        355.4,
+        362.1,
+        357.6
       ],
       "fingerprints": [
-        "1c43ecd3d5828e75",
-        "1c43ecd3d5828e75",
-        "1c43ecd3d5828e75",
-        "1c43ecd3d5828e75"
+        "f384b928facbc578",
+        "f384b928facbc578",
+        "f384b928facbc578",
+        "f384b928facbc578"
       ],
       "hardware": {
         "gpu": "NVIDIA L40S",
@@ -89,6 +112,18 @@
         "async_scheduling": false,
         "enable_prefix_caching": false,
         "num_gpu_blocks": 60716,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16
+        ],
+        "max_cudagraph_capture_size": "16",
+        "compile_ranges_endpoints": [
+          8192
+        ],
         "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
         "dtype": "torch.bfloat16",
         "quantization": null
@@ -105,47 +140,69 @@
       "repetition_floor": 0.0,
       "repetition_stable": true,
       "repetition_n_disagreeing": 0,
-      "order_divergence": 0.298,
+      "order_divergence": 0.506,
       "order_invariant": false,
-      "order_n_disagreeing": 149,
+      "order_n_disagreeing": 253,
       "n_items": 500,
       "order_max_distinct": 3,
       "repeat_stable_but_order_sensitive": true,
       "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.258,
+            0.26,
+            0.26
+          ],
+          "strict_last": [
+            0.258,
+            0.26,
+            0.26
+          ],
+          "permissive": [
+            0.488,
+            0.49,
+            0.49
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.002,
+          "strict_last": 0.002,
+          "permissive": 0.002
+        },
         "n_orderings": 3,
         "n_items_text": 500,
         "n_items_scored": 500,
         "n_items_unscored_no_gold": 0,
-        "text_divergence": 0.298,
+        "text_divergence": 0.506,
         "answer_divergence": {
-          "strict": 0.048,
-          "strict_last": 0.048,
-          "permissive": 0.098
+          "strict": 0.124,
+          "strict_last": 0.124,
+          "permissive": 0.192
         },
         "correctness_divergence": {
-          "strict": 0.036,
-          "strict_last": 0.036,
-          "permissive": 0.046
+          "strict": 0.05,
+          "strict_last": 0.05,
+          "permissive": 0.068
         },
-        "escalation_metric_strict_correctness": 0.036
+        "escalation_metric_strict_correctness": 0.05
       },
       "arm": "gptq-8bit",
       "model_key": "qwen2.5-3b",
       "max_num_seqs": 8,
       "disabled_kernels": null,
       "autotune": false,
-      "minutes": 4.8,
+      "minutes": 9.4,
       "seconds_per_pass": [
-        60.0,
-        60.0,
-        61.3,
-        60.4
+        131.8,
+        131.7,
+        129.2,
+        126.3
       ],
       "fingerprints": [
-        "94f37028f97d5872",
-        "94f37028f97d5872",
-        "28c0cd2855818385",
-        "fd151ee3bdd20cf1"
+        "3753b6d2867ad66e",
+        "3753b6d2867ad66e",
+        "0e94ea3898b32fe2",
+        "163d01b53ba0dbe2"
       ],
       "hardware": {
         "gpu": "NVIDIA L40S",
@@ -164,6 +221,18 @@
         "async_scheduling": false,
         "enable_prefix_caching": false,
         "num_gpu_blocks": 65373,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16
+        ],
+        "max_cudagraph_capture_size": "16",
+        "compile_ranges_endpoints": [
+          8192
+        ],
         "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
         "dtype": "torch.bfloat16",
         "quantization": "compressed-tensors"
@@ -180,47 +249,69 @@
       "repetition_floor": 0.0,
       "repetition_stable": true,
       "repetition_n_disagreeing": 0,
-      "order_divergence": 0.334,
+      "order_divergence": 0.532,
       "order_invariant": false,
-      "order_n_disagreeing": 167,
+      "order_n_disagreeing": 266,
       "n_items": 500,
       "order_max_distinct": 3,
       "repeat_stable_but_order_sensitive": true,
       "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.33,
+            0.332,
+            0.326
+          ],
+          "strict_last": [
+            0.33,
+            0.332,
+            0.326
+          ],
+          "permissive": [
+            0.506,
+            0.504,
+            0.498
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.006,
+          "strict_last": 0.006,
+          "permissive": 0.008
+        },
         "n_orderings": 3,
         "n_items_text": 500,
         "n_items_scored": 500,
         "n_items_unscored_no_gold": 0,
-        "text_divergence": 0.334,
+        "text_divergence": 0.532,
         "answer_divergence": {
-          "strict": 0.074,
-          "strict_last": 0.074,
-          "permissive": 0.104
+          "strict": 0.162,
+          "strict_last": 0.162,
+          "permissive": 0.226
         },
         "correctness_divergence": {
-          "strict": 0.042,
-          "strict_last": 0.042,
-          "permissive": 0.03
+          "strict": 0.054,
+          "strict_last": 0.054,
+          "permissive": 0.058
         },
-        "escalation_metric_strict_correctness": 0.042
+        "escalation_metric_strict_correctness": 0.054
       },
       "arm": "gptq-4bit",
       "model_key": "qwen2.5-3b",
       "max_num_seqs": 8,
       "disabled_kernels": null,
       "autotune": false,
-      "minutes": 4.0,
+      "minutes": 7.1,
       "seconds_per_pass": [
-        50.0,
-        50.0,
-        48.6,
-        50.1
+        95.7,
+        95.5,
+        100.7,
+        98.7
       ],
       "fingerprints": [
-        "1d0b368eb6aa0956",
-        "1d0b368eb6aa0956",
-        "0b0e10138989d2b8",
-        "3350b0ade7845993"
+        "20d42c6894ee522d",
+        "20d42c6894ee522d",
+        "7cf536acfc4c0be1",
+        "52f7bc252587312e"
       ],
       "hardware": {
         "gpu": "NVIDIA L40S",
@@ -239,6 +330,18 @@
         "async_scheduling": false,
         "enable_prefix_caching": false,
         "num_gpu_blocks": 67866,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16
+        ],
+        "max_cudagraph_capture_size": "16",
+        "compile_ranges_endpoints": [
+          8192
+        ],
         "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
         "dtype": "torch.bfloat16",
         "quantization": "compressed-tensors"
@@ -255,47 +358,69 @@
       "repetition_floor": 0.0,
       "repetition_stable": true,
       "repetition_n_disagreeing": 0,
-      "order_divergence": 0.436,
+      "order_divergence": 0.536,
       "order_invariant": false,
-      "order_n_disagreeing": 218,
+      "order_n_disagreeing": 268,
       "n_items": 500,
       "order_max_distinct": 3,
       "repeat_stable_but_order_sensitive": true,
       "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.286,
+            0.286,
+            0.292
+          ],
+          "strict_last": [
+            0.286,
+            0.286,
+            0.292
+          ],
+          "permissive": [
+            0.494,
+            0.488,
+            0.488
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.006,
+          "strict_last": 0.006,
+          "permissive": 0.006
+        },
         "n_orderings": 3,
         "n_items_text": 500,
         "n_items_scored": 500,
         "n_items_unscored_no_gold": 0,
-        "text_divergence": 0.436,
+        "text_divergence": 0.536,
         "answer_divergence": {
-          "strict": 0.104,
-          "strict_last": 0.104,
-          "permissive": 0.192
+          "strict": 0.134,
+          "strict_last": 0.134,
+          "permissive": 0.236
         },
         "correctness_divergence": {
-          "strict": 0.04,
-          "strict_last": 0.04,
-          "permissive": 0.064
+          "strict": 0.042,
+          "strict_last": 0.042,
+          "permissive": 0.076
         },
-        "escalation_metric_strict_correctness": 0.04
+        "escalation_metric_strict_correctness": 0.042
       },
       "arm": "awq-4bit",
       "model_key": "qwen2.5-3b",
       "max_num_seqs": 8,
       "disabled_kernels": null,
       "autotune": false,
-      "minutes": 6.7,
+      "minutes": 8.2,
       "seconds_per_pass": [
-        87.6,
-        87.1,
-        90.1,
-        90.1
+        113.2,
+        113.0,
+        109.4,
+        111.3
       ],
       "fingerprints": [
-        "d9aa098336ed7cfc",
-        "d9aa098336ed7cfc",
-        "17c4055d041534ae",
-        "ee12bec90c99913e"
+        "27c41a8764f3bc64",
+        "27c41a8764f3bc64",
+        "e59080e54f3b69b8",
+        "c4233b2574b131a7"
       ],
       "hardware": {
         "gpu": "NVIDIA L40S",
@@ -314,6 +439,18 @@
         "async_scheduling": false,
         "enable_prefix_caching": false,
         "num_gpu_blocks": 67948,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16
+        ],
+        "max_cudagraph_capture_size": "16",
+        "compile_ranges_endpoints": [
+          8192
+        ],
         "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
         "dtype": "torch.bfloat16",
         "quantization": "compressed-tensors"
@@ -330,47 +467,69 @@
       "repetition_floor": 0.0,
       "repetition_stable": true,
       "repetition_n_disagreeing": 0,
-      "order_divergence": 0.314,
+      "order_divergence": 0.494,
       "order_invariant": false,
-      "order_n_disagreeing": 157,
+      "order_n_disagreeing": 247,
       "n_items": 500,
       "order_max_distinct": 3,
       "repeat_stable_but_order_sensitive": true,
       "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.392,
+            0.392,
+            0.386
+          ],
+          "strict_last": [
+            0.392,
+            0.392,
+            0.386
+          ],
+          "permissive": [
+            0.49,
+            0.492,
+            0.496
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.006,
+          "strict_last": 0.006,
+          "permissive": 0.006
+        },
         "n_orderings": 3,
         "n_items_text": 500,
         "n_items_scored": 500,
         "n_items_unscored_no_gold": 0,
-        "text_divergence": 0.314,
+        "text_divergence": 0.494,
         "answer_divergence": {
-          "strict": 0.096,
-          "strict_last": 0.096,
-          "permissive": 0.126
+          "strict": 0.184,
+          "strict_last": 0.182,
+          "permissive": 0.232
         },
         "correctness_divergence": {
-          "strict": 0.048,
-          "strict_last": 0.048,
-          "permissive": 0.04
+          "strict": 0.076,
+          "strict_last": 0.076,
+          "permissive": 0.066
         },
-        "escalation_metric_strict_correctness": 0.048
+        "escalation_metric_strict_correctness": 0.076
       },
       "arm": "bnb-nf4",
       "model_key": "qwen2.5-3b",
       "max_num_seqs": 8,
       "disabled_kernels": null,
       "autotune": false,
-      "minutes": 8.4,
+      "minutes": 13.1,
       "seconds_per_pass": [
-        115.0,
-        115.2,
-        119.7,
-        119.0
+        187.9,
+        188.0,
+        191.3,
+        188.6
       ],
       "fingerprints": [
-        "e0158eeea2d7764d",
-        "e0158eeea2d7764d",
-        "ea2e13a4d3836456",
-        "4b73c21cecfc1d90"
+        "6de9d50a7a8e7698",
+        "6de9d50a7a8e7698",
+        "7c9f071d48df8a5c",
+        "d200f55851d88be3"
       ],
       "hardware": {
         "gpu": "NVIDIA L40S",
@@ -389,6 +548,18 @@
         "async_scheduling": false,
         "enable_prefix_caching": false,
         "num_gpu_blocks": 67503,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16
+        ],
+        "max_cudagraph_capture_size": "16",
+        "compile_ranges_endpoints": [
+          8192
+        ],
         "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
         "dtype": "torch.bfloat16",
         "quantization": "bitsandbytes"
@@ -412,6 +583,28 @@
       "order_max_distinct": 1,
       "repeat_stable_but_order_sensitive": false,
       "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.272,
+            0.272,
+            0.272
+          ],
+          "strict_last": [
+            0.272,
+            0.272,
+            0.272
+          ],
+          "permissive": [
+            0.488,
+            0.488,
+            0.488
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
         "n_orderings": 3,
         "n_items_text": 500,
         "n_items_scored": 500,
@@ -434,18 +627,18 @@
       "max_num_seqs": 32,
       "disabled_kernels": null,
       "autotune": false,
-      "minutes": 4.2,
+      "minutes": 7.9,
       "seconds_per_pass": [
-        53.2,
-        52.5,
-        52.0,
-        51.4
+        103.0,
+        102.4,
+        114.6,
+        113.1
       ],
       "fingerprints": [
-        "1c43ecd3d5828e75",
-        "1c43ecd3d5828e75",
-        "1c43ecd3d5828e75",
-        "1c43ecd3d5828e75"
+        "f384b928facbc578",
+        "f384b928facbc578",
+        "f384b928facbc578",
+        "f384b928facbc578"
       ],
       "hardware": {
         "gpu": "NVIDIA L40S",
@@ -464,6 +657,24 @@
         "async_scheduling": false,
         "enable_prefix_caching": false,
         "num_gpu_blocks": 60887,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          24,
+          32,
+          40,
+          48,
+          56,
+          64
+        ],
+        "max_cudagraph_capture_size": "64",
+        "compile_ranges_endpoints": [
+          8192
+        ],
         "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
         "dtype": "torch.bfloat16",
         "quantization": null
@@ -480,47 +691,69 @@
       "repetition_floor": 0.0,
       "repetition_stable": true,
       "repetition_n_disagreeing": 0,
-      "order_divergence": 0.318,
+      "order_divergence": 0.534,
       "order_invariant": false,
-      "order_n_disagreeing": 159,
+      "order_n_disagreeing": 267,
       "n_items": 500,
       "order_max_distinct": 3,
       "repeat_stable_but_order_sensitive": true,
       "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.268,
+            0.26,
+            0.268
+          ],
+          "strict_last": [
+            0.268,
+            0.26,
+            0.268
+          ],
+          "permissive": [
+            0.512,
+            0.504,
+            0.504
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.008,
+          "strict_last": 0.008,
+          "permissive": 0.008
+        },
         "n_orderings": 3,
         "n_items_text": 500,
         "n_items_scored": 500,
         "n_items_unscored_no_gold": 0,
-        "text_divergence": 0.318,
+        "text_divergence": 0.534,
         "answer_divergence": {
-          "strict": 0.048,
-          "strict_last": 0.048,
-          "permissive": 0.104
+          "strict": 0.134,
+          "strict_last": 0.134,
+          "permissive": 0.2
         },
         "correctness_divergence": {
-          "strict": 0.042,
-          "strict_last": 0.042,
-          "permissive": 0.05
+          "strict": 0.058,
+          "strict_last": 0.058,
+          "permissive": 0.07
         },
-        "escalation_metric_strict_correctness": 0.042
+        "escalation_metric_strict_correctness": 0.058
       },
       "arm": "gptq-8bit",
       "model_key": "qwen2.5-3b",
       "max_num_seqs": 32,
       "disabled_kernels": null,
       "autotune": false,
-      "minutes": 2.5,
+      "minutes": 3.9,
       "seconds_per_pass": [
-        28.0,
-        28.0,
-        27.5,
-        27.4
+        46.8,
+        46.8,
+        51.9,
+        51.2
       ],
       "fingerprints": [
-        "8a23e3476ef23ca9",
-        "8a23e3476ef23ca9",
-        "3dc8736d14bcb4a4",
-        "71be87bbf78816a4"
+        "273ad94ad21ccba3",
+        "273ad94ad21ccba3",
+        "f392236f18783da5",
+        "6118edd2ad487046"
       ],
       "hardware": {
         "gpu": "NVIDIA L40S",
@@ -539,6 +772,24 @@
         "async_scheduling": false,
         "enable_prefix_caching": false,
         "num_gpu_blocks": 65543,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          24,
+          32,
+          40,
+          48,
+          56,
+          64
+        ],
+        "max_cudagraph_capture_size": "64",
+        "compile_ranges_endpoints": [
+          8192
+        ],
         "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
         "dtype": "torch.bfloat16",
         "quantization": "compressed-tensors"
@@ -555,47 +806,69 @@
       "repetition_floor": 0.0,
       "repetition_stable": true,
       "repetition_n_disagreeing": 0,
-      "order_divergence": 0.4,
+      "order_divergence": 0.59,
       "order_invariant": false,
-      "order_n_disagreeing": 200,
+      "order_n_disagreeing": 295,
       "n_items": 500,
       "order_max_distinct": 3,
       "repeat_stable_but_order_sensitive": true,
       "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.32,
+            0.34,
+            0.322
+          ],
+          "strict_last": [
+            0.32,
+            0.34,
+            0.322
+          ],
+          "permissive": [
+            0.506,
+            0.508,
+            0.5
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.02,
+          "strict_last": 0.02,
+          "permissive": 0.008
+        },
         "n_orderings": 3,
         "n_items_text": 500,
         "n_items_scored": 500,
         "n_items_unscored_no_gold": 0,
-        "text_divergence": 0.4,
+        "text_divergence": 0.59,
         "answer_divergence": {
-          "strict": 0.088,
-          "strict_last": 0.088,
-          "permissive": 0.13
+          "strict": 0.21,
+          "strict_last": 0.21,
+          "permissive": 0.294
         },
         "correctness_divergence": {
-          "strict": 0.054,
-          "strict_last": 0.054,
-          "permissive": 0.036
+          "strict": 0.074,
+          "strict_last": 0.074,
+          "permissive": 0.082
         },
-        "escalation_metric_strict_correctness": 0.054
+        "escalation_metric_strict_correctness": 0.074
       },
       "arm": "gptq-4bit",
       "model_key": "qwen2.5-3b",
       "max_num_seqs": 32,
       "disabled_kernels": null,
       "autotune": false,
-      "minutes": 2.3,
+      "minutes": 3.3,
       "seconds_per_pass": [
-        25.4,
-        25.4,
-        28.2,
-        27.5
+        41.1,
+        41.2,
+        42.5,
+        41.5
       ],
       "fingerprints": [
-        "4a37b7fc79b18133",
-        "4a37b7fc79b18133",
-        "5034c0b3065f2537",
-        "382876cc4ae71f7a"
+        "9154f3d5331938d5",
+        "9154f3d5331938d5",
+        "480f4489b96a05e8",
+        "4ec92c8699b7564c"
       ],
       "hardware": {
         "gpu": "NVIDIA L40S",
@@ -614,6 +887,24 @@
         "async_scheduling": false,
         "enable_prefix_caching": false,
         "num_gpu_blocks": 67948,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          24,
+          32,
+          40,
+          48,
+          56,
+          64
+        ],
+        "max_cudagraph_capture_size": "64",
+        "compile_ranges_endpoints": [
+          8192
+        ],
         "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
         "dtype": "torch.bfloat16",
         "quantization": "compressed-tensors"
@@ -630,47 +921,69 @@
       "repetition_floor": 0.0,
       "repetition_stable": true,
       "repetition_n_disagreeing": 0,
-      "order_divergence": 0.456,
+      "order_divergence": 0.548,
       "order_invariant": false,
-      "order_n_disagreeing": 228,
+      "order_n_disagreeing": 274,
       "n_items": 500,
       "order_max_distinct": 3,
       "repeat_stable_but_order_sensitive": true,
       "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.292,
+            0.292,
+            0.296
+          ],
+          "strict_last": [
+            0.292,
+            0.292,
+            0.296
+          ],
+          "permissive": [
+            0.496,
+            0.484,
+            0.496
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.004,
+          "strict_last": 0.004,
+          "permissive": 0.012
+        },
         "n_orderings": 3,
         "n_items_text": 500,
         "n_items_scored": 500,
         "n_items_unscored_no_gold": 0,
-        "text_divergence": 0.456,
+        "text_divergence": 0.548,
         "answer_divergence": {
-          "strict": 0.112,
-          "strict_last": 0.112,
-          "permissive": 0.206
+          "strict": 0.16,
+          "strict_last": 0.16,
+          "permissive": 0.27
         },
         "correctness_divergence": {
-          "strict": 0.042,
-          "strict_last": 0.042,
-          "permissive": 0.07
+          "strict": 0.056,
+          "strict_last": 0.056,
+          "permissive": 0.094
         },
-        "escalation_metric_strict_correctness": 0.042
+        "escalation_metric_strict_correctness": 0.056
       },
       "arm": "awq-4bit",
       "model_key": "qwen2.5-3b",
       "max_num_seqs": 32,
       "disabled_kernels": null,
       "autotune": false,
-      "minutes": 3.2,
+      "minutes": 3.6,
       "seconds_per_pass": [
-        40.0,
-        40.2,
-        38.9,
-        38.8
+        45.7,
+        45.8,
+        45.3,
+        45.1
       ],
       "fingerprints": [
-        "e6efda5f04b3835c",
-        "e6efda5f04b3835c",
-        "bf2c2826b44c9aa6",
-        "ddcf2a28b8c929f9"
+        "76ec57e0290f6c5e",
+        "76ec57e0290f6c5e",
+        "afd0c53c16935033",
+        "84ba50b825869f50"
       ],
       "hardware": {
         "gpu": "NVIDIA L40S",
@@ -689,6 +1002,24 @@
         "async_scheduling": false,
         "enable_prefix_caching": false,
         "num_gpu_blocks": 67948,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          24,
+          32,
+          40,
+          48,
+          56,
+          64
+        ],
+        "max_cudagraph_capture_size": "64",
+        "compile_ranges_endpoints": [
+          8192
+        ],
         "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
         "dtype": "torch.bfloat16",
         "quantization": "compressed-tensors"
@@ -705,47 +1036,69 @@
       "repetition_floor": 0.0,
       "repetition_stable": true,
       "repetition_n_disagreeing": 0,
-      "order_divergence": 0.026,
+      "order_divergence": 0.052,
       "order_invariant": false,
-      "order_n_disagreeing": 13,
+      "order_n_disagreeing": 26,
       "n_items": 500,
       "order_max_distinct": 2,
       "repeat_stable_but_order_sensitive": true,
       "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.384,
+            0.384,
+            0.384
+          ],
+          "strict_last": [
+            0.384,
+            0.384,
+            0.384
+          ],
+          "permissive": [
+            0.49,
+            0.492,
+            0.492
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.002
+        },
         "n_orderings": 3,
         "n_items_text": 500,
         "n_items_scored": 500,
         "n_items_unscored_no_gold": 0,
-        "text_divergence": 0.026,
+        "text_divergence": 0.052,
         "answer_divergence": {
-          "strict": 0.008,
-          "strict_last": 0.008,
-          "permissive": 0.004
+          "strict": 0.016,
+          "strict_last": 0.016,
+          "permissive": 0.016
         },
         "correctness_divergence": {
-          "strict": 0.002,
-          "strict_last": 0.002,
+          "strict": 0.0,
+          "strict_last": 0.0,
           "permissive": 0.002
         },
-        "escalation_metric_strict_correctness": 0.002
+        "escalation_metric_strict_correctness": 0.0
       },
       "arm": "bnb-nf4",
       "model_key": "qwen2.5-3b",
       "max_num_seqs": 32,
       "disabled_kernels": null,
       "autotune": false,
-      "minutes": 5.4,
+      "minutes": 7.2,
       "seconds_per_pass": [
-        71.5,
-        71.7,
-        74.9,
-        74.3
+        97.8,
+        97.9,
+        104.3,
+        103.1
       ],
       "fingerprints": [
-        "597ee4023380a306",
-        "597ee4023380a306",
-        "cf429d2b21c9b2fe",
-        "e8627a9da9263525"
+        "70d533a42d67f7b7",
+        "70d533a42d67f7b7",
+        "4ab66290d02d8bd9",
+        "736f87138d2633f9"
       ],
       "hardware": {
         "gpu": "NVIDIA L40S",
@@ -764,6 +1117,24 @@
         "async_scheduling": false,
         "enable_prefix_caching": false,
         "num_gpu_blocks": 67595,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          24,
+          32,
+          40,
+          48,
+          56,
+          64
+        ],
+        "max_cudagraph_capture_size": "64",
+        "compile_ranges_endpoints": [
+          8192
+        ],
         "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
         "dtype": "torch.bfloat16",
         "quantization": "bitsandbytes"
@@ -787,6 +1158,28 @@
       "order_max_distinct": 1,
       "repeat_stable_but_order_sensitive": false,
       "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.272,
+            0.272,
+            0.272
+          ],
+          "strict_last": [
+            0.272,
+            0.272,
+            0.272
+          ],
+          "permissive": [
+            0.488,
+            0.488,
+            0.488
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
         "n_orderings": 3,
         "n_items_text": 500,
         "n_items_scored": 500,
@@ -805,172 +1198,391 @@
         "escalation_metric_strict_correctness": 0.0
       },
       "arm": "bf16",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 64,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 5.1,
+      "seconds_per_pass": [
+        62.1,
+        62.2,
+        74.6,
+        75.2
+      ],
+      "fingerprints": [
+        "f384b928facbc578",
+        "f384b928facbc578",
+        "f384b928facbc578",
+        "f384b928facbc578"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 64,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 60887,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          24,
+          32,
+          40,
+          48,
+          56,
+          64,
+          72,
+          80,
+          88,
+          96,
+          104,
+          112,
+          120,
+          128
+        ],
+        "max_cudagraph_capture_size": "128",
+        "compile_ranges_endpoints": [
+          8192
+        ],
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": null
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.514,
+      "order_invariant": false,
+      "order_n_disagreeing": 257,
+      "n_items": 500,
+      "order_max_distinct": 3,
+      "repeat_stable_but_order_sensitive": true,
+      "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.26,
+            0.264,
+            0.262
+          ],
+          "strict_last": [
+            0.26,
+            0.264,
+            0.262
+          ],
+          "permissive": [
+            0.494,
+            0.498,
+            0.502
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.004,
+          "strict_last": 0.004,
+          "permissive": 0.008
+        },
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.514,
+        "answer_divergence": {
+          "strict": 0.138,
+          "strict_last": 0.138,
+          "permissive": 0.208
+        },
+        "correctness_divergence": {
+          "strict": 0.056,
+          "strict_last": 0.056,
+          "permissive": 0.078
+        },
+        "escalation_metric_strict_correctness": 0.056
+      },
+      "arm": "gptq-8bit",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 64,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 3.1,
+      "seconds_per_pass": [
+        36.5,
+        36.6,
+        39.8,
+        40.3
+      ],
+      "fingerprints": [
+        "ea619fae0d9e8566",
+        "ea619fae0d9e8566",
+        "82add2c794704b30",
+        "23771fc1c9402992"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 64,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 65543,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          24,
+          32,
+          40,
+          48,
+          56,
+          64,
+          72,
+          80,
+          88,
+          96,
+          104,
+          112,
+          120,
+          128
+        ],
+        "max_cudagraph_capture_size": "128",
+        "compile_ranges_endpoints": [
+          8192
+        ],
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "compressed-tensors"
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.594,
+      "order_invariant": false,
+      "order_n_disagreeing": 297,
+      "n_items": 500,
+      "order_max_distinct": 3,
+      "repeat_stable_but_order_sensitive": true,
+      "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.318,
+            0.328,
+            0.324
+          ],
+          "strict_last": [
+            0.318,
+            0.328,
+            0.324
+          ],
+          "permissive": [
+            0.498,
+            0.502,
+            0.506
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.01,
+          "strict_last": 0.01,
+          "permissive": 0.008
+        },
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.594,
+        "answer_divergence": {
+          "strict": 0.198,
+          "strict_last": 0.198,
+          "permissive": 0.318
+        },
+        "correctness_divergence": {
+          "strict": 0.074,
+          "strict_last": 0.074,
+          "permissive": 0.112
+        },
+        "escalation_metric_strict_correctness": 0.074
+      },
+      "arm": "gptq-4bit",
+      "model_key": "qwen2.5-3b",
+      "max_num_seqs": 64,
+      "disabled_kernels": null,
+      "autotune": false,
+      "minutes": 2.8,
+      "seconds_per_pass": [
+        33.6,
+        33.6,
+        34.3,
+        34.2
+      ],
+      "fingerprints": [
+        "6859eac40f4e9ee5",
+        "6859eac40f4e9ee5",
+        "8fe54a979f555953",
+        "2d3c5442d70e06c6"
+      ],
+      "hardware": {
+        "gpu": "NVIDIA L40S",
+        "cuda": "13.0",
+        "driver": "595.91.07"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "engine_state": {
+        "max_num_seqs": 64,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 67948,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          24,
+          32,
+          40,
+          48,
+          56,
+          64,
+          72,
+          80,
+          88,
+          96,
+          104,
+          112,
+          120,
+          128
+        ],
+        "max_cudagraph_capture_size": "128",
+        "compile_ranges_endpoints": [
+          8192
+        ],
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "compressed-tensors"
+      }
+    },
+    {
+      "n_passes": 4,
+      "orderings": [
+        0,
+        20260827,
+        20260828
+      ],
+      "repetition_passes": 2,
+      "repetition_floor": 0.0,
+      "repetition_stable": true,
+      "repetition_n_disagreeing": 0,
+      "order_divergence": 0.548,
+      "order_invariant": false,
+      "order_n_disagreeing": 274,
+      "n_items": 500,
+      "order_max_distinct": 3,
+      "repeat_stable_but_order_sensitive": true,
+      "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.29,
+            0.28,
+            0.3
+          ],
+          "strict_last": [
+            0.29,
+            0.28,
+            0.3
+          ],
+          "permissive": [
+            0.494,
+            0.492,
+            0.504
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.02,
+          "strict_last": 0.02,
+          "permissive": 0.012
+        },
+        "n_orderings": 3,
+        "n_items_text": 500,
+        "n_items_scored": 500,
+        "n_items_unscored_no_gold": 0,
+        "text_divergence": 0.548,
+        "answer_divergence": {
+          "strict": 0.142,
+          "strict_last": 0.142,
+          "permissive": 0.264
+        },
+        "correctness_divergence": {
+          "strict": 0.052,
+          "strict_last": 0.052,
+          "permissive": 0.096
+        },
+        "escalation_metric_strict_correctness": 0.052
+      },
+      "arm": "awq-4bit",
       "model_key": "qwen2.5-3b",
       "max_num_seqs": 64,
       "disabled_kernels": null,
       "autotune": false,
       "minutes": 3.0,
       "seconds_per_pass": [
-        36.2,
-        36.3,
-        35.6,
-        35.7
+        37.1,
+        37.1,
+        35.5,
+        36.1
       ],
       "fingerprints": [
-        "1c43ecd3d5828e75",
-        "1c43ecd3d5828e75",
-        "1c43ecd3d5828e75",
-        "1c43ecd3d5828e75"
-      ],
-      "hardware": {
-        "gpu": "NVIDIA L40S",
-        "cuda": "13.0",
-        "driver": "595.91.07"
-      },
-      "batch_invariance": {
-        "torch_bmm": "bmm_batch_invariant",
-        "_batch_invariant_MODE": true,
-        "allow_bf16_reduced_precision_reduction": false,
-        "allow_fp16_reduced_precision_reduction": false,
-        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
-      },
-      "engine_state": {
-        "max_num_seqs": 64,
-        "async_scheduling": false,
-        "enable_prefix_caching": false,
-        "num_gpu_blocks": 60887,
-        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
-        "dtype": "torch.bfloat16",
-        "quantization": null
-      }
-    },
-    {
-      "n_passes": 4,
-      "orderings": [
-        0,
-        20260827,
-        20260828
-      ],
-      "repetition_passes": 2,
-      "repetition_floor": 0.0,
-      "repetition_stable": true,
-      "repetition_n_disagreeing": 0,
-      "order_divergence": 0.298,
-      "order_invariant": false,
-      "order_n_disagreeing": 149,
-      "n_items": 500,
-      "order_max_distinct": 3,
-      "repeat_stable_but_order_sensitive": true,
-      "by_level": {
-        "n_orderings": 3,
-        "n_items_text": 500,
-        "n_items_scored": 500,
-        "n_items_unscored_no_gold": 0,
-        "text_divergence": 0.298,
-        "answer_divergence": {
-          "strict": 0.05,
-          "strict_last": 0.05,
-          "permissive": 0.1
-        },
-        "correctness_divergence": {
-          "strict": 0.04,
-          "strict_last": 0.04,
-          "permissive": 0.058
-        },
-        "escalation_metric_strict_correctness": 0.04
-      },
-      "arm": "gptq-8bit",
-      "model_key": "qwen2.5-3b",
-      "max_num_seqs": 64,
-      "disabled_kernels": null,
-      "autotune": false,
-      "minutes": 2.1,
-      "seconds_per_pass": [
-        23.8,
-        23.7,
-        22.6,
-        22.8
-      ],
-      "fingerprints": [
-        "08347b2eacefb954",
-        "08347b2eacefb954",
-        "77cccc2eda97b613",
-        "2266a1cfcef851be"
-      ],
-      "hardware": {
-        "gpu": "NVIDIA L40S",
-        "cuda": "13.0",
-        "driver": "595.91.07"
-      },
-      "batch_invariance": {
-        "torch_bmm": "bmm_batch_invariant",
-        "_batch_invariant_MODE": true,
-        "allow_bf16_reduced_precision_reduction": false,
-        "allow_fp16_reduced_precision_reduction": false,
-        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
-      },
-      "engine_state": {
-        "max_num_seqs": 64,
-        "async_scheduling": false,
-        "enable_prefix_caching": false,
-        "num_gpu_blocks": 65543,
-        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
-        "dtype": "torch.bfloat16",
-        "quantization": "compressed-tensors"
-      }
-    },
-    {
-      "n_passes": 4,
-      "orderings": [
-        0,
-        20260827,
-        20260828
-      ],
-      "repetition_passes": 2,
-      "repetition_floor": 0.0,
-      "repetition_stable": true,
-      "repetition_n_disagreeing": 0,
-      "order_divergence": 0.396,
-      "order_invariant": false,
-      "order_n_disagreeing": 198,
-      "n_items": 500,
-      "order_max_distinct": 3,
-      "repeat_stable_but_order_sensitive": true,
-      "by_level": {
-        "n_orderings": 3,
-        "n_items_text": 500,
-        "n_items_scored": 500,
-        "n_items_unscored_no_gold": 0,
-        "text_divergence": 0.396,
-        "answer_divergence": {
-          "strict": 0.086,
-          "strict_last": 0.086,
-          "permissive": 0.146
-        },
-        "correctness_divergence": {
-          "strict": 0.048,
-          "strict_last": 0.048,
-          "permissive": 0.066
-        },
-        "escalation_metric_strict_correctness": 0.048
-      },
-      "arm": "gptq-4bit",
-      "model_key": "qwen2.5-3b",
-      "max_num_seqs": 64,
-      "disabled_kernels": null,
-      "autotune": false,
-      "minutes": 2.1,
-      "seconds_per_pass": [
-        22.7,
-        22.8,
-        23.1,
-        25.0
-      ],
-      "fingerprints": [
-        "e8e51bafc1e3578a",
-        "e8e51bafc1e3578a",
-        "611d6c1b8ff19e92",
-        "476fc0c0827c4f5e"
+        "90ee1c07476e0e80",
+        "90ee1c07476e0e80",
+        "0df3179ab3c014b2",
+        "38fb419ff450d643"
       ],
       "hardware": {
         "gpu": "NVIDIA L40S",
@@ -989,6 +1601,32 @@
         "async_scheduling": false,
         "enable_prefix_caching": false,
         "num_gpu_blocks": 67948,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          24,
+          32,
+          40,
+          48,
+          56,
+          64,
+          72,
+          80,
+          88,
+          96,
+          104,
+          112,
+          120,
+          128
+        ],
+        "max_cudagraph_capture_size": "128",
+        "compile_ranges_endpoints": [
+          8192
+        ],
         "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
         "dtype": "torch.bfloat16",
         "quantization": "compressed-tensors"
@@ -1005,122 +1643,69 @@
       "repetition_floor": 0.0,
       "repetition_stable": true,
       "repetition_n_disagreeing": 0,
-      "order_divergence": 0.47,
+      "order_divergence": 0.018,
       "order_invariant": false,
-      "order_n_disagreeing": 235,
+      "order_n_disagreeing": 9,
       "n_items": 500,
-      "order_max_distinct": 3,
+      "order_max_distinct": 2,
       "repeat_stable_but_order_sensitive": true,
       "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.384,
+            0.384,
+            0.384
+          ],
+          "strict_last": [
+            0.384,
+            0.384,
+            0.384
+          ],
+          "permissive": [
+            0.492,
+            0.492,
+            0.492
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
         "n_orderings": 3,
         "n_items_text": 500,
         "n_items_scored": 500,
         "n_items_unscored_no_gold": 0,
-        "text_divergence": 0.47,
-        "answer_divergence": {
-          "strict": 0.108,
-          "strict_last": 0.108,
-          "permissive": 0.2
-        },
-        "correctness_divergence": {
-          "strict": 0.038,
-          "strict_last": 0.038,
-          "permissive": 0.06
-        },
-        "escalation_metric_strict_correctness": 0.038
-      },
-      "arm": "awq-4bit",
-      "model_key": "qwen2.5-3b",
-      "max_num_seqs": 64,
-      "disabled_kernels": null,
-      "autotune": false,
-      "minutes": 2.6,
-      "seconds_per_pass": [
-        31.0,
-        31.1,
-        30.7,
-        30.9
-      ],
-      "fingerprints": [
-        "67f435594f9571b3",
-        "67f435594f9571b3",
-        "42e92e3ac5601a29",
-        "f870c471223a608a"
-      ],
-      "hardware": {
-        "gpu": "NVIDIA L40S",
-        "cuda": "13.0",
-        "driver": "595.91.07"
-      },
-      "batch_invariance": {
-        "torch_bmm": "bmm_batch_invariant",
-        "_batch_invariant_MODE": true,
-        "allow_bf16_reduced_precision_reduction": false,
-        "allow_fp16_reduced_precision_reduction": false,
-        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
-      },
-      "engine_state": {
-        "max_num_seqs": 64,
-        "async_scheduling": false,
-        "enable_prefix_caching": false,
-        "num_gpu_blocks": 67948,
-        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
-        "dtype": "torch.bfloat16",
-        "quantization": "compressed-tensors"
-      }
-    },
-    {
-      "n_passes": 4,
-      "orderings": [
-        0,
-        20260827,
-        20260828
-      ],
-      "repetition_passes": 2,
-      "repetition_floor": 0.0,
-      "repetition_stable": true,
-      "repetition_n_disagreeing": 0,
-      "order_divergence": 0.014,
-      "order_invariant": false,
-      "order_n_disagreeing": 7,
-      "n_items": 500,
-      "order_max_distinct": 3,
-      "repeat_stable_but_order_sensitive": true,
-      "by_level": {
-        "n_orderings": 3,
-        "n_items_text": 500,
-        "n_items_scored": 500,
-        "n_items_unscored_no_gold": 0,
-        "text_divergence": 0.014,
+        "text_divergence": 0.018,
         "answer_divergence": {
           "strict": 0.006,
           "strict_last": 0.006,
-          "permissive": 0.004
+          "permissive": 0.006
         },
         "correctness_divergence": {
-          "strict": 0.002,
-          "strict_last": 0.002,
-          "permissive": 0.002
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
         },
-        "escalation_metric_strict_correctness": 0.002
+        "escalation_metric_strict_correctness": 0.0
       },
       "arm": "bnb-nf4",
       "model_key": "qwen2.5-3b",
       "max_num_seqs": 64,
       "disabled_kernels": null,
       "autotune": false,
-      "minutes": 4.3,
+      "minutes": 5.1,
       "seconds_per_pass": [
-        56.4,
-        56.5,
-        52.6,
-        57.8
+        64.6,
+        64.7,
+        72.4,
+        71.0
       ],
       "fingerprints": [
-        "87bef9e778d26b96",
-        "87bef9e778d26b96",
-        "facd8a70c422e8f4",
-        "1a89c336d681be10"
+        "83391f557a7edb29",
+        "83391f557a7edb29",
+        "eac69495c177fdf7",
+        "a809d9a0f04bedbe"
       ],
       "hardware": {
         "gpu": "NVIDIA L40S",
@@ -1139,6 +1724,32 @@
         "async_scheduling": false,
         "enable_prefix_caching": false,
         "num_gpu_blocks": 67595,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          24,
+          32,
+          40,
+          48,
+          56,
+          64,
+          72,
+          80,
+          88,
+          96,
+          104,
+          112,
+          120,
+          128
+        ],
+        "max_cudagraph_capture_size": "128",
+        "compile_ranges_endpoints": [
+          8192
+        ],
         "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
         "dtype": "torch.bfloat16",
         "quantization": "bitsandbytes"
@@ -1164,6 +1775,28 @@
       "order_max_distinct": 1,
       "repeat_stable_but_order_sensitive": false,
       "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.29,
+            0.29,
+            0.29
+          ],
+          "strict_last": [
+            0.29,
+            0.29,
+            0.29
+          ],
+          "permissive": [
+            0.496,
+            0.496,
+            0.496
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
         "n_orderings": 3,
         "n_items_text": 500,
         "n_items_scored": 500,
@@ -1186,18 +1819,18 @@
       "max_num_seqs": 8,
       "disabled_kernels": "MarlinLinearKernel,MacheteLinearKernel",
       "autotune": false,
-      "minutes": 23.6,
+      "minutes": 28.3,
       "seconds_per_pass": [
-        331.3,
-        331.2,
-        337.2,
-        342.7
+        401.0,
+        401.1,
+        406.4,
+        419.0
       ],
       "fingerprints": [
-        "7f75d9ccb840153b",
-        "7f75d9ccb840153b",
-        "7f75d9ccb840153b",
-        "7f75d9ccb840153b"
+        "cfb794c356b1f4fe",
+        "cfb794c356b1f4fe",
+        "cfb794c356b1f4fe",
+        "cfb794c356b1f4fe"
       ],
       "hardware": {
         "gpu": "NVIDIA L40S",
@@ -1216,6 +1849,18 @@
         "async_scheduling": false,
         "enable_prefix_caching": false,
         "num_gpu_blocks": 67858,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16
+        ],
+        "max_cudagraph_capture_size": "16",
+        "compile_ranges_endpoints": [
+          8192
+        ],
         "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
         "dtype": "torch.bfloat16",
         "quantization": "compressed-tensors"
@@ -1232,47 +1877,69 @@
       "repetition_floor": 0.0,
       "repetition_stable": true,
       "repetition_n_disagreeing": 0,
-      "order_divergence": 0.314,
+      "order_divergence": 0.494,
       "order_invariant": false,
-      "order_n_disagreeing": 157,
+      "order_n_disagreeing": 247,
       "n_items": 500,
       "order_max_distinct": 3,
       "repeat_stable_but_order_sensitive": true,
       "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.392,
+            0.392,
+            0.386
+          ],
+          "strict_last": [
+            0.392,
+            0.392,
+            0.386
+          ],
+          "permissive": [
+            0.49,
+            0.492,
+            0.496
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.006,
+          "strict_last": 0.006,
+          "permissive": 0.006
+        },
         "n_orderings": 3,
         "n_items_text": 500,
         "n_items_scored": 500,
         "n_items_unscored_no_gold": 0,
-        "text_divergence": 0.314,
+        "text_divergence": 0.494,
         "answer_divergence": {
-          "strict": 0.096,
-          "strict_last": 0.096,
-          "permissive": 0.126
+          "strict": 0.184,
+          "strict_last": 0.182,
+          "permissive": 0.232
         },
         "correctness_divergence": {
-          "strict": 0.048,
-          "strict_last": 0.048,
-          "permissive": 0.04
+          "strict": 0.076,
+          "strict_last": 0.076,
+          "permissive": 0.066
         },
-        "escalation_metric_strict_correctness": 0.048
+        "escalation_metric_strict_correctness": 0.076
       },
       "arm": "bnb-nf4",
       "model_key": "qwen2.5-3b",
       "max_num_seqs": 8,
       "disabled_kernels": "MarlinLinearKernel,MacheteLinearKernel",
       "autotune": false,
-      "minutes": 8.3,
+      "minutes": 13.1,
       "seconds_per_pass": [
-        114.7,
-        114.8,
-        119.6,
-        118.6
+        187.8,
+        188.0,
+        191.3,
+        188.5
       ],
       "fingerprints": [
-        "e0158eeea2d7764d",
-        "e0158eeea2d7764d",
-        "ea2e13a4d3836456",
-        "4b73c21cecfc1d90"
+        "6de9d50a7a8e7698",
+        "6de9d50a7a8e7698",
+        "7c9f071d48df8a5c",
+        "d200f55851d88be3"
       ],
       "hardware": {
         "gpu": "NVIDIA L40S",
@@ -1291,6 +1958,18 @@
         "async_scheduling": false,
         "enable_prefix_caching": false,
         "num_gpu_blocks": 67595,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16
+        ],
+        "max_cudagraph_capture_size": "16",
+        "compile_ranges_endpoints": [
+          8192
+        ],
         "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
         "dtype": "torch.bfloat16",
         "quantization": "bitsandbytes"
@@ -1314,6 +1993,28 @@
       "order_max_distinct": 1,
       "repeat_stable_but_order_sensitive": false,
       "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.32,
+            0.32,
+            0.32
+          ],
+          "strict_last": [
+            0.32,
+            0.32,
+            0.32
+          ],
+          "permissive": [
+            0.498,
+            0.498,
+            0.498
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
         "n_orderings": 3,
         "n_items_text": 500,
         "n_items_scored": 500,
@@ -1336,18 +2037,18 @@
       "max_num_seqs": 8,
       "disabled_kernels": "MarlinLinearKernel,MacheteLinearKernel",
       "autotune": false,
-      "minutes": 12.7,
+      "minutes": 24.9,
       "seconds_per_pass": [
-        179.4,
-        179.3,
-        182.7,
-        181.6
+        361.4,
+        361.5,
+        370.1,
+        361.8
       ],
       "fingerprints": [
-        "8654cc49557af725",
-        "8654cc49557af725",
-        "8654cc49557af725",
-        "8654cc49557af725"
+        "960c8b6a8a329815",
+        "960c8b6a8a329815",
+        "960c8b6a8a329815",
+        "960c8b6a8a329815"
       ],
       "hardware": {
         "gpu": "NVIDIA L40S",
@@ -1366,6 +2067,18 @@
         "async_scheduling": false,
         "enable_prefix_caching": false,
         "num_gpu_blocks": 67883,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16
+        ],
+        "max_cudagraph_capture_size": "16",
+        "compile_ranges_endpoints": [
+          8192
+        ],
         "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
         "dtype": "torch.bfloat16",
         "quantization": "compressed-tensors"
@@ -1384,47 +2097,69 @@
       "repetition_floor": 0.0,
       "repetition_stable": true,
       "repetition_n_disagreeing": 0,
-      "order_divergence": 0.334,
+      "order_divergence": 0.532,
       "order_invariant": false,
-      "order_n_disagreeing": 167,
+      "order_n_disagreeing": 266,
       "n_items": 500,
       "order_max_distinct": 3,
       "repeat_stable_but_order_sensitive": true,
       "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.33,
+            0.332,
+            0.326
+          ],
+          "strict_last": [
+            0.33,
+            0.332,
+            0.326
+          ],
+          "permissive": [
+            0.506,
+            0.504,
+            0.498
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.006,
+          "strict_last": 0.006,
+          "permissive": 0.008
+        },
         "n_orderings": 3,
         "n_items_text": 500,
         "n_items_scored": 500,
         "n_items_unscored_no_gold": 0,
-        "text_divergence": 0.334,
+        "text_divergence": 0.532,
         "answer_divergence": {
-          "strict": 0.074,
-          "strict_last": 0.074,
-          "permissive": 0.104
+          "strict": 0.162,
+          "strict_last": 0.162,
+          "permissive": 0.226
         },
         "correctness_divergence": {
-          "strict": 0.042,
-          "strict_last": 0.042,
-          "permissive": 0.03
+          "strict": 0.054,
+          "strict_last": 0.054,
+          "permissive": 0.058
         },
-        "escalation_metric_strict_correctness": 0.042
+        "escalation_metric_strict_correctness": 0.054
       },
       "arm": "gptq-4bit",
       "model_key": "qwen2.5-3b",
       "max_num_seqs": 8,
       "disabled_kernels": null,
       "autotune": true,
-      "minutes": 3.8,
+      "minutes": 7.0,
       "seconds_per_pass": [
-        49.9,
-        50.0,
-        48.6,
-        50.1
+        95.2,
+        95.2,
+        100.0,
+        98.5
       ],
       "fingerprints": [
-        "1d0b368eb6aa0956",
-        "1d0b368eb6aa0956",
-        "0b0e10138989d2b8",
-        "3350b0ade7845993"
+        "20d42c6894ee522d",
+        "20d42c6894ee522d",
+        "7cf536acfc4c0be1",
+        "52f7bc252587312e"
       ],
       "hardware": {
         "gpu": "NVIDIA L40S",
@@ -1443,6 +2178,18 @@
         "async_scheduling": false,
         "enable_prefix_caching": false,
         "num_gpu_blocks": 67948,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16
+        ],
+        "max_cudagraph_capture_size": "16",
+        "compile_ranges_endpoints": [
+          8192
+        ],
         "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
         "dtype": "torch.bfloat16",
         "quantization": "compressed-tensors"
@@ -1468,6 +2215,28 @@
       "order_max_distinct": 1,
       "repeat_stable_but_order_sensitive": false,
       "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.546,
+            0.546,
+            0.546
+          ],
+          "strict_last": [
+            0.546,
+            0.546,
+            0.546
+          ],
+          "permissive": [
+            0.586,
+            0.586,
+            0.586
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.0,
+          "strict_last": 0.0,
+          "permissive": 0.0
+        },
         "n_orderings": 3,
         "n_items_text": 500,
         "n_items_scored": 500,
@@ -1490,18 +2259,18 @@
       "max_num_seqs": 8,
       "disabled_kernels": null,
       "autotune": false,
-      "minutes": 16.5,
+      "minutes": 25.9,
       "seconds_per_pass": [
-        226.0,
-        226.2,
-        224.2,
-        224.9
+        364.0,
+        365.2,
+        372.1,
+        370.1
       ],
       "fingerprints": [
-        "64c1acb7a1cda75b",
-        "64c1acb7a1cda75b",
-        "64c1acb7a1cda75b",
-        "64c1acb7a1cda75b"
+        "996cab7b8a406891",
+        "996cab7b8a406891",
+        "996cab7b8a406891",
+        "996cab7b8a406891"
       ],
       "hardware": {
         "gpu": "NVIDIA L40S",
@@ -1520,6 +2289,18 @@
         "async_scheduling": false,
         "enable_prefix_caching": false,
         "num_gpu_blocks": 5473,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16
+        ],
+        "max_cudagraph_capture_size": "16",
+        "compile_ranges_endpoints": [
+          8192
+        ],
         "revision": "2fe192450127e6a83f7441aef6e3ca586c338b77",
         "dtype": "torch.bfloat16",
         "quantization": null
@@ -1536,47 +2317,69 @@
       "repetition_floor": 0.0,
       "repetition_stable": true,
       "repetition_n_disagreeing": 0,
-      "order_divergence": 0.372,
+      "order_divergence": 0.572,
       "order_invariant": false,
-      "order_n_disagreeing": 186,
+      "order_n_disagreeing": 286,
       "n_items": 500,
       "order_max_distinct": 3,
       "repeat_stable_but_order_sensitive": true,
       "by_level": {
+        "accuracy_by_ordering": {
+          "strict": [
+            0.496,
+            0.478,
+            0.482
+          ],
+          "strict_last": [
+            0.496,
+            0.478,
+            0.482
+          ],
+          "permissive": [
+            0.498,
+            0.5,
+            0.508
+          ]
+        },
+        "accuracy_spread": {
+          "strict": 0.018,
+          "strict_last": 0.018,
+          "permissive": 0.01
+        },
         "n_orderings": 3,
         "n_items_text": 500,
         "n_items_scored": 500,
         "n_items_unscored_no_gold": 0,
-        "text_divergence": 0.372,
+        "text_divergence": 0.572,
         "answer_divergence": {
-          "strict": 0.056,
-          "strict_last": 0.056,
-          "permissive": 0.132
+          "strict": 0.174,
+          "strict_last": 0.174,
+          "permissive": 0.298
         },
         "correctness_divergence": {
-          "strict": 0.026,
-          "strict_last": 0.026,
-          "permissive": 0.052
+          "strict": 0.096,
+          "strict_last": 0.096,
+          "permissive": 0.108
         },
-        "escalation_metric_strict_correctness": 0.026
+        "escalation_metric_strict_correctness": 0.096
       },
       "arm": "gptq-4bit",
       "model_key": "phi-3.5-mini",
       "max_num_seqs": 8,
       "disabled_kernels": null,
       "autotune": false,
-      "minutes": 5.6,
+      "minutes": 9.8,
       "seconds_per_pass": [
-        72.5,
-        72.6,
-        76.4,
-        74.2
+        135.0,
+        136.8,
+        141.6,
+        138.3
       ],
       "fingerprints": [
-        "4f3b9e7f7a6a256a",
-        "4f3b9e7f7a6a256a",
-        "efc23b7e429d72a5",
-        "41e4ce90f0b8000d"
+        "3585707620de7a4e",
+        "3585707620de7a4e",
+        "deb37bb30f842895",
+        "b29540ebb44b8816"
       ],
       "hardware": {
         "gpu": "NVIDIA L40S",
@@ -1595,13 +2398,30 @@
         "async_scheduling": false,
         "enable_prefix_caching": false,
         "num_gpu_blocks": 6332,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16
+        ],
+        "max_cudagraph_capture_size": "16",
+        "compile_ranges_endpoints": [
+          8192
+        ],
         "revision": "2fe192450127e6a83f7441aef6e3ca586c338b77",
         "dtype": "torch.bfloat16",
         "quantization": "compressed-tensors"
       }
     }
   ],
-  "unmeasured": [
+  "marlin_mechanism_pinned_on": [
+    "awq-4bit",
+    "gptq-4bit"
+  ],
+  "unmeasured": [],
+  "unmeasured_optional": [
     "gptq-8bit@8+marlin-off"
   ]
 }
