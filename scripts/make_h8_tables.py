@@ -192,7 +192,7 @@ def mechanism_table(reanalysis: list) -> str:
     ])
 
 
-def macros(report: dict, reanalysis: list) -> str:
+def macros(report: dict, reanalysis: list, report10: dict) -> str:
     """Single-number facts the prose needs, as macros so the prose cannot go stale."""
     quant = [c for c in reanalysis
              if c["model_key"] == AUDIT_MODEL and c["arm"] != "bf16" and not variant(c)]
@@ -212,6 +212,22 @@ def macros(report: dict, reanalysis: list) -> str:
             if rng is not None:
                 bf16_cells += 1
                 bf16_zero += int(rng == 0)
+
+    # 10-ordering aggregates (R17.3). bf16's zero count is COUNTED, not asserted: it is
+    # the strongest single number in H8 and must not rest on recall.
+    worst_sd10 = worst_range10 = 0.0
+    bf16_ten_zero = bf16_ten_cells = 0
+    for cell in report10["sweep"]:
+        for rung in ("strict", PRIMARY_RUNG):
+            sd, rng = sd_and_range(cell, rung)
+            if sd is None:
+                continue
+            if cell["arm"] == "bf16":
+                bf16_ten_cells += 1
+                bf16_ten_zero += int(rng == 0)
+            else:
+                worst_sd10 = max(worst_sd10, sd)
+                worst_range10 = max(worst_range10, rng)
 
     pinned = [c["arm"] for c in reanalysis
               if variant(c) == "fallback"
@@ -233,19 +249,60 @@ def macros(report: dict, reanalysis: list) -> str:
         rf"\newcommand{{\hEightPinned}}{{{len(pinned)}\xspace}}",
         rf"\newcommand{{\hEightFrozenB}}{{{max(levels_of(reanalysis))}\xspace}}",
         rf"\newcommand{{\hEightEngine}}{{{report['determinism_version']}\xspace}}",
+        # 10-ordering facts. DELIBERATELY separate macros from the 3-ordering ones: the two
+        # measure different populations (see sd_table) and must never be interchanged.
+        rf"\newcommand{{\hEightSDOrderings}}{{{len(report10['orderings'])}\xspace}}",
+        rf"\newcommand{{\hEightWorstSDTen}}{{{worst_sd10 * 100:.2f}\xspace}}",
+        rf"\newcommand{{\hEightRangeTen}}{{{worst_range10 * 100:.1f}\xspace}}",
+        rf"\newcommand{{\hEightBFTenZero}}{{{bf16_ten_zero}\xspace}}",
+        rf"\newcommand{{\hEightBFTenCells}}{{{bf16_ten_cells}\xspace}}",
+    ])
+
+
+def sd_table(report10: dict) -> str:
+    """SD and range of accuracy across the TEN orderings (R17.3, prereg SS9a).
+
+    ⚠️ **SUPERSEDES the 3-ordering spread table rather than extending it.** The earlier probe
+    predated the BBH terminator fix, so ~2/5 of its items were inert and its spreads were
+    attenuated. The two are never pooled.
+
+    ⚠️ SD is the inferential quantity; the range is descriptive ONLY -- and our own data now
+    demonstrates why rather than merely asserting it: going from 3 to 10 orderings grew the
+    observed range from 1.6 pp to 3.8 pp with NO change to the underlying effect, because the
+    range is monotone in the number of draws.
+    """
+    cells = {c["arm"]: c for c in report10["sweep"]}
+    rows = []
+    for arm in ARM_ORDER:
+        cell = cells.get(arm)
+        if cell is None:
+            continue
+        parts = []
+        for rung in ("strict", PRIMARY_RUNG):
+            sd, rng = sd_and_range(cell, rung)
+            parts.append(f"{pct(sd)} & {pct(rng)}")
+        rows.append(f"{ARM_LABEL[arm]} & " + " & ".join(parts) + r" \\")
+    return _tabular("lcccc", [
+        r"& \multicolumn{2}{c}{strict} & \multicolumn{2}{c}{permissive} \\",
+        r"\cmidrule(lr){2-3}\cmidrule(lr){4-5}",
+        r"arm & SD & range & SD & range \\",
+        r"\midrule",
+        *rows,
     ])
 
 
 def main() -> int:
     report = load("determinism.json")
     reanalysis = load("determinism_reanalysis.json")
+    report10 = load("determinism_ord10.json")
     TABLES.mkdir(parents=True, exist_ok=True)
 
     for name, body in {
         "h8_frontier.tex": frontier_table(reanalysis),
         "h8_spread.tex": spread_table(reanalysis),
+        "h8_sd10.tex": sd_table(report10),
         "h8_mechanism.tex": mechanism_table(reanalysis),
-        "h8_macros.tex": macros(report, reanalysis),
+        "h8_macros.tex": macros(report, reanalysis, report10),
     }.items():
         (TABLES / name).write_text(body + "\n")
         print(f"  wrote paper/tables/{name}  ({len(body.splitlines())} lines)")

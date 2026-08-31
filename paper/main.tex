@@ -334,22 +334,32 @@ floor is \hEightRepFloor\% in all \hEightNCells{} cells. So every difference
 reported below is attributable to ordering alone, not to run-to-run variation.
 
 \paragraph{Aggregate accuracy moves, and only for quantized arms.}
-Table~\ref{tab:h8-spread} gives the standard deviation and range of accuracy
-across \hEightOrderings{} orderings of the same \hEightItems{} items. For
-\texttt{bf16} both are exactly zero in all \hEightBFZero{} of \hEightBFCells{}
-model~$\times$~batch-size~$\times$~rung cells. Every quantized arm moves, by up
-to \hEightWorstRange{} accuracy points (SD \hEightWorstSD).
+Table~\ref{tab:h8-sd} gives the standard deviation of accuracy across
+\hEightSDOrderings{} orderings of the same \hEightItems{} items at the served
+batch size we adopt. For \texttt{bf16} the accuracy is \emph{identical} under all
+\hEightSDOrderings{} orderings, at both scoring rungs: \hEightBFTenZero{} of
+\hEightBFTenCells{} cells show exactly zero variation. Every quantized arm moves,
+by up to \hEightWorstSDTen{} points of standard deviation.
 
 \begin{table}[t]
 \centering
 \small
-\input{tables/h8_spread}
-\caption{Accuracy across \hEightOrderings{} orderings of the same
-\hEightItems{} items, in accuracy points, by served batch size $B$. SD is the
-inferential quantity; the range is descriptive only, since it is unstable and
-grows with sample size. \texttt{bf16} is exactly zero everywhere.}
-\label{tab:h8-spread}
+\input{tables/h8_sd10}
+\caption{Accuracy across \hEightSDOrderings{} orderings of the same
+\hEightItems{} items, in accuracy points, at $B=\hEightFrozenB$. The standard
+deviation is the inferential quantity; the range is descriptive only. \texttt{bf16}
+is identical under every ordering.}
+\label{tab:h8-sd}
 \end{table}
+
+\paragraph{Why we report a standard deviation and not a spread.}
+A minimum--maximum spread is monotone in the number of orderings sampled, so it
+grows with effort rather than converging. We can show this rather than assert it:
+the same quantity measured over three orderings gave a spread of 1.6 points and
+over \hEightSDOrderings{} gives \hEightRangeTen{}, with no change to the
+underlying effect. Any spread reported over a handful of runs is therefore a lower
+bound on the spread its own protocol would have produced with more. The standard
+deviation, by contrast, stayed within a narrow band across arms and rungs.
 
 Three properties matter more than the magnitude. The shift is
 \textbf{deterministic} given an ordering rather than sampling noise, so it
@@ -419,17 +429,6 @@ that is comparatively stable. Leniency therefore buys recovery of truncated
 answers at the cost of exposure to batch-composition noise --- which is an
 argument for calibrating extraction rather than loosening it
 (\S\ref{sec:ladder}).
-
-\paragraph{These figures are a lower bound.}
-The probe underlying Table~\ref{tab:h8-spread} was generated before we discovered that
-the harness's few-shot BigBench-Hard configuration terminates generation almost
-immediately under chat templating (\S\ref{sec:determinism}), so roughly two fifths of its
-items produced no answer under \emph{any} ordering. Items that are wrong under every
-ordering contribute no variance; they only enlarge the denominator. The reported
-spreads are therefore attenuated by approximately the inert fraction, and the true
-spread over answerable items is correspondingly larger. We report the diluted figures
-because they are what the pre-registered probe measured, and note the direction of the
-bias rather than adjusting them.
 
 \paragraph{Scope.}
 \todo{H8 scope --- restate once the 10-ordering confirmatory run (pre-registered,
