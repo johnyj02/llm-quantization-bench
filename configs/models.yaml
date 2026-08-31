@@ -71,6 +71,15 @@ serving:
   # The repetition floor is 0.000% at every level for every arm, so §9's noise-floor
   # pre-commitment binds to that and is unaffected by this choice.
   max_num_seqs: 64
+  # 🚨 Ignore each model's own generation_config.json. vLLM's default is "auto", which
+  # reads it -- and Qwen2.5-3B-Instruct ships do_sample true, temperature 0.7, top_p 0.8,
+  # top_k 20 and repetition_penalty 1.05, while Phi-3.5-mini ships no sampling fields at
+  # all. Under "auto" the decoding configuration is therefore MODEL-DEPENDENT, in a study
+  # whose whole design holds the apparatus fixed across arms and models. Found 2026-08-31
+  # when the user asked whether temperature/top_p/top_k could explain the cross-invocation
+  # nondeterminism. They cannot (Qwen has the most aggressive defaults and is the ONLY
+  # perfectly reproducible model), but the question exposed this.
+  generation_config: vllm
   max_num_seqs_resolved_by_audit: true    # A7 (job 2), 2026-08-29
   disabled_kernels: null         # VLLM_DISABLED_KERNELS, set only if A7 requires it
 

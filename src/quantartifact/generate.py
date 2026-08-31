@@ -98,6 +98,16 @@ class EngineSpec:
     enforce_eager: bool = False        # CUDA graphs are BI-compatible since PR #27660
     add_bos_token: bool = True         # quantized models are BOS-sensitive
     disabled_kernels: str | None = None
+    # 🚨 "vllm" tells the engine to IGNORE the model's own generation_config.json and use
+    # vLLM's neutral defaults. The default is "auto", which loads that file -- and Qwen's
+    # ships do_sample/temperature 0.7/top_p 0.8/top_k 20/repetition_penalty 1.05 while
+    # Phi's ships none, so "auto" makes the decoding configuration MODEL-DEPENDENT in a
+    # study whose whole point is holding the apparatus fixed across arms and models.
+    #
+    # Belt and braces with the explicit SamplingParams below: this stops the file being
+    # read at all, and those pin every field regardless. Either alone would probably do;
+    # both is the right amount of paranoia for a value the paper REPORTS.
+    generation_config: str = "vllm"
     # ⚠️ MUST be passed to the engine, not merely declared. `configs/models.yaml` has
     # said `async_scheduling: false` all along, but nothing forwarded it -- and the
     # first real engine log read "Asynchronous scheduling is enabled", because vLLM's
@@ -447,6 +457,10 @@ class VLLMRunner:
                 "enforce_eager": self.spec.enforce_eager,
                 # Declared in configs/models.yaml and now actually ENFORCED.
                 "async_scheduling": self.spec.async_scheduling,
+                # Ignore the MODEL's generation_config.json. See EngineSpec: "auto" would
+                # make decoding model-dependent (Qwen ships repetition_penalty 1.05, Phi
+                # ships nothing), in a study that reports greedy with no penalties.
+                "generation_config": self.spec.generation_config,
                 # Passed as the NESTED config, not the top-level shortcut: the
                 # shortcut goes through merge logic in create_engine_config that
                 # raises if both are set, and a False there risks being read as
@@ -505,9 +519,32 @@ class VLLMRunner:
         """
         from vllm import SamplingParams, TokensPrompt  # noqa: PLC0415 - box-only
 
+        # 🚨 EVERY SAMPLING FIELD IS SET EXPLICITLY, including the ones that are
+        # inoperative under greedy decoding. Reason: vLLM's `generation_config` defaults
+        # to "auto", which loads the MODEL's own `generation_config.json` and uses it to
+        # fill fields the request leaves unset -- and those files differ per model:
+        #
+        #   Qwen2.5-3B-Instruct : do_sample true, temperature 0.7, top_p 0.8, top_k 20,
+        #                         repetition_penalty 1.05
+        #   Phi-3.5-mini        : no sampling fields at all
+        #
+        # `temperature=0.0` makes top_p/top_k inoperative (argmax), but
+        # **repetition_penalty modifies the logits BEFORE the argmax**, so a leaked 1.05
+        # would silently change greedy output on Qwen and not on Phi. Pape et al.
+        # (arXiv:2605.19537) traced one of their two largest cross-backend outliers to
+        # exactly this -- an unnoticed repetition penalty worth 11.67 points.
+        #
+        # We do not rely on reasoning about which vLLM version merges what. Every field is
+        # pinned and then asserted, which is this project's standing rule after
+        # `desc_act`, `async_scheduling`, `add_bos_token`, the pilot's `until`, job 1b's
+        # destination path and the determinism resume key.
         params = SamplingParams(
             temperature=0.0,
             top_p=1.0,
+            top_k=-1,                 # -1 = disabled. Qwen's config would supply 20.
+            repetition_penalty=1.0,   # 1.0 = none. Qwen's config would supply 1.05.
+            presence_penalty=0.0,
+            frequency_penalty=0.0,
             max_tokens=max_gen_toks,
             stop=until,
             seed=self.spec.seed,
@@ -515,10 +552,20 @@ class VLLMRunner:
         )
         # R14.3 item 6: assert the values as they reached SamplingParams, not as we
         # believe we passed them. Same failure shape as `async_scheduling`.
-        if params.temperature != 0.0 or params.seed != self.spec.seed:
+        neutral = {
+            "temperature": 0.0, "top_p": 1.0, "top_k": -1,
+            "repetition_penalty": 1.0, "presence_penalty": 0.0, "frequency_penalty": 0.0,
+        }
+        wrong = {
+            field: getattr(params, field)
+            for field, expected in neutral.items()
+            if getattr(params, field, expected) != expected
+        }
+        if wrong or params.seed != self.spec.seed:
             raise PreflightError(
-                f"SamplingParams did not take our values: temperature="
-                f"{params.temperature}, seed={params.seed}"
+                f"SamplingParams did not take our values: {wrong}, "
+                f"seed={params.seed} (wanted {self.spec.seed}). Greedy decoding with no "
+                f"penalties is a REPORTED property of this study, not a default."
             )
 
         if token_ids is not None:
