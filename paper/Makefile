@@ -34,8 +34,12 @@ g6: $(MAIN).pdf
 	@n=$$(python3 ../scripts/pdf_pages.py $(MAIN).pdf); \
 	 echo "  pages: $$n"; \
 	 if [ "$$n" -le $(PAGE_LIMIT) ]; then echo "  PASS"; else echo "  FAIL"; exit 1; fi
-	@echo "== G6: Limitations section present (absence = automatic desk reject) =="
-	@grep -q 'section\*{Limitations}' $(MAIN).tex && echo "  PASS" || { echo "  FAIL"; exit 1; }
+	@echo "== G6: required sections present AND non-empty =="
+	@# 🚨 Was `grep -q 'section*{Limitations}'`, which tested only that the HEADING
+	@# existed. An audit on 2026-08-31 found six required sections with a heading, a
+	@# label, planning comments and ZERO prose -- and G6 passed all four criteria. An
+	@# empty Limitations section is a desk reject exactly as a missing one is (A23).
+	@python3 ../scripts/check_sections.py $(MAIN).tex
 	@printf '== G6: todo markers only inside Results ==\n'
 	@python3 ../scripts/check_todo_scope.py $(MAIN).tex
 
