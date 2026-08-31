@@ -1406,3 +1406,149 @@ needs changing.** Confirm on pilot-v2's full 120 BBH items/cell, since n=30 here
 **Lesson worth keeping:** a central-tendency statistic cannot answer a question about
 saturation. Both times this study nearly mis-read BBH it was by trusting a summary statistic
 over the distribution — first the throughput rate, then the median token count.
+
+---
+
+## R21 — Cross-invocation nondeterminism: hold `main-v1`, get the accuracy number first
+
+Raw answer: `notes/planner-answers/R21-cross-job-nondeterminism.txt`. Full record and every
+refutation: `notes/cross-invocation.md`. Registered as prereg §9f.
+
+### R21.1 The clue I had not mined, and the mechanism it pointed at
+
+Phi's split is **not random**: its differing arms (`bf16`, `bnb-nf4`) are exactly the arms that
+load the **original bf16 weights** — bnb-NF4 quantizes in-flight — while its stable arms load our
+S3 checkpoints. That is also the large-vs-small footprint split. Proposed mechanism: vLLM
+profiles free GPU memory at startup and derives `num_gpu_blocks` from it, so two invocations
+could measure different free memory → different block count → different batch scheduling → one
+flipped token → cascade. Qwen (3B) saturates, Llama-8B is always tight, Phi splits by footprint —
+all three patterns fit.
+
+**Called the fourth instance of declared-vs-enforced:** we froze `max_num_seqs` but never froze
+the KV cache size, which is downstream of a runtime measurement of a shared GPU.
+
+❌ **REFUTED by a log grep, not a job.** KV cache sizes are **byte-identical** between jobs, cell
+for cell (llama gptq-4bit 273,616 both; qwen 1,087,168 both). Block count is deterministic. The
+`num_gpu_blocks_override` fix is therefore unavailable, and three further hypotheses were
+refuted after it (`notes/cross-invocation.md` §4, §3.4 of the handoff).
+
+### R21.2 Text divergence is not the quantity — get the signed accuracy delta
+
+*"Free to compute from data you hold. Get it before anything else."* Done: worst |Δ| **4.44 pp**,
+mean 0.60, SD of deltas 1.20.
+
+🚨 **And the crux the planner named in advance:** ordering divergence was *common across arms* so
+it contributed zero **differential** noise; this does not. Llama `bf16` moved **+1.11** while
+`gptq-4bit` moved **−1.67**, swinging their delta **2.78 pp from re-running alone** — §4.6's
+differential-noise concern landing for real, at the same order as the effects H3/H4 estimate.
+
+### R21.3 Ruling: (a) + (c) plus the two bounded checks — NOT an open-ended investigation
+
+- **`invocation_id` on every generation record, regardless of cause.** Provenance for a 15-cell
+  run spanning many engine loads should be exact, not inferred. ⚠️ **NOT YET IMPLEMENTED.**
+- **It is a finding, and its value depends on the diagnosis.** Unexplained: *"the same job run
+  twice diverges on 43% of items."* Diagnosed, it would have become *"cross-invocation
+  reproducibility requires pinning X, which no published protocol reports"* — same structure as
+  the ordering result but with a fix we could hand the field. It remains **undiagnosed**, so the
+  weaker form is what the paper carries.
+- **§9 revised conditionally**, and the condition fired: divergence is material (>0.5 pp), so
+  between-arm claims bind to an invocation floor. That became §9f.
+- ⚠️ **Both structural fixes are unavailable**: the blocks are already identical, and "all arms
+  of a model in one invocation" is impossible because each arm is different weights. Per-arm
+  invocation is unavoidable, so this variance is **inherently between-arm**.
+
+---
+
+## R22 — The rung GAP is more stable than either accuracy. Partly right, and R23 corrects it
+
+Raw answer: `notes/planner-answers/R22-pipeline-floor.txt`.
+
+The planner spotted what neither of us had: **rungs 1 and 2 score the same stored generations**,
+so re-scoring carries zero invocation noise, and the strict−permissive *gap* should therefore be
+more stable than either raw accuracy. ✅ **Confirmed on data in hand** (`pilot-v1` → `pilot-v2`,
+n=180/cell, 17 cells):
+
+| quantity | mean \|Δ\| | max \|Δ\| | SD across cells |
+|---|---|---|---|
+| strict accuracy | 0.65 pp | **4.44 pp** | 1.15 pp |
+| permissive accuracy | 0.56 pp | 2.78 pp | 0.96 pp |
+| **gap (perm − strict)** | **0.42 pp** | **1.67 pp** | **0.61 pp** |
+
+Cleanest case: phi/bnb-NF4's strict moved 4.44 pp while its gap moved 1.67 — the noise flipped
+items under both scorers and cancelled in the difference.
+
+🚨 **BUT R22 ALSO PLACED H3's INTERACTION IN THE ZERO-NOISE CLASS, AND THAT IS WRONG.** See R23.
+
+---
+
+## R23 — THREE noise classes, not two. Corrects R22, and the floor must be an ESTIMATOR
+
+Raw answer: `notes/planner-answers/R23-three-noise-classes.txt`. Registered as prereg §9f/§9g.
+
+### R23.1 The correction, which I raised and the planner accepted
+
+*"You're right and my classification was wrong. I conflated 'the scoring axis is
+within-invocation' with 'the interaction is within-invocation.'"* H3's interaction is
+`gap(arm) − gap(bf16)`, so its **outer** difference is **between arms** → two independent
+invocations → variances **add**. It lands in the worst class, not the best: measured pilot
+movement **2.78 pp** (llama/gptq-8bit), worse than either raw accuracy delta on that cell.
+
+| class | quantities | noise |
+|---|---|---|
+| **1. none** | re-scoring **one fixed generation set**: rung monotonicity, compliance labels, §8's trace scan, found/committed split, per-item rung agreement | **exactly zero** |
+| **2. partially cancelling** | a **within-arm** rung difference (the gap) | reduced — max 1.67 pp vs 4.44 |
+| **3. compounding** | anything **contrasting arms**: precision main effects, §1.1's competence contrast, §1.3's bounds, H4's components, **and H3's interaction** | variances add — max 2.78 pp |
+
+### R23.2 🚨 The 2.78 pp is an n=180 number and must NOT go in the prereg
+
+The effect is **churn, not bias** — deltas run both directions within a model — so the aggregate
+shift scales as **1/√n**. *"Baking 2.78 into §9 would cripple H3 with a number that doesn't apply
+to it."*
+
+**Verified free, on data in hand, as the planner instructed:** `SD(Δ) = 100·√(churn/n)` holds to
+within the finite-population correction (observed/predicted 0.766; FPC predicts 0.58–0.92,
+observed 0.56–0.94). Churn is 1.7–5.6%, near-symmetric (44 flips, |net| 20).
+
+| | per-arm SD | class-3 interaction floor |
+|---|---|---|
+| pilot n=180 | 1.39 pp | 2.78 pp |
+| reference n=2,719 | **0.36 pp** | 0.51 pp |
+| + K=2 | **0.25 pp** | **0.36 pp** |
+
+**H3 is safe.** Prereg the **estimator, not the number**: per-arm invocation SD from the K=2
+cells at reference n, ×√2 for class-3 contrasts, with the pilot figure cited only as a
+preliminary estimate *with its n stated*.
+
+⚠️ **One cell may be bias rather than churn**: phi/bnb-NF4 flipped 9 up, 1 down. Asymmetric churn
+does **not** shrink with n, so per-cell flip asymmetry is reported alongside the floor and any
+cell failing a two-sided direction check is excluded from the pooled estimate.
+
+### R23.3 K=2 coverage follows the ESTIMAND, not the empirical screen
+
+My argument accepted over the planner's own stratified design, with three added reasons:
+- At n=180 **one item is 0.56 pp**, so qwen's "0.00" means *fewer than one item flipped* — not
+  zero with confidence.
+- Stratifying on an empirical screen **biases the pooled floor upward** (measuring only where the
+  effect was already seen) and leaves the signal-carrying cells unmeasured.
+- Qwen carries the **largest rung gaps**, so it is the worst possible place for an unmeasured floor.
+
+**3 models × {bf16, gptq-4bit, awq-4bit} = 9 cells, plus llama/gptq-8bit = 10**, inside `main-v1`
+so the two invocations are contemporaneous. The last cell because it is the **worst observed**
+interaction movement and *"leaving the observed worst case without a floor estimate is precisely
+what a reviewer picks."* ⚠️ **NOT YET IMPLEMENTED in `sm_reference.py`.**
+
+### R23.4 A §4.0 item neither of us had raised
+
+**The always-compliant stratum's membership is itself invocation-dependent.** Registered as §9g:
+the stratum is items committed in **all invocations of all contrasted arms** — the stricter,
+smaller, invocation-stable version, *"the version that can't be accused of being
+invocation-shopped"* — with **both** stratum sizes reported so the cost is visible.
+
+### R23.5 Order of operations before `main-v1`
+
+1. the 1/√n scaling check (free) — ✅ **done**
+2. prereg amendment with the three classes and the estimator — ✅ **done** (§9f, §9g)
+3. `main-v1` with K=2 on the 10 cells — ⚠️ **K=2 not yet implemented**
+
+Also confirmed: `invocation_id` per record, CUDA graph shape as a logged field, and upstream
+filing with the three refuted hypotheses **and their killing numbers**, not before Sep 2.

@@ -7,9 +7,9 @@ This is the running record. Evidence paths are repo-relative.
 |---|---|---|---|---|
 | **G1** env + access | Aug 25 | ✅ **PASSED** | 2026-08-23 | `notes/access.md`, `notes/compute.md`, `pyproject.toml` |
 | **G2** prompt parity | Aug 27 | ✅ **PASSED** | 2026-08-26 | `artifacts/prompts/MANIFEST.json` (27 cells, 0 failures) |
-| **G3** scorers | Aug 28 | 🟡 partial | — | **305** tests green; ARC log-likelihood cross-val outstanding |
-| **G4** determinism (H8) | Aug 30 | ✅ **PASSED** | 2026-08-29 | job 2 complete: frontier at {8,32,64} × 3 levels; `max_num_seqs=64` frozen (R16.2) |
-| **PREREG** | **Sep 2** | 🟡 drafted | — | `analysis/preregistration.md`, all nine R-items written |
+| **G3** scorers | Aug 28 | 🟡 partial | — | **340** tests green; ARC log-likelihood cross-val outstanding — ⚠️ **BLOCKED: the log-likelihood arms are not implemented** (`run_cell` is generation-only) |
+| **G4** determinism (H8) | Aug 30 | ✅ **PASSED** | 2026-08-29 | frontier at {8,32,64} × 3 levels; `max_num_seqs=64` frozen (R16.2). Superseded in magnitude by the 10-ordering run (bf16 exactly 0.000 across ten, worst quantized SD 1.14 pp); a re-run with fixed BBH terminators is in flight |
+| **PREREG** | **Sep 2** *(schedule)* | 🟡 drafted | — | `analysis/preregistration.md`. 🚨 **The BINDING line is the first `run_id=main-v1` generation, not the calendar** (§9f) — until it exists, §1–§9 may be edited, because no edit can have been influenced by confirmatory results |
 | **G5a** anchors | Sep 2 | 🟡 unblocked | — | 9 quantized checkpoints exist (job 1 complete, 45.86 GB) |
 | **G5** reference runs | Sep 13 | 🟡 unblocked | — | substrate proven end-to-end; gated on G4's frozen `max_num_seqs` |
 | **G6** submittable draft | **Sep 20** | 🟡 mechanism ready | — | `make -C paper g6` checks all four criteria |
@@ -90,7 +90,7 @@ extraction, don't loosen it" framing.
 | 2 | does **correctness** divergence clear R15.6's 10 pp trigger? | **No.** Worst strict-correctness **5.4%** (gptq-4 @32); worst *permissive*-correctness **7.0%** (awq-4 @32) — computed, not inferred, per R16.1, since §2.2's headline is rung 1 **vs rung 2**. No escalation before the freeze. |
 | 3 | **Marlin attribution**, paired ±`VLLM_DISABLED_KERNELS` | **Pinned to a named kernel.** gptq-4 33.4→**0.0%**, awq-4 43.6→**0.0%**. bnb-nf4 31.4→31.4% = a **second, distinct, Marlin-independent** mechanism that *improves* with batch size (31.4→1.4%), backwards from every other arm. |
 | 4 | model generality on Phi-3.5-mini, the architectural outlier | **Same shape.** bf16 0.0%; gptq-4 37.2% text / 5.6% answer / 2.6% correctness. Rates transfer across architectures. |
-| 5 | A6 throughput per arm | ~24,800 gen/h at 500 items (vs 3,900–15,600 at 20 — fixed overhead amortises). A6 delivered without its own job. |
+| 5 | A6 throughput per arm | ⚠️ **This row's original number was WRONG and is retained only to show why** (R20). It read ~24,800 gen/h — measured while BBH's broken terminators emitted ~nothing on 5 of 6 subtasks, so most of the "generations" were 1–9 tokens. Real rates with BBH fixed: **BBH 7,099 gen/h, gsm8k 5,250, ARC effectively free**, and **generation is only ~25% of billable time** — **2.6 min/cell of engine-load overhead dominates**, making CELL COUNT a first-class cost driver rather than item count. |
 
 Two results beyond the criteria: the **repetition floor is 0.000% in all 15 cells** (§9's
 pre-commitment binds here), and **autotune is ruled out empirically** — 33.4% with it off, 33.4%
