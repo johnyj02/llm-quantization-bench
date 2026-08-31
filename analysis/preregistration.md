@@ -952,6 +952,14 @@ our own reference runs on the same items.
 
 **H7 framing, pre-committed.** For each published degradation figure cited, compute the 95%
 CI implied by that paper's own eval size and state whether the reported delta clears it.
+
+**Protocol-reporting column, added 2026-08-30 (R19.3).** The H7 audit table gains a column
+recording, per cited source, whether it reports (a) the chat-template setting and (b) the
+extraction mode. ⚠️ **Reported as N of M CHECKED, with M stated** — an impression that "most
+papers omit it" would be the exact failure §0.1(b) diagnoses. Each row must be verified against
+the primary source and recorded in `notes/protocol-survey.md`, where "not reported" means
+*checked and absent*, never *not looked for*. **No counted claim about the field goes in the
+paper until M covers the bib entries that report a delta.**
 Also report our own minimum detectable effect at 80% power. Wording is scrupulously
 neutral: **"many papers report aggregate deltas without a paired test"** — **never** "the
 deltas are noise". We adopt Kübler et al.'s (ICLR 2026) paired McNemar test rather than
