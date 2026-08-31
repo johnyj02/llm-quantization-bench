@@ -188,8 +188,26 @@ the watcher dies instantly while the job runs unobserved. `watch_job.sh` resolve
 ⚠️ **Credentials expire after ~1 h.** A loop that does `2>/dev/null || continue` swallows
 `ExpiredTokenException` and reports a stale status forever. `watch_job.sh` refreshes and retries.
 
-Stages, in order: `verify` → `throughput` → `quantize` → `determinism`. All four have entry
-points and submit cleanly.
+Stages, in dependency order: `verify` → `throughput` → `quantize` (job 1) → `determinism`
+(job 2, H8) → `pilot` (job 3, the annotation pool) → `template` (the template factor) →
+`reference` (**THE MAIN RUN**, `run_id=main-v1`). Plus `diagnose`, a general-purpose slot for
+one cheap job answering a specific open question — a *measurement*, not a rehearsal. All eight
+have entry points and submit cleanly; `README.md` §4 has the table.
+
+🚨 **`reference` is the pre-registration freeze line.** `analysis/preregistration.md` §1–§9 may
+be edited freely until the first `main-v1` generation exists, because until then no edit can
+have been influenced by confirmatory results. From that job onward it is append-only. The Sep 2
+date is the *schedule* target, not the binding constraint (§9f).
+
+🚨 **A cached or resumed unit of work must be keyed on EVERYTHING that determines what it
+produces.** This has cost real runs eight times — values declared and never forwarded
+(`desc_act`, `async_scheduling`, `add_bos_token`), a value forwarded but missing from the cache
+key (the pilot's per-level `until`), a path derived inside the callee (job 1b), a resume key
+without the ordering count (the 10-ordering run silently reused 3-ordering results and exited
+`Completed`), and a `run_id` without a probe index. Root fix: `decoding_fingerprint()` in
+`src/quantartifact/generate.py`, appended to `cell_tag`. **Bump `DECODING_VERSION` when anything
+affecting generation changes.** ⚠️ `env_hash` is NOT this — it covers `{gpu, cuda}` only, which
+is why it stayed identical across two separate configuration changes.
 
 ### `--smoke` FIRST, every time
 

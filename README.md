@@ -19,10 +19,12 @@ that can drift will drift — that already happened once with the ledger.
 |---|---|
 | `EXECUTOR-TASKS.md` | **Execution** — scope, substrate, schedule, task order, gates |
 | `EXECUTOR-PLAN.md` | **Scientific design** — hypotheses, factors, scoring semantics, statistics |
-| `analysis/preregistration.md` | The frozen analysis plan. **Freeze 2026-09-02.** Its value is the timestamp. |
+| `analysis/preregistration.md` | The frozen analysis plan. Sep 2 is the *schedule* target; the **binding line is the first `main-v1` generation** (§9f). Its value is the timestamp. |
 | `CLAUDE.md` | **How to actually run things**, and every trap paid for once already |
-| `notes/planner-rulings.md` | Planner's authoritative rulings (R1–R16), raw text in `notes/planner-answers/` |
+| `notes/planner-rulings.md` | Planner's authoritative rulings (R1–R23), raw text in `notes/planner-answers/` |
 | `notes/RUNLOG.md` | Every billable run: what it cost and what it taught us |
+| `notes/cross-invocation.md` | The undiagnosed cross-invocation nondeterminism, with three refuted hypotheses |
+| `notes/protocol-survey.md` | Which cited work reports its protocol — N of M **checked** |
 | `notes/gates.md` | Live gate status |
 
 TASKS wins on execution, PLAN wins on science. TASKS §0.2 lists eleven intentional
@@ -110,7 +112,10 @@ Stages, in dependency order:
 | `throughput` | `sm_throughput.py` | A6 (now largely subsumed — job 2 reports per-arm rates) |
 | `quantize` | `sm_quantize.py` | **job 1** — 9 checkpoints at the normalised calibration budget |
 | `determinism` | `sm_determinism.py` | **job 2** — order-divergence frontier, H8, gate G4 |
-| `pilot` | `sm_pilot.py` | **job 3** — 17 cells × 300, the annotation pool |
+| `pilot` | `sm_pilot.py` | **job 3** — 17 cells × 300, the annotation pool (`run_id=pilot-v2`) |
+| `template` | `sm_template.py` | the prompt-template **factor**, both levels — the probe that defends the headline (prereg §3b-bis) |
+| `diagnose` | `sm_diagnose.py` | one cheap job answering specific open questions; a *measurement*, not a rehearsal |
+| `reference` | `sm_reference.py` | **THE MAIN RUN**, `run_id=main-v1` — 15 cells × 4,238 items. 🚨 **This job is the pre-registration freeze line** |
 
 ```bash
 # 1. Inspect at ZERO cost — submits nothing, validates everything
@@ -154,6 +159,29 @@ printed and stored in `determinism.json` (`unmeasured` / `unmeasured_optional`),
 never means "everything ran". Job 2 read `Failed` on the strength of one optional cell of
 21 while the whole sweep had completed — three separate times a finished run has had to be
 talked back out of looking like a lost one.
+
+## 4a. Two rules that have cost real runs
+
+⚠️ **A cached or resumed unit of work must be keyed on EVERYTHING that determines what it
+produces.** This project has been bitten eight times: values declared and never forwarded
+(`desc_act`, `async_scheduling`, `add_bos_token`), a value forwarded but absent from the cache
+key (the pilot's per-level `until`), a path derived inside the callee so it could not be
+overridden (job 1b), a resume key missing the ordering count (the 10-ordering run reused
+3-ordering results and exited `Completed`), and a `run_id` missing a probe index.
+
+The root fix is `decoding_fingerprint()` in `src/quantartifact/generate.py`: it hashes the
+pinned sampling fields, `generation_config`, the required env and the engine flags, and
+`cell_tag` appends it. **Bump `DECODING_VERSION` whenever anything affecting generation
+changes** and stale caches become impossible rather than merely unlikely. Note `env_hash` is
+NOT this — it covers `{gpu, cuda}` only, which is why it stayed identical across two
+configuration changes.
+
+⚠️ **A comparison is only valid if every difference except the one under test is held fixed —
+and ITEM COUNT is one of those differences.** `run_cell` submits the whole item list in one
+`generate()` call, so generating 40 items is a different batch composition from generating 100,
+and H8 shows batch-sensitive arms diverge up to 71.6% under recomposition. A diagnostic that
+changed n while testing a config change measured H8 instead, and nearly drew the wrong
+conclusion.
 
 ## 5. Why `--smoke` always comes first
 
