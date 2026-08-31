@@ -1,0 +1,41 @@
+Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.
+Right call to hold, and your data already half-names the cause — you're one log grep from the diagnosis.
+
+## The clue you didn't mine: phi's split is not random
+
+Phi's **differing** arms are bf16 and bnb-NF4. Its **stable** arms are gptq-8, gptq-4, awq. That's exactly the split between *arms that load the original bf16 weights* (bnb-NF4 quantizes in-flight from bf16) and *arms that load our S3 checkpoints* — which is also the split between **large and small memory footprint**.
+
+That points at a specific mechanism: vLLM profiles free GPU memory at startup and derives `num_gpu_blocks` from it. Two invocations on a fresh container can measure slightly different free memory → different block count → different batch scheduling → different reduction order → one flipped token → cascade. Under that story, qwen-3B has enough headroom that the block count saturates (0% everywhere), llama-8B is tight enough that every arm is in the sensitive regime (43% everywhere), and phi splits by footprint. All three patterns fit.
+
+**Test it with a grep, not a job:** compare engine-reported `num_gpu_blocks` (and derived `max_num_batched_tokens`) between pilot-v1 and pilot-v2 logs. If they differ, the cause is found and the fix is `num_gpu_blocks_override` in the frozen config — cross-invocation reproducibility becomes achievable at zero cost to the science.
+
+Note what this is: **the fourth instance of declared-vs-enforced.** We froze `max_num_seqs` but never froze the KV cache size, which is downstream of a runtime measurement of a shared GPU.
+
+## The number that decides everything, and you have it already
+
+**Report the signed accuracy delta between pilot-v1 and pilot-v2 for the affected cells.** Text divergence is not the quantity. For ordering, 33–47% text divergence yielded 0.2–1.6 pp accuracy. If that ratio transfers, 43% here is ~1–2 pp — and unlike the ordering floor, **this one does not cancel across arms.**
+
+That's the crux. Ordering was common across arms, so it contributed zero *differential* noise. But if each cell is its own invocation, then every arm is measured in a different invocation and cross-invocation variance enters the **between-arm delta** — which is §4.6's differential-noise concern landing for real. At 1–2 pp it would be the same order as the quantization effects we're measuring.
+
+Free to compute from data you hold. Get it before anything else.
+
+## Ruling on the options: (a) + (c), plus the targeted check — not (b) as posed
+
+- **Do the two cheap diagnostics** (the grep, the accuracy delta). That's not option (b)'s open-ended investigation; it's two bounded checks worth hours, not days.
+- **(a) as operational policy**, with one schema addition: put **`invocation_id` on every generation record**. Do that regardless of cause — provenance for a 15-cell run spanning multiple engine loads should be exact, not inferred.
+- **(c) yes — this is a finding, and its value depends on the diagnosis.** Unexplained, it's "the same job run twice diverges on 43% of items." Diagnosed, it becomes *"cross-invocation reproducibility requires pinning the KV cache block count, which no published protocol reports"* — same structure as the ordering result, but with a fix we can hand the field. Strictly better, and another reason to spend the ten minutes.
+
+Whether it's a headline alongside H8 depends entirely on the accuracy number.
+
+## §9's pre-commitment — don't revise it yet, then revise conditionally
+
+My earlier ruling bound §9 to the repetition floor because ordering is held fixed and common across arms. **That reasoning does not transfer here**, for the reason above. So:
+
+- Accuracy-level pipeline divergence ≈ 0 → §9 stands on the repetition floor; the pipeline floor is reported as a text-level reproducibility finding.
+- Material (say > 0.5 pp) → **§9 must bind to the pipeline floor for between-arm claims**, because that is the floor that contaminates the deltas. That's a prereg change and it has to land before the freeze, not after.
+
+If it's material, the structural fix is also cheap: pin the blocks, or generate all arms of a model inside **one invocation** so the variance is common. Which of those you choose changes the job structure — which is precisely why holding main-v1 was correct, since discovering it after 10.5 h of generation means regenerating.
+
+## Model dependence — mine the existing pattern, don't chase it
+
+Report as observed. But the phi split is already a free discriminator between "weight-load path" and "memory footprint," and the `num_gpu_blocks` grep resolves it. Ten minutes on data you have; no new investigation.
