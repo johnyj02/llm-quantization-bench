@@ -1,16 +1,34 @@
 # Pre-registration — QuantArtifact
 
-**Status:** DRAFT (task `C2`). Must be COMMITTED and frozen by **2026-09-02**, before any
-`run_id=main-v1` generation exists (gate `PREREG`, `EXECUTOR-TASKS.md` §8).
+**Status:** DRAFT (task `C2`). Committed and frozen by **2026-09-02** (gate `PREREG`,
+`EXECUTOR-TASKS.md` §8) — but the date is the *schedule* target. **The scientifically binding
+line is the first `run_id=main-v1` generation**, because that is the moment at which a change
+to this document could be influenced by confirmatory results.
 
 **Authority:** `EXECUTOR-PLAN.md` §4 governs the science here. This document is the
 timestamped instantiation of it. Its entire value is the timestamp: retro-fitting §1
 below after seeing results is worth far less, and a reviewer who detects that it was
 patched rather than pre-specified caps acceptance at ~25% (`EXECUTOR-PLAN.md` §4.0).
 
-**What "frozen" means.** After the freeze commit, this file may only be appended to,
-under a dated `## Amendments` heading, with the reason stated. No edit to §1–§9 below.
-Any analysis not specified here is exploratory and must be labelled as such in the paper.
+**What "frozen" means — the rule, and why it is pegged to data rather than a date.**
+
+1. **Before the first `main-v1` generation exists:** §1–§9 may be edited. No such edit can
+   have been influenced by confirmatory results, because none exist. Editing here is
+   *better* than deferring: a specification improved before it binds anything is simply a
+   better specification, and the project's turnaround is fast enough to use that.
+2. **After the first `main-v1` generation exists:** append-only, under a dated
+   `## Amendments` heading, with the reason stated. No edit to §1–§9.
+3. 🚨 **The integrity property, which applies at ALL times and is what actually protects the
+   paper:** any decision here that was informed by data we had already seen must **say so, in
+   place, with the data stated inline.** §9a, §9b, §9c, §9d and §3b-bis all do this — each is
+   labelled a *pre-specified confirmatory extension of an exploratory finding*, dated, with
+   the exploratory numbers quoted. Discovery followed by registered confirmation is normal
+   practice; presenting it as pre-data when the git history shows otherwise is what costs.
+
+⚠️ **The failure mode this guards against is not "editing after a date".** It is *choosing an
+analysis because you have seen which choice flatters the result.* A calendar cannot detect
+that; stating the provenance of each decision can. Any analysis not specified here is
+exploratory and must be labelled as such in the paper.
 
 ---
 
@@ -222,7 +240,15 @@ papers'* eval sizes and does not depend on our counts at all.
 
 ---
 
-## 3b. Chat template — FIXED, not a factor
+## 3b. Chat template — FIXED, not a factor ⚠️ SUPERSEDED BY §3b-bis
+
+🚨 **Item 1 below ("chat template ON, FIXED, not a factor") NO LONGER HOLDS.** §3b-bis makes
+the template a **two-level factor** (planner ruling R19.1). This section is retained rather
+than rewritten because its *diagnosis* is still the basis of the design and because a reader
+should be able to see what was decided first and why it changed. **Read §3b-bis before acting
+on anything here.** Item 2's off-template probe survives, promoted from a calibration
+measurement to the study's delta-invariance test; item 3's double-BOS assertion is unchanged
+and still binding.
 
 `--apply_chat_template` wraps the entire few-shot block into a single user turn, after which
 instruction-tuned models tend to revert to their own prose format rather than continuing the
@@ -816,6 +842,12 @@ makes it the architectural outlier and therefore the higher-information second p
 **Registered generation budget for the audit: 38,000** — superseding both §2.6's ~13,500 and the
 23,000 registered before the criterion below was retired.
 
+⚠️ **Actual, recorded for honesty rather than revised upward after the fact:** the audit as run
+used ~24,000 generations across 21 cells, and R17.3's confirmatory extension (§9a) added a
+further 22,000 (4 arms × 500 items × 11 passes). The registered figure was an upper bound and
+was not exceeded; it is left as written because a budget adjusted to match what happened is
+not a budget.
+
 **⚠️ The repeat-based selection criterion above is RETIRED (planner ruling R15.4).** The pilot
 measurement showed why: at `max_num_seqs=8`, three repeats of an identical probe in an identical
 order gave **0/20 disagreement for every arm**, while three *reorderings* of the same items changed
@@ -1043,6 +1075,29 @@ what makes the 1 pp attributable to the weights rather than to the pipeline.
 
 ---
 
+### 9e. Execution provenance — which registered plans have been run, and where the output is
+
+⚠️ **This section records WHERE, not WHAT.** A pre-registration's value is the plan; importing
+results into it would defeat the purpose. This is a pointer table so a reviewer can trace each
+registered plan to the artifact it produced without taking anything on trust. Results live in
+`notes/RUNLOG.md` (per-run, with cost) and in the paper.
+
+| registered in | run | artifact |
+|---|---|---|
+| §9's frontier + freeze | `…-determinism` (2026-08-28) | `artifacts/determinism.json` |
+| §9's signed accuracy delta | `…-determinism-reanalyze` | `artifacts/determinism_reanalysis.json` |
+| **§9a** 10 orderings, SD estimand | `…-determinism-orderings-r2` (2026-08-30) | `artifacts/determinism_ord10.json` |
+| **§3b-bis** template factor + decision rule | `…-template` (2026-08-30) | `artifacts/scores/scores_template-v1.json` |
+| **§9b** corrected BBH terminators | `…-pilot` `run_id=pilot-v2` | `artifacts/scores/scores_pilot-v2.json` |
+| **§9d** AWQ replicate | `…-quantize-replicate-r2` | checkpoint `…awq-4bit__e7377d975178f192-rep2` |
+| §10's annotation pool | `run_id=pilot-v2` | `artifacts/generations/pilot-v2/` |
+
+⚠️ **`run_id=pilot-v1` is retained and is NOT the annotation pool.** It was generated with the
+defective BBH terminators (§9b) and exists as the evidence for that finding. Any analysis
+drawing on it must say which run it used.
+
+---
+
 ## 10. Annotation — adjudication rule, pre-specified before any disagreement is seen
 
 - ≥250 items, stratified across 3 models × {bf16, 4-bit} × all tasks, **oversampling
@@ -1083,13 +1138,27 @@ what makes the 1 pp attributable to the weights rather than to the pipeline.
 
 Anything not specified above. In particular, and labelled as exploratory in the paper if
 reported at all: any subgroup analysis not named here, any post-hoc task subsetting, any
-alternative parser rule added after the freeze, any per-BBH-subtask contrast beyond the three
+alternative parser rule added after the first `main-v1` generation, any per-BBH-subtask contrast beyond the three
 pre-specified format-gradient levels of §3a, and the stratum competence contrast for any
 (model, task) cell whose stratum falls below the 50% threshold of §1.1.
 
-**Now confirmatory, and no longer exploratory** (both were added before any generations
-existed): the `TRUNC_STOPSEQ` differential-by-precision test of §4, and the `answer_marker`
-three-way interaction of §2.
+**Now confirmatory, and no longer exploratory — in two distinct categories, and the
+distinction is the point.**
+
+**(a) Added before ANY generations existed**, so genuinely pre-data: the `TRUNC_STOPSEQ`
+differential-by-precision test of §4, and the `answer_marker` three-way interaction of §2.
+
+**(b) Added AFTER pilot/audit generations existed but BEFORE any `main-v1` generation**, and
+therefore registered as *pre-specified confirmatory extensions of exploratory findings*, each
+dated and each quoting the exploratory numbers inline: §9a (ordering as an accuracy
+statistic), §3b-bis (the template factor and its decision rule), §9c (`gsm8k`'s hash arm
+excluded as an interaction level), §9d (AWQ reproducibility). §9b records a configuration
+correction and the discarding of the figures it invalidated.
+
+🚨 **These two categories must never be presented as one.** Claiming (b) as pre-data would be
+the exact failure this document exists to prevent, and the git history would contradict it.
+Stating the sequence plainly is what makes discovery-then-confirmation a normal and
+defensible research practice rather than a concealed one.
 
 ---
 
