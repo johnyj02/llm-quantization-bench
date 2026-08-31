@@ -32,7 +32,9 @@ import shutil
 import subprocess
 import sys
 import time
+import uuid
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -63,10 +65,13 @@ from quantartifact.records import (
 # So: bump DECODING_VERSION whenever anything below changes, and include the fingerprint in
 # any resume key. A stale cache then becomes impossible rather than merely unlikely.
 #
-# ⚠️ Deliberately NOT added to the per-record schema. That would bump `schema_version` and
-# make `pilot-v2` and later runs structurally different mid-study, which is a worse trade
-# than the provenance is worth — the fingerprint goes in the job REPORT instead, where it is
-# equally auditable. Revisit at the artifact release (A24).
+# ⚠️ Deliberately NOT added to the per-record schema. The fingerprint goes in the job REPORT
+# instead, where it is equally auditable. Revisit at the artifact release (A24).
+# ⚠️ The original reason given here was "it would bump `schema_version`". That reason is now
+# spent: `schema_version` moved 1.0.0 -> 1.1.0 anyway to carry `invocation_id`, which R21.3
+# requires per RECORD because it must be joinable per item. The fingerprint is a property of
+# the whole cell, so the report is still the right home — but the argument is now "the report
+# is the right level", not "we cannot afford the bump".
 DECODING_VERSION = "3"   # 1 -> 2: pinned top_k/penalties, generation_config="vllm"
 #                        # 2 -> 3: max_num_seqs ADDED to the fingerprint (see below)
 
@@ -529,6 +534,18 @@ class VLLMRunner:
         self.spec = spec
         self._llm = None
         self.hardware = describe_hardware()
+        # 🚨 One id per ENGINE LOAD (R21.3), stamped on every record this runner emits.
+        # Minted here rather than per cell because the boundary that matters is the engine:
+        # `pilot-v1` vs `pilot-v2` diverged on 41-45% of Llama items across separate engine
+        # loads of a byte-identical configuration, bf16 included.
+        #
+        # Carries the pid and a UTC timestamp rather than a bare uuid so a record can be
+        # traced back to a specific process in a specific job's log without a lookup table
+        # -- the run spans many loads and the provenance should be readable, not inferred.
+        self.invocation_id = (
+            f"{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
+            f"-pid{os.getpid()}-{uuid.uuid4().hex[:8]}"
+        )
         # Populated at engine init by the read-back assertions.
         self.batch_invariance: dict[str, Any] = {}
         self.engine_state: dict[str, Any] = {}
@@ -818,6 +835,7 @@ def run_cell(
                 driver=hardware["driver"],
                 env_hash=environment,
                 wall_ms=per_item_ms,
+                invocation_id=runner.invocation_id,
             )
             for item, output in zip(batch, outputs, strict=True)
         ]

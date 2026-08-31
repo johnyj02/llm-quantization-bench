@@ -19,6 +19,12 @@ sys.path.insert(0, str(REPO / "src"))
 
 import sm_reference  # noqa: E402
 
+from quantartifact.records import (  # noqa: E402
+    JOIN_KEY,
+    SCHEMA_VERSION,
+    GenerationRecord,
+)
+
 SOURCE = (REPO / "sm_reference.py").read_text()
 TASKS = yaml.safe_load((REPO / "configs" / "tasks.yaml").read_text())["tasks"]
 
@@ -136,10 +142,15 @@ class TestFailClosed:
 
     def test_report_is_written_incrementally(self):
         """`output_path` only uploads when the job ENDS, so a timeout at cell 12 of 15
-        must still leave a readable record of what completed."""
-        body = SOURCE.split("for index, cell in enumerate")[1]
+        must still leave a readable record of what completed.
+
+        ⚠️ Anchored on `enumerate(run_list` rather than on the unpacking, which changed when
+        K=2 turned the cell list into a run list of (cell, repeat_idx). The INTENT is that
+        the write happens inside the loop; the anchor should track that, not the signature.
+        """
+        body = SOURCE.split("enumerate(run_list")[1]
         assert "reference_report.json" in body, (
-            "the report must be written inside the cell loop, not only after it"
+            "the report must be written inside the run loop, not only after it"
         )
 
 
@@ -195,3 +206,92 @@ class TestSamplingIsPinnedNeutral:
         still fail."""
         neutral = {"top_k": (-1, 0)}
         assert 20 not in neutral["top_k"]
+
+
+class TestKTwoRepetition:
+    """🚨 K=2 (prereg §9f / R23.3). The invocation floor is estimated from these cells.
+
+    §9f registers an ESTIMATOR rather than a number, and the estimator is fitted from the
+    K=2 cells at reference n. If this set drifts from the prereg, the floor is estimated
+    from a different design than the one registered -- which is the declared-versus-enforced
+    failure this project has already paid for nine times, arriving at a registered analysis.
+    """
+
+    PREREG = (Path(__file__).resolve().parents[1]
+              / "analysis" / "preregistration.md").read_text()
+
+    def test_exactly_ten_cells(self):
+        assert len(sm_reference.K2_CELLS) == 10
+
+    def test_three_models_x_three_contrasted_arms_plus_the_worst_observed(self):
+        """Coverage follows the ESTIMAND, not the empirical screen (R23.3).
+
+        Qwen is included despite showing 0.00% at n=180, because one item is 0.56 pp there,
+        so "0.00" means fewer than one item flipped -- not zero with confidence. And qwen
+        carries the largest rung gaps, so it is the worst place for an unmeasured floor.
+        """
+        for model in ("qwen2.5-3b", "phi-3.5-mini", "llama-3.1-8b"):
+            for arm in ("bf16", "gptq-4bit", "awq-4bit"):
+                assert f"{model}|{arm}" in sm_reference.K2_CELLS
+        # The observed worst interaction movement (2.78 pp). Leaving the observed worst case
+        # without a floor estimate is precisely what a reviewer picks first.
+        assert "llama-3.1-8b|gptq-8bit" in sm_reference.K2_CELLS
+
+    def test_the_non_contrasted_arms_are_NOT_doubled(self):
+        """bnb-NF4 and the other gptq-8bit cells report against the POOLED floor."""
+        for cell in ("qwen2.5-3b|bnb-nf4", "phi-3.5-mini|bnb-nf4", "llama-3.1-8b|bnb-nf4",
+                     "qwen2.5-3b|gptq-8bit", "phi-3.5-mini|gptq-8bit"):
+            assert cell not in sm_reference.K2_CELLS
+
+    def test_prereg_and_code_agree_on_the_count(self):
+        """The prereg names ten cells; the code must implement ten."""
+        assert "= 9 cells, plus llama/gptq-8bit = 10 cells at K=2" in self.PREREG, (
+            "§9f must state the K=2 design"
+        )
+        assert len(sm_reference.K2_CELLS) == 10
+
+    def test_repeat_index_reaches_the_cell_payload(self):
+        """A declared value that is never forwarded is decoration.
+
+        Nine instances of this exact shape are recorded in notes/RUNLOG.md, so the forward
+        is asserted rather than assumed: the cell script must read `repeat_idx` from the
+        payload, and the reference stage must put it there.
+        """
+        reference = (Path(__file__).resolve().parents[1] / "sm_reference.py").read_text()
+        pilot = (Path(__file__).resolve().parents[1] / "sm_pilot.py").read_text()
+        assert '"repeat_idx": repeat_idx,' in reference, "payload must carry repeat_idx"
+        assert 'repeat_idx=payload.get("repeat_idx", 0)' in pilot, (
+            "CELL_SCRIPT must forward repeat_idx into run_cell"
+        )
+
+    def test_scratch_paths_distinguish_the_two_invocations(self):
+        """The second invocation must not overwrite the first's counts file."""
+        reference = (Path(__file__).resolve().parents[1] / "sm_reference.py").read_text()
+        assert 'f"__k{repeat_idx}" if repeat_idx else ""' in reference
+
+
+class TestInvocationId:
+    """🚨 R21.3. Provenance for a run spanning many engine loads must be exact."""
+
+    def test_it_is_on_the_record_schema(self):
+        assert "invocation_id" in GenerationRecord.__dataclass_fields__
+
+    def test_it_is_NOT_in_the_join_key(self):
+        """Two invocations of one item are two measurements, distinguished by repeat_idx.
+
+        Putting the invocation in the identity would make every re-run trivially unique and
+        defeat the uniqueness constraint that catches double-counting.
+        """
+        assert "invocation_id" not in JOIN_KEY
+        assert "repeat_idx" in JOIN_KEY
+
+    def test_it_is_minted_per_engine_load_and_stamped_on_records(self):
+        source = (Path(__file__).resolve().parents[1]
+                  / "src" / "quantartifact" / "generate.py").read_text()
+        runner_init = source.split("def __init__(self, spec: EngineSpec)")[1][:900]
+        assert "self.invocation_id" in runner_init, "minted in VLLMRunner.__init__"
+        assert "invocation_id=runner.invocation_id," in source, "stamped in run_cell"
+
+    def test_schema_version_was_bumped(self):
+        """A new field changes the released artifact's shape; the version must say so."""
+        assert SCHEMA_VERSION != "1.0.0"

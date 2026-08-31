@@ -267,6 +267,12 @@ for lm_eval_task, task, subtask, limit in payload["plan"]:
             payload["template_level"], config["until"]),
         quant_config_hash=cell["quant_config_hash"],
         output_root=Path(payload["generations_root"]),
+        # 🚨 K=2 (prereg §9f). Defaults to 0, so every existing caller is unchanged; the
+        # reference stage passes 1 for the second invocation of a designated cell. This is
+        # the field that distinguishes two invocations of the SAME item, which is why
+        # `invocation_id` is NOT in the join key -- `repeat_idx` carries the identity and
+        # `invocation_id` carries the provenance.
+        repeat_idx=payload.get("repeat_idx", 0),
     )
     elapsed = time.monotonic() - started
     for key in totals:

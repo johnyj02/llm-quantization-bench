@@ -30,7 +30,7 @@ from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "1.1.0"   # 1.0.0 -> 1.1.0: added invocation_id (R21.3)
 
 # The join key across generations and EVERY scorer. Enforced as a uniqueness
 # constraint by the loader, which fails loudly on a duplicate -- a silently
@@ -98,6 +98,25 @@ class GenerationRecord:
     driver: str | None
     env_hash: str
     wall_ms: int
+    # 🚨 WHICH ENGINE LOAD PRODUCED THIS RECORD (planner ruling R21.3).
+    #
+    # Minted once per `VLLMRunner`, i.e. once per engine load, and stamped on every record
+    # that runner emits. It exists because `pilot-v1` and `pilot-v2` ran the same items in
+    # the same order with a byte-identical recorded configuration and **diverged on 41-45%
+    # of items for Llama, including bf16** (`notes/cross-invocation.md`). The cause is
+    # undiagnosed; four hypotheses are refuted.
+    #
+    # ⚠️ Deliberately NOT part of `JOIN_KEY`. Two invocations of the same item are two
+    # measurements of one cell, distinguished by `repeat_idx` (the K=2 design of prereg
+    # §9f), and adding the invocation to the identity would make every re-run trivially
+    # "unique" and defeat the uniqueness constraint that catches double-counting.
+    #
+    # Why it is not optional: per-arm invocation is unavoidable (each arm is different
+    # weights, so each needs its own engine load), which makes this variance inherently
+    # BETWEEN-ARM. §9f's estimator is fitted per arm from the K=2 cells, and without this
+    # field a resumed run's records cannot be attributed to the process that produced them
+    # -- the noise could not be estimated at all, only assumed.
+    invocation_id: str = ""
     schema_version: str = SCHEMA_VERSION
 
     def key(self) -> tuple:

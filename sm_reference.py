@@ -51,6 +51,39 @@ from sm_pilot import CELL_SCRIPT, frozen_max_num_seqs  # noqa: E402
 
 from quantartifact.quantize import config_hash, load_specs, output_dir  # noqa: E402
 
+# 🚨 K=2 REPETITION — prereg §9f, planner ruling R23.3. Ten cells run TWICE.
+#
+# WHY. `pilot-v1` and `pilot-v2` ran the same items in the same order with a byte-identical
+# recorded configuration and diverged on 41-45% of items for Llama, **including bf16**
+# (`notes/cross-invocation.md`). The mechanism is undiagnosed and four hypotheses are refuted.
+# Because each arm is different weights, each arm needs its own engine load, so this variance
+# is **inherently between-arm** and cannot be made common the way item ordering could. §9f
+# therefore registers an ESTIMATOR rather than a number, and the estimator is fitted from
+# these cells. Without them there is no invocation floor and no class-3 claim is admissible.
+#
+# WHY THESE TEN, and not the cells where the effect was already observed. Coverage follows the
+# **estimand**, not the empirical screen (R23.3):
+#   - At the pilot's n=180 one item is 0.56 pp, so qwen's observed "0.00%" means *fewer than
+#     one item flipped*. That is not zero with confidence.
+#   - Stratifying on an empirical screen biases the pooled floor UPWARD, by measuring only
+#     where the effect was already seen, and leaves the signal-carrying cells unmeasured.
+#   - Qwen carries the largest rung gaps (19-23 pp) and therefore the most H3 signal, making
+#     it the worst possible place for an unmeasured floor.
+# `llama-3.1-8b|gptq-8bit` is the eleventh-hour addition: it is the WORST observed interaction
+# movement (2.78 pp), and leaving the observed worst case without a floor estimate is exactly
+# what a reviewer picks first.
+#
+# ⚠️ Both invocations run INSIDE THIS JOB, contemporaneously. Days-apart reruns would add
+# driver and library drift as a confound to the very quantity being measured.
+#
+# The remaining dose-response arms (bnb-NF4, the other gptq-8bit cells) report against the
+# POOLED floor, stated as an assumption in the paper.
+K2_CELLS: frozenset[str] = frozenset({
+    f"{model}|{arm}"
+    for model in ("qwen2.5-3b", "phi-3.5-mini", "llama-3.1-8b")
+    for arm in ("bf16", "gptq-4bit", "awq-4bit")
+} | {"llama-3.1-8b|gptq-8bit"})
+
 CHECKPOINT_DIR = Path(os.environ.get("SM_CHECKPOINT_DIR", "/opt/ml/checkpoints"))
 OUTPUT_DIR = Path(os.environ.get("SM_MODEL_DIR", "/opt/ml/model"))
 CONFIGS = Path(__file__).parent / "configs"
@@ -142,14 +175,19 @@ def build_cells(models: dict, specs: dict, calibration) -> list[dict]:
     return cells
 
 
-def run_one_cell(cell: dict, plan: list, max_num_seqs: int, base_repo: str) -> dict | None:
+def run_one_cell(cell: dict, plan: list, max_num_seqs: int, base_repo: str,
+                 repeat_idx: int = 0) -> dict | None:
     """One cell in its own process, via the PILOT's cell script.
 
     Subprocess per cell because torch's caching allocator and the engine's hooks do not
     reliably release GPU memory in-process; 15 sequential engine loads in one process is the
     shape that cost job 1 four arms.
     """
-    tag = cell["cell_id"].replace("|", "__")
+    # ⚠️ The repeat index is in the scratch filenames too. Without it the second invocation
+    # would overwrite the first's counts file and the two would be indistinguishable in the
+    # report -- the same cache-identity mistake this project has made nine times, and the
+    # K=2 measurement is precisely a measurement OF two runs that must not be conflated.
+    tag = cell["cell_id"].replace("|", "__") + (f"__k{repeat_idx}" if repeat_idx else "")
     out_path = GENERATIONS_ROOT / f".{tag}.counts.json"
     payload = {
         "template_level": cell["template_level"],
@@ -157,6 +195,7 @@ def run_one_cell(cell: dict, plan: list, max_num_seqs: int, base_repo: str) -> d
         "plan": plan,
         "max_num_seqs": max_num_seqs,
         "run_id": RUN_ID,
+        "repeat_idx": repeat_idx,
         "generations_root": str(GENERATIONS_ROOT),
         "tasks_yaml": str(CONFIGS / "tasks.yaml"),
         "models_yaml": str(CONFIGS / "models.yaml"),
@@ -199,6 +238,20 @@ def main() -> int:
     if SMOKE:
         cells = [c for c in cells if c["precision"] in ("bf16", "gptq-4bit")]
 
+    # 🚨 The run list, not the cell list: K=2 cells appear TWICE, as (cell, repeat_idx).
+    #
+    # The second pass runs AFTER every first pass rather than back-to-back with it. Two
+    # reasons, and the first is the load-bearing one:
+    #   1. If the job is killed part-way, a prefix of the run list is a COMPLETE reference
+    #      condition plus some of the K=2 cells -- which is a usable study. Interleaving
+    #      would leave some arms measured twice and others not at all, and the reference
+    #      condition itself incomplete.
+    #   2. It puts a maximum of other engine loads between the two invocations of a cell,
+    #      so if the undiagnosed mechanism is sensitive to what ran before it, this is the
+    #      arrangement most likely to EXPOSE that rather than hide it.
+    k2 = [c for c in cells if c["cell_id"] in K2_CELLS] if not SMOKE else []
+    run_list: list[tuple[dict, int]] = [(c, 0) for c in cells] + [(c, 1) for c in k2]
+
     per_cell = sum(n for *_, n in plan)
     print(f"run_id       : {RUN_ID}")
     print(f"max_num_seqs : {max_num_seqs}  (frozen by A7, not assumed)")
@@ -206,6 +259,22 @@ def main() -> int:
     print(f"arms         : {list(PRECISIONS)}")
     print(f"cells        : {len(cells)}   items/cell: {per_cell:,}   "
           f"total: {len(cells) * per_cell:,} generations")
+    if k2:
+        missing = sorted(K2_CELLS - {c["cell_id"] for c in cells})
+        print(f"K=2 cells    : {len(k2)} of {len(K2_CELLS)} registered "
+              f"(prereg §9f) -> +{len(k2) * per_cell:,} generations")
+        for cell in k2:
+            print(f"  {cell['cell_id']:40} repeat_idx 0 and 1, separate engine loads")
+        if missing:
+            # Fails LOUD: a registered K=2 cell that does not resolve means the floor is
+            # estimated from fewer cells than the prereg says, which is a silent weakening
+            # of a registered analysis.
+            raise SystemExit(
+                f"REFUSING TO RUN: {len(missing)} cell(s) registered for K=2 in prereg §9f "
+                f"do not exist in this run: {missing}. The invocation floor would be "
+                f"estimated from a different set than the one registered."
+            )
+    print(f"run units    : {len(run_list)} (cells + K=2 second invocations)")
     for lm_eval_task, task, subtask, n in plan:
         print(f"  {task + ('/' + subtask if subtask else ''):40} {n:>5}  ({lm_eval_task})")
     if not SMOKE:
@@ -216,24 +285,28 @@ def main() -> int:
         "stage": "reference", "run_id": RUN_ID, "smoke": SMOKE,
         "max_num_seqs": max_num_seqs, "template_level": TEMPLATE_LEVEL,
         "arms": list(PRECISIONS), "items_per_cell": per_cell,
+        "k2_cells": sorted(c["cell_id"] for c in k2),
         "plan": [{"task": t, "subtask": s, "n": n} for _, t, s, n in plan],
         "cells": [],
     }
     failed: list[str] = []
-    for index, cell in enumerate(cells, 1):
-        print(f"=== cell {index}/{len(cells)}: {cell['cell_id']} ===", flush=True)
+    for index, (cell, repeat_idx) in enumerate(run_list, 1):
+        label = cell["cell_id"] + (f"  [K=2 repeat {repeat_idx}]" if repeat_idx else "")
+        print(f"=== unit {index}/{len(run_list)}: {label} ===", flush=True)
         started = time.monotonic()
-        counts = run_one_cell(cell, plan, max_num_seqs, models[cell["model_key"]]["repo"])
+        counts = run_one_cell(cell, plan, max_num_seqs, models[cell["model_key"]]["repo"],
+                              repeat_idx=repeat_idx)
         elapsed = time.monotonic() - started
         if counts is None:
-            failed.append(cell["cell_id"])
-            report["cells"].append({"cell_id": cell["cell_id"],
+            failed.append(label)
+            report["cells"].append({"cell_id": cell["cell_id"], "repeat_idx": repeat_idx,
                                     "error": "cell subprocess failed"})
             print(f"    FAILED after {elapsed/60:.1f} min", flush=True)
             continue
         report["cells"].append({
             "cell_id": cell["cell_id"], "precision": cell["precision"],
-            "model_key": cell["model_key"], "minutes": round(elapsed / 60, 2), **counts,
+            "model_key": cell["model_key"], "repeat_idx": repeat_idx,
+            "minutes": round(elapsed / 60, 2), **counts,
         })
         print(f"       {counts['written']} written, {counts['skipped']} skipped, "
               f"{elapsed/60:.1f} min", flush=True)
