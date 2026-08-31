@@ -102,3 +102,61 @@ Held pending R22.
 `invocation_id` on every generation record (R21). Provenance for a 15-cell run spanning many
 engine loads should be **exact, not inferred** — and without it we cannot even tell which items
 in a resumed run came from which process.
+
+
+---
+
+## 7. The gap analysis (R22) — mechanism confirmed, but H3 is NOT protected
+
+The planner spotted what neither of us had: **rungs 1 and 2 score the same stored
+generations**, so re-scoring carries zero invocation noise. It predicted the strict−permissive
+*gap* would therefore be more stable than either raw accuracy. Computed on data in hand,
+`pilot-v1` → `pilot-v2`, gsm8k+arc, n=180/cell, 17 cells:
+
+| quantity | mean \|Δ\| | max \|Δ\| | SD across cells |
+|---|---|---|---|
+| strict accuracy | 0.65 pp | **4.44 pp** | 1.15 pp |
+| permissive accuracy | 0.56 pp | 2.78 pp | 0.96 pp |
+| **gap (perm − strict)** | **0.42 pp** | **1.67 pp** | **0.61 pp** |
+
+✅ **Confirmed.** Cleanest case: phi bnb-nf4's strict moved **4.44 pp** while its gap moved
+**1.67 pp** — the noise flipped items under both scorers and cancelled in the difference. The
+gap is ~2.7× more stable by max, ~1.9× by SD.
+
+🚨 **BUT THE INTERACTION IS THE WORST QUANTITY OF THE THREE, NOT THE BEST.**
+`interaction(arm) = gap(arm) − gap(bf16)`, same model:
+
+| cell | \|Δ interaction\| |
+|---|---|
+| llama gptq-8bit | **2.78 pp** |
+| llama awq-4bit | 2.22 pp |
+| llama bnb-nf4 | 1.67 pp |
+| phi bnb-nf4 | 1.11 pp |
+| llama gptq-4bit, phi awq/gptq-4/gptq-8 | 0.56 pp |
+| qwen (all) | 0.00 pp |
+
+mean 0.71 pp, **max 2.78 pp**.
+
+R22 classified *"H3's interaction"* as binding to the **repetition floor (0.000%)** on the
+grounds that it re-scores identical text. **That does not hold.** H3's interaction is
+precision × scoring, so it contrasts **two arms**, hence **two invocations** — bf16's noise and
+the arm's noise both enter and *compound* rather than cancel. Hence 2.78 pp, worse than either
+raw accuracy delta on that cell.
+
+### The taxonomy this implies — THREE classes, not two
+
+1. **Zero invocation noise** — computed by re-scoring **one fixed set** of generations: the rung
+   ladder's monotonicity, compliance labels, H2's trace scan, the found/committed split,
+   per-item rung agreement. These never cross an invocation boundary.
+2. **Partially cancelling** — a **within-arm** difference of two rungs (the gap): **max 1.67 pp**.
+   It crosses an invocation boundary, since the generations differ between runs, but the two
+   rungs share the same text so the noise is common and largely cancels.
+3. **Compounding** — anything **contrasting arms**: raw between-arm deltas (max **4.44 pp**),
+   **H3's interaction** (max **2.78 pp**), H4's decomposition components. Two invocations, noise
+   adds.
+
+⚠️ **H3 lands in class 3.** §2 calls it a headline and rests "a null is publishable" on it, so a
+2.78 pp floor under an interaction estimate is a materially worse position than R22's ruling
+implies. Raised with the planner as R23 rather than implemented, because it changes which arms
+need K=2: if H3 is class 3 then qwen needs repetition too, despite showing 0.00 at n=180 — and
+qwen carries the largest rung gaps (19–23 pp), i.e. the most H3 signal.

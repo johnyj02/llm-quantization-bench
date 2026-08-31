@@ -1,1 +1,68 @@
 Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.
+§9 binds — but to **two** floors, not one, and that distinction is what saves H3.
+
+## The thing neither of us saw: the scoring axis is within-invocation
+
+Rung 1 vs rung 2 scores **the same stored generations**. So the scoring contrast carries *zero* invocation noise. Only the precision axis is exposed.
+
+And your own data shows the consequence. Take the strict−permissive **gap** per cell:
+
+| cell | gap movement |
+|---|---|
+| llama bf16 | 1.11 pp |
+| llama gptq-4bit | 0.56 pp |
+| llama awq-4bit | 1.11 pp |
+| phi bnb-nf4 | 1.66 pp |
+
+The gap moves **less than the raw accuracies do**, because invocation noise often flips an item under both scorers at once and cancels in the difference.
+
+**Compute this properly from data in hand** — the invocation-induced SD of the *gap*, and of the *interaction* (difference of gaps). It's free, and it does two things: it tells you how much repetition you actually need, and if the gap is materially more stable, it is both a vindication of §2.2's choice of headline contrast and a substantive finding in its own right — *within-generation contrasts are robust to invocation noise; between-arm accuracy deltas are not.* That generalises into concrete advice for the field, which is what makes a methods paper citable.
+
+Do this before anything else.
+
+## §9's amendment — two estimand classes, two floors
+
+Your numbers clear the 0.5 pp threshold, so yes, amend before main-v1. But a blanket 1.2 pp floor would swallow the paper for no reason, since the scoring axis isn't exposed:
+
+- **Between-arm accuracy claims** (precision main effects, H4's decomposition components) bind to the **invocation floor**.
+- **Within-generation scoring contrasts** (H3's interaction, the rung ladder, compliance labels, H2's trace scan) bind to the **repetition floor** (0.000%), because they re-score identical text.
+
+State both, with which claims fall under which. That's the precise version and it's more defensible than one number.
+
+## Option (d) — stratified repetition, folded *into* main-v1
+
+Not (a) at K=3 (~21 h) and not (b) (phi's data refutes its assumption, as you say). Instead:
+
+**The variance is concentrated.** Qwen is 0.00 in 7/7; phi's checkpoint arms are 0.00. The affected set is 7 of 15 cells — llama×5 plus phi bf16 and phi bnb-NF4.
+
+- Repeat those **7 affected cells at K=2**, plus **2 apparently-unaffected control cells** (qwen bf16, qwen gptq-4bit) — because "0.00" was a screen at n=180 and could hide 0.3 pp.
+- **Pool the variance estimate across cells.** K=2 gives 1 df per cell but 9 pooled, which is ample, and buys a √2 reduction by averaging.
+- ~9 extra cells ≈ **6 h**, not 21.
+
+**Build it into main-v1 rather than running it after.** Same compute, one less queue cycle, and the two invocations are contemporaneous — which removes driver/software drift as a confound that days-apart reruns would introduce.
+
+Use (c) as the interim floor for the prereg text, citing the pilot-v1/v2 comparison as the n=180 two-invocation measurement it genuinely is, and state that main-v1's K=2 cells will supersede it at full n.
+
+## Yes, publish it unexplained
+
+Emphatically. The **existence and magnitude** are the contribution; the mechanism would be a bonus.
+
+Three refuted hypotheses with the numbers that killed them — KV blocks byte-identical, concurrency non-separable (stable at 12.36×, differing at 10.70×), weight-source non-separable (qwen bf16 stable) — is real content that saves other people the same work. Speculating a fourth would be worse. And the vLLM issues we already cite (#48271, #51187) are themselves open and unexplained; this is normal in reliability work.
+
+Conditions: report it as observed **on this substrate and stack**, with the refuted list, and **file it upstream** — this one *is* defensible to file, unlike the BBH framing, because it's our own fully-specified pipeline and it's a genuine reproducibility question about vLLM.
+
+## One more cheap diagnostic — a log field, not a hypothesis
+
+Log the **CUDA graph capture shape set** per invocation. `cudagraph_mode=FULL_AND_PIECEWISE` captures graphs at a startup-chosen batch-size set; if that set differs across invocations, dispatch differs. I'm not betting on it — I'm saying add the field so a future reader (or reviewer) can check it. Cheap, and it belongs in the record anyway under the assert-what-you-declare rule.
+
+## What this does to the paper
+
+The spine gets stronger, not weaker. Three independent instantiations now: ordering (quantized-kernel, mechanism pinned), truncation (H1), and **invocation (affects bf16, mechanism unknown, moves the between-arm delta 2.78 pp)**.
+
+The corollary is the sharpest sentence in the paper: *no published quantization delta of order 1–3 pp on an affected model is distinguishable from invocation noise, because nobody runs the arms more than once and nobody reports K.*
+
+And the recommendation section becomes concrete and actionable — report K, run arms more than once, prefer within-generation contrasts over cross-run accuracy deltas, pin and report these knobs. That's the part that gets cited.
+
+## Schedule
+
+Gap analysis is free and lands today. Prereg amendment today — that's the freeze line. Then main-v1 with K=2 on the 9 cells: 10.5 h + ~6 h ≈ 17 h against a Sep 13 G5. Still fits.
