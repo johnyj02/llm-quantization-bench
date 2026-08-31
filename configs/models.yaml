@@ -52,25 +52,54 @@ serving:
   # #51187 (44 co-resident seqs -> 3 distinct outputs in 5 repeats;
   # max_num_seqs=8 -> 5/5 identical) on OTHER hardware. A7 overwrites it,
   # then it is frozen and identical across all arms. REPORTED IN THE PAPER.
-  # ✅ FROZEN AT 64 BY THE A7 AUDIT (planner ruling R16.Q1), earned on the ORDERING
-  # axis rather than defaulted to the conservative value.
+  # ✅ FROZEN AT 32 BY THE A7 AUDIT, RE-RUN WITH CORRECTED BBH TERMINATORS
+  # (planner ruling R24.1, 2026-08-31). Earned on the ORDERING axis, not defaulted to.
   #
-  # Order-induced divergence is FLAT across {8,32,64} for GPTQ and AWQ
-  # (gptq-8bit 29.8/31.8/29.8%, gptq-4bit 33.4/40.0/39.6%, awq-4bit 43.6/45.6/47.0%),
-  # so 8 buys nothing there. bnb-NF4 is DRAMATICALLY better at 64 (text 31.4% -> 1.4%,
-  # correctness 4.8% -> 0.2%), and 64 is substantially faster on a bandwidth-bound
-  # decode across the ~110k generations still to run.
+  # 🚨 THIS WAS 64 AND WAS MOVED. The history matters and is reported in the paper.
   #
-  # ⚠️ TWO HONEST CAVEATS, both reported in the paper rather than buried:
-  #  - gptq-4bit correctness divergence is marginally worse at 64 (4.8% vs 4.2%): 24 vs
-  #    21 items of 500, ~0.6 SE, i.e. noise.
-  #  - gptq-4bit TEXT divergence genuinely is worse at 64 (39.6% vs 33.4%, ~3 SE, NOT
-  #    noise). It does not bind the decision because our claims are about SCORES rather
-  #    than strings, but it is stated so it cannot look overlooked.
+  # R16.2 froze 64 on the finding that order-induced correctness divergence was FLAT
+  # across {8,32,64} — gptq-4bit 4.2/5.4/4.8%, which it called "noise (~0.6 SE)". That
+  # measurement was taken while BBH's few-shot terminators were truncating 5 of 6
+  # subtasks to a median of 7 tokens (prereg §9b), so ~2/5 of the probe was INERT and
+  # contributed no variance at any level. **The inert items were flattening the very
+  # level-dependence the freeze turned on.**
+  #
+  # Re-measured with the terminators corrected (job 33, 500 items, qwen2.5-3b), the same
+  # series is monotone and large — permissive-correctness divergence:
+  #
+  #   arm                     B=8     B=32    B=64
+  #   gptq-4bit permissive    5.8%    8.2%   11.2%   <-- crosses the trigger
+  #   awq-4bit  permissive    7.6%    9.4%    9.6%
+  #   gptq-8bit permissive    6.8%    7.0%    7.8%
+  #   bnb-nf4   permissive    6.6%    0.2%    0.0%
+  #   bf16 (every level)      0.0%    0.0%    0.0%
+  #
+  # 11.2% exceeds §9's pre-registered trigger (">10 pp correctness divergence => the
+  # freeze is escalated before being made"), and it did so AT the value we had frozen.
+  # §9 requires escalation, not prohibition, and the escalation ruled: move to 32.
+  #
+  # ⚠️ WHY 32 AND NOT 8. No value is clean — even B=8 sits at 5.8–7.6%. We are picking a
+  # point on a frontier, not finding safe harbour. Under FIXED ordering, order divergence
+  # contributes zero DIFFERENTIAL noise to our deltas (R16.5/R17), so 8's extra ~1.8 pp of
+  # margin buys defensibility on a quantity that does not contaminate our estimates, at
+  # 30–50 extra GPU-hours. Not worth it.
+  #
+  # ⚠️ 32'S FRAGILITY IS REPORTED, NOT BURIED: 9.4% is **three items of margin** at
+  # n=500, and the trend across levels is monotone. Stated in the paper.
+  #
+  # ⚠️ bnb-NF4 still prefers larger batches (6.6% -> 0.2% -> 0.0%), so 32 costs it
+  # something relative to 64. It is the arm with the least external validity (vLLM RFC
+  # #39583 proposes moving bitsandbytes out-of-tree) and it does not carry a headline.
   #
   # The repetition floor is 0.000% at every level for every arm, so §9's noise-floor
   # pre-commitment binds to that and is unaffected by this choice.
-  max_num_seqs: 64
+  #
+  # ⚠️ Changing this value CHANGES WHAT EVERY GENERATION IS — it is in
+  # `decoding_fingerprint` as of DECODING_VERSION 3, so cached cells produced at 64
+  # cannot be silently reused. `pilot-v2` is NOT re-run (R11/O11: the annotation pool
+  # need not be byte-identical to main-v1; it is recorded as having run at B=64). The
+  # 10-ordering H8 run spans 8/32/64 by design and stands. The template probe IS re-run.
+  max_num_seqs: 32
   # 🚨 Ignore each model's own generation_config.json. vLLM's default is "auto", which
   # reads it -- and Qwen2.5-3B-Instruct ships do_sample true, temperature 0.7, top_p 0.8,
   # top_k 20 and repetition_penalty 1.05, while Phi-3.5-mini ships no sampling fields at
@@ -80,7 +109,7 @@ serving:
   # nondeterminism. They cannot (Qwen has the most aggressive defaults and is the ONLY
   # perfectly reproducible model), but the question exposed this.
   generation_config: vllm
-  max_num_seqs_resolved_by_audit: true    # A7 (job 2), 2026-08-29
+  max_num_seqs_resolved_by_audit: true    # A7 re-run (job 33), 2026-08-31; was 64 from 2026-08-29
   disabled_kernels: null         # VLLM_DISABLED_KERNELS, set only if A7 requires it
 
 hardware:

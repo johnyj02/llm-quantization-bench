@@ -1552,3 +1552,81 @@ invocation-shopped"* — with **both** stratum sizes reported so the cost is vis
 
 Also confirmed: `invocation_id` per record, CUDA graph shape as a logged field, and upstream
 filing with the three refuted hypotheses **and their killing numbers**, not before Sep 2.
+
+---
+
+## R24 — The trigger fired: freeze moves 64 → 32. LL arms after `main-v1`. Dissolve the threshold
+
+Raw answer: `notes/planner-answers/R24-escalation-loglik-stratum.txt`.
+
+### R24.1 🚨 MOVE TO 32. R16.2's rationale is void, and my cost estimate was wrong twice
+
+*"I froze 64 on the grounds that GPTQ-4's level-dependence was noise, and the inert BBH items
+were flattening exactly that dependence. 5.8 → 8.2 → 11.2 monotone is not noise. That
+justification is gone, so keeping 64 would now be an unjustified choice rather than merely a
+sensitive one."*
+
+**On the obligation:** §9 says the freeze is *"escalated before being made"*, **not forbidden**.
+The trigger was honoured *by* the escalation. So the question is what the escalation decides.
+
+**Two corrections to my framing of the cost — I overstated it in both directions:**
+
+| I said | actual |
+|---|---|
+| "the alternative is 32 or 8, and 8 costs 4× throughput" | The alternative is **32**. On a bandwidth-bound decode 64→32 is plausibly **1.2–1.5×**, not 4×. Don't price the decision at 8's cost. |
+| "`pilot-v2` would need redoing" | ❌ **It does not.** R11/O11 already established the annotation pool need not be byte-identical to `main-v1` — judge validation is a claim about the *population* of generations, not about specific strings. Record that it ran at B=64 and move on. |
+
+The 10-ordering H8 run is *about* the frontier and already spans {8, 32, 64}, so it stands.
+**Real cost: the template probe only, ~$5 and one queue cycle.**
+
+**Why 32 rather than 8:** no value is clean — even B=8 sits at 5.8–7.6%. *"We're picking a point
+on a frontier, not finding safe harbour."* And under **fixed** ordering, order divergence
+contributes **zero differential noise to our deltas** (R16.5/R17), so 8's extra ~1.8 pp of margin
+buys defensibility on a quantity that does not contaminate our estimates, at 30–50 extra
+GPU-hours. Not worth it.
+
+⚠️ **Flag 32's fragility honestly:** 9.4% is **three items of margin** at n=500 and the trend is
+monotone. Say so in the paper.
+
+**The framing is BOTH, not either:** report the full frontier, state that the value we originally
+froze exceeded our own pre-registered threshold, and that we moved. *"A methods paper cannot run
+at the setting its own pre-registration flagged — but having flagged it, moved, and reported the
+frontier is a stronger story than never having tripped the trigger."*
+
+### R24.2 Log-likelihood arms: build AFTER `main-v1`, and do NOT weaken G3
+
+**Option (b).** `main-v1` is generation and the LL arms are a separate stage — they are sequential
+either way, so blocking 10.5 h of critical-path generation on a half-day build is the wrong trade.
+Nothing in `main-v1`'s config depends on it. Build before **G5** closes.
+
+❌ **(c) REJECTED.** §3c's argument that two arms are insufficient stands, and *"H6 isn't just a
+hypothesis — it's the structural control that answers 'extraction fragility is everywhere, so
+what.' Cutting it weakens the paper's defence, not one result."*
+
+🚨 **Record G3 as partially met with a scheduled date. Do NOT relax the 0.5 pp criterion or R11's
+addendum because they are inconvenient** — *"that is the declared-versus-enforced pattern
+reappearing at the gate level, which is the one pattern this project has already paid for three
+times."*
+
+### R24.3 Exclude the hash arm from H4, and DISSOLVE the 50% threshold rather than amend it
+
+**The parallel to R18.2/§9c is exact.** A floored metric has no variance for an interaction to
+appear in; a 1% stratum has no items for a competence contrast. **Exclude the `gsm8k`
+hash-marker arm from H4's primary decomposition**, keep it as the demonstration arm.
+
+🔬 **The threshold has a defect independent of whether it passes: it is PROPORTIONAL where it
+should have been ABSOLUTE.** A 27% stratum on 1,319 GSM8K items is **356 items**; a 60% stratum on
+a 150-item BBH subtask is **90**. The proportional rule ranks them the wrong way round.
+
+⚠️ *"Changing a threshold because it failed looks bad, so don't change it. Dissolve it instead."*
+**Report the point estimate AND the Manski bounds for every cell, always, with stratum size as a
+first-class number.** §4.0 parts 1 and 3 already require both jointly, so the threshold becomes a
+**presentation rule** — which is primary in the table — not an analysis gate. Strictly more
+informative, not an amendment to an analysis decision, and given §9g shrinks the stratum again a
+hard threshold would fail nearly everywhere anyway.
+
+- **Report BBH per subtask**, and test the format gradient where the stratum is usable.
+- **On wide bounds as H4's headline:** *"much less costly than three weeks ago."* H4 was the
+  centrepiece under the old spine; the spine is now the apparatus findings, so **H4 is a
+  supporting decomposition.** §4.0 part 3 already pre-commits that wide bounds are honest.
+  Bounds plus an honestly reported stratum size is a defensible H4, **not a failure**.

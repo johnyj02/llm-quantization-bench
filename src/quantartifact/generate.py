@@ -67,7 +67,8 @@ from quantartifact.records import (
 # make `pilot-v2` and later runs structurally different mid-study, which is a worse trade
 # than the provenance is worth — the fingerprint goes in the job REPORT instead, where it is
 # equally auditable. Revisit at the artifact release (A24).
-DECODING_VERSION = "2"   # 1 -> 2: pinned top_k/penalties, generation_config="vllm"
+DECODING_VERSION = "3"   # 1 -> 2: pinned top_k/penalties, generation_config="vllm"
+#                        # 2 -> 3: max_num_seqs ADDED to the fingerprint (see below)
 
 # The six sampling fields, pinned. `top_k` has two sentinel spellings for "disabled" and
 # vLLM normalises between them, so both are accepted on read-back.
@@ -101,6 +102,20 @@ def decoding_fingerprint(spec) -> str:
         "async_scheduling": getattr(spec, "async_scheduling", None),
         "enforce_eager": getattr(spec, "enforce_eager", None),
         "disabled_kernels": getattr(spec, "disabled_kernels", None),
+        # 🚨 ADDED 2026-08-31 (R24.1). Its absence was the NINTH instance of this
+        # project's recurring bug family, and the most indefensible one: this study's
+        # own H8 result is that `max_num_seqs` changes generated text by up to **59%**,
+        # so it is among the strongest determinants of what a generation IS — and this
+        # function is documented as hashing exactly that. Without it, moving the frozen
+        # batch size from 64 to 32 would have silently REUSED generations produced at
+        # 64, and the re-run would have reported success having regenerated nothing.
+        #
+        # `cell_tag` in sm_determinism.py encodes the level explicitly (`at8`/`at32`),
+        # which is why the determinism sweep never collided and the gap stayed hidden.
+        # The generation stages (`pilot`, `template`, `reference`) key on
+        # `run_id/cell_id/task`, where `cell_id` is `model|precision` — no batch size
+        # anywhere. Those are precisely the stages whose output feeds the paper's deltas.
+        "max_num_seqs": getattr(spec, "max_num_seqs", None),
     }, sort_keys=True).encode()
     return hashlib.sha256(payload).hexdigest()[:12]
 

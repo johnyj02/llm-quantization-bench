@@ -7,7 +7,7 @@ This is the running record. Evidence paths are repo-relative.
 |---|---|---|---|---|
 | **G1** env + access | Aug 25 | ✅ **PASSED** | 2026-08-23 | `notes/access.md`, `notes/compute.md`, `pyproject.toml` |
 | **G2** prompt parity | Aug 27 | ✅ **PASSED** | 2026-08-26 | `artifacts/prompts/MANIFEST.json` (27 cells, 0 failures) |
-| **G3** scorers | Aug 28 | 🟡 partial | — | **340** tests green; ARC log-likelihood cross-val outstanding — ⚠️ **BLOCKED: the log-likelihood arms are not implemented** (`run_cell` is generation-only) |
+| **G3** scorers | Aug 28 | 🟡 **partially met** | — | **340** tests green. ⚠️ **ARC cross-validation OUTSTANDING, scheduled after `main-v1` and before G5 closes** (R24.2). It needs the log-likelihood arms, which do not exist — `run_cell` is generation-only. 🚨 **The ≤0.5 pp criterion and R11's addendum are NOT relaxed**: relaxing a gate because it is inconvenient is the declared-vs-enforced pattern reappearing at gate level, and this project has already paid for that three times. |
 | **G4** determinism (H8) | Aug 30 | ✅ **PASSED** | 2026-08-29 | frontier at {8,32,64} × 3 levels; `max_num_seqs=64` frozen (R16.2). Superseded in magnitude by the 10-ordering run (bf16 exactly 0.000 across ten, worst quantized SD 1.14 pp); a re-run with fixed BBH terminators is in flight |
 | **PREREG** | **Sep 2** *(schedule)* | 🟡 drafted | — | `analysis/preregistration.md`. 🚨 **The BINDING line is the first `run_id=main-v1` generation, not the calendar** (§9f) — until it exists, §1–§9 may be edited, because no edit can have been influenced by confirmatory results |
 | **G5a** anchors | Sep 2 | 🟡 unblocked | — | 9 quantized checkpoints exist (job 1 complete, 45.86 GB) |

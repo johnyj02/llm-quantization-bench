@@ -49,6 +49,25 @@ AUDIT_MODEL = "qwen2.5-3b"
 PRIMARY_RUNG = "permissive"
 
 
+def frozen_max_num_seqs() -> int:
+    """The frozen serving value, read from `configs/models.yaml` — the one source of truth.
+
+    ⚠️ Deliberately NOT derived from the measured levels. R24.1 moved the freeze from 64 to
+    32 while the sweep continues to measure {8, 32, 64}, so `max(levels)` would report a
+    value the study no longer runs at.
+    """
+    import yaml  # noqa: PLC0415 - only needed here
+
+    serving = yaml.safe_load(
+        (REPO / "configs" / "models.yaml").read_text())["serving"]
+    if not serving.get("max_num_seqs_resolved_by_audit"):
+        raise SystemExit(
+            "configs/models.yaml: max_num_seqs is not marked resolved_by_audit; refusing "
+            "to print an unaudited value into the paper"
+        )
+    return int(serving["max_num_seqs"])
+
+
 def pct(value: float | None, places: int = 2) -> str:
     return "--" if value is None else f"{value * 100:.{places}f}"
 
@@ -194,6 +213,7 @@ def mechanism_table(reanalysis: list) -> str:
 
 def macros(report: dict, reanalysis: list, report10: dict) -> str:
     """Single-number facts the prose needs, as macros so the prose cannot go stale."""
+    sd_level = max(c["max_num_seqs"] for c in report10["sweep"])
     quant = [c for c in reanalysis
              if c["model_key"] == AUDIT_MODEL and c["arm"] != "bf16" and not variant(c)]
     worst_range = worst_sd = 0.0
@@ -247,7 +267,12 @@ def macros(report: dict, reanalysis: list, report10: dict) -> str:
         rf"\newcommand{{\hEightRepFloor}}{{{max(floors) * 100:.3f}\xspace}}",
         rf"\newcommand{{\hEightNCells}}{{{len(report['sweep'])}\xspace}}",
         rf"\newcommand{{\hEightPinned}}{{{len(pinned)}\xspace}}",
-        rf"\newcommand{{\hEightFrozenB}}{{{max(levels_of(reanalysis))}\xspace}}",
+        # 🚨 From configs/models.yaml, NOT from the largest measured level. Those
+        # coincided while the freeze was 64 and DIVERGED the moment R24.1 moved it to
+        # 32 -- the sweep still measures {8,32,64}, so the old expression silently kept
+        # printing 64 into a paper that now runs at 32. A derived value that happens to
+        # agree with the real one is not a source of truth.
+        rf"\newcommand{{\hEightFrozenB}}{{{frozen_max_num_seqs()}\xspace}}",
         rf"\newcommand{{\hEightEngine}}{{{report['determinism_version']}\xspace}}",
         # 10-ordering facts. DELIBERATELY separate macros from the 3-ordering ones: the two
         # measure different populations (see sd_table) and must never be interchanged.
@@ -256,6 +281,11 @@ def macros(report: dict, reanalysis: list, report10: dict) -> str:
         rf"\newcommand{{\hEightRangeTen}}{{{worst_range10 * 100:.1f}\xspace}}",
         rf"\newcommand{{\hEightBFTenZero}}{{{bf16_ten_zero}\xspace}}",
         rf"\newcommand{{\hEightBFTenCells}}{{{bf16_ten_cells}\xspace}}",
+        # 🚨 The level the 10-ordering run ACTUALLY measured, read from its own report.
+        # NOT `\hEightFrozenB`: that run measured B=64 only, and R24.1 then moved the
+        # freeze to 32 — so using the frozen-value macro in its caption would have
+        # labelled B=64 data as B=32, in the table the H8 section LEADS with.
+        rf"\newcommand{{\hEightSDLevel}}{{{sd_level}\xspace}}",
     ])
 
 
@@ -291,18 +321,54 @@ def sd_table(report10: dict) -> str:
     ])
 
 
+def as_cells(report: dict) -> list:
+    """`determinism.json`'s cell lists in the flat shape the table builders expect.
+
+    🚨 WHY THIS EXISTS. `frontier_table` and `mechanism_table` used to read
+    `determinism_reanalysis.json`, on the reasoning that the reanalysis carried all three
+    metric levels. It does — but it is the output of a SEPARATE, EARLIER job, so once the
+    determinism sweep was re-run with corrected BBH terminators (job 33) the frontier table
+    silently kept printing the SUPERSEDED numbers: gptq-4bit 4.8% correctness at B=64 where
+    the re-run measured 11.2%. That is the number R24.1 moved the freeze over, so the paper
+    would have contradicted its own pre-registration.
+
+    `determinism.json` carries `by_level` with all three levels too, so the fresh report is
+    both sufficient and authoritative. The reanalysis is now used ONLY for the accuracy
+    spread, which is the one quantity it alone computes.
+    """
+    out = []
+    for key, suffix in (("sweep", ""), ("marlin_attribution", "fallback"),
+                        ("autotune_contrast", "autotune"),
+                        ("model_generality", "")):
+        for c in report.get(key) or []:
+            cell = dict(c)
+            tag = c.get("cell")
+            if not tag:
+                tag = (f"{c['model_key']}__{c['arm']}__at{c['max_num_seqs']}__r2"
+                       + (f"__{suffix}" if suffix else ""))
+            cell["cell"] = tag
+            out.append(cell)
+    return out
+
+
 def main() -> int:
     report = load("determinism.json")
-    reanalysis = load("determinism_reanalysis.json")
     report10 = load("determinism_ord10.json")
+    # ⚠️ EVERY 3-ordering table reads the SAME fresh report. `determinism.json` now carries
+    # `accuracy_by_ordering` natively (the R16.5 work folded it into `divergence_by_level`),
+    # so `determinism_reanalysis.json` -- a separate, earlier job's output -- is redundant and
+    # is deliberately NOT loaded. Loading it was how the frontier table came to print
+    # superseded numbers after the sweep was re-run; a second source for a quantity the
+    # primary source already has is a stale-data trap, not redundancy.
+    fresh = as_cells(report)
     TABLES.mkdir(parents=True, exist_ok=True)
 
     for name, body in {
-        "h8_frontier.tex": frontier_table(reanalysis),
-        "h8_spread.tex": spread_table(reanalysis),
+        "h8_frontier.tex": frontier_table(fresh),
+        "h8_spread.tex": spread_table(fresh),
         "h8_sd10.tex": sd_table(report10),
-        "h8_mechanism.tex": mechanism_table(reanalysis),
-        "h8_macros.tex": macros(report, reanalysis, report10),
+        "h8_mechanism.tex": mechanism_table(fresh),
+        "h8_macros.tex": macros(report, fresh, report10),
     }.items():
         (TABLES / name).write_text(body + "\n")
         print(f"  wrote paper/tables/{name}  ({len(body.splitlines())} lines)")

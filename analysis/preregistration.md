@@ -91,20 +91,38 @@ would shrink the stratum for no inferential gain.
 **Pre-committed interpretation rules for stratum size:**
 - A small stratum does **not** license falling back to the full-sample competence contrast as
   primary. It licenses the Manski bounds of §1.3 carrying more of the argument.
-- **Minimum viable stratum, pre-specified: 50%. UNCHANGED, and deliberately so
-  (R18.4.2).** The stratum intersects over the three contrasted arms, so it shrinks
-  multiplicatively — at 0.90 compliance per arm and independence it would be 0.90³ = 0.73,
-  and higher in practice since compliance is correlated across arms.
-  **If the stratum is <50% of items for a given (model, task), the stratum contrast is
-  EXPLORATORY for that cell and the Manski bounds become primary there.** Declared before
-  any admissible compliance number exists, so the threshold cannot be chosen after seeing
-  which cells would pass.
-- ⚠️ **A cell failing the threshold is the design working, not a problem to be patched.**
-  Such cells report the **Manski bounds (§1.3) and the compliance-transition matrix (§1.2)
-  only — no point estimate.** Both were already pre-registered for exactly this case, so
-  the threshold was never a gate the study could fail; it is a switch between two
-  pre-specified estimands. The temptation this forecloses is lowering the threshold once
-  the numbers are in.
+- **Minimum viable stratum, originally pre-specified at 50%.** The stratum intersects over
+  the three contrasted arms, so it shrinks multiplicatively — at 0.90 compliance per arm
+  and independence it would be 0.90³ = 0.73, and higher in practice since compliance is
+  correlated across arms.
+- 🚨 **AMENDED 2026-08-31 (R24.3): the 50% threshold is DISSOLVED, not lowered.** Measured
+  on re-scored `pilot-v2`, the stratum is below 50% in most cells — ARC 74–100%, BBH
+  10–100%, **`gsm8k` 1–27%** — and §9g makes it strictly smaller again by requiring
+  commitment in *all invocations*.
+
+  **The threshold had a defect independent of whether it passes: it is PROPORTIONAL where it
+  should have been ABSOLUTE.** A 27% stratum on 1,319 GSM8K items is **356 items**; a 60%
+  stratum on a 150-item BBH subtask is **90 items**. The first is far more usable than the
+  second, and the proportional rule ranks them the wrong way round.
+
+  ⚠️ **Lowering a threshold because it failed would be indefensible, so it is not lowered.**
+  Instead: **report the point estimate AND the Manski bounds for every cell, always, with
+  the stratum size as a first-class number.** §4.0 parts 1 and 3 already require both
+  jointly, so the "threshold" becomes a **presentation rule** — which of the two is primary
+  in the table — rather than an analysis gate. That is strictly more informative than a
+  switch, and it removes the incentive the threshold created.
+- ⚠️ **BBH is reported PER SUBTASK**, and the format gradient is tested on the subtasks whose
+  stratum is usable. A pooled BBH number would hide a 10% stratum inside a 100% one.
+- **Wide bounds remain an honest result** (§1.3), and they cost less than they would have
+  three weeks ago: H4 was the centrepiece under the old spine, but the spine is now the
+  apparatus findings (ordering, invocation, truncation) and **H4 is a supporting
+  decomposition.** Bounds plus an honestly reported stratum size is a defensible H4, not a
+  failed one.
+- 🚨 **The `gsm8k` hash-marker arm is EXCLUDED from H4's primary decomposition** (R24.3),
+  exactly parallel to §9c excluding it from H3. A floored metric has no variance for an
+  interaction to appear in; a 1–27% stratum has too few items for a competence contrast. It
+  is retained as the **demonstration** arm. Same reasoning, same treatment, registered in
+  the same way.
 
 ### 1.2 Compliance-transition matrix — reported as a finding, not conditioned away
 
@@ -885,9 +903,48 @@ published** as part of the artifact.
 3. **Pipeline floor** (§4.5) — the bf16 end-to-end double run, unchanged.
 
 If correctness-level reordering divergence exceeds 10 pp, the freeze is escalated before being
-made. **Outcome: it does not.** Worst strict-correctness divergence is 5.4% and worst
-permissive-correctness 7.0% (both gptq-4bit/awq-4bit at `max_num_seqs=32`, 500 items), so no
-escalation was triggered and `max_num_seqs = 64` is frozen.
+made.
+
+🚨 **OUTCOME, AMENDED 2026-08-31 (R24.1): THE TRIGGER FIRED, AND THE FREEZE MOVED 64 → 32.**
+
+The first measurement reported worst strict-correctness 5.4% and worst permissive-correctness
+7.0%, and `max_num_seqs = 64` was frozen on that basis. **That measurement was taken while BBH's
+few-shot terminators were truncating five of six subtasks to a median of 7 generated tokens
+(§9b), so roughly two fifths of the probe was inert and contributed no variance at any level.**
+Re-measured with the terminators corrected (job 33, 500 items, qwen2.5-3b, 3 orderings):
+
+| arm | B=8 | B=32 | B=64 |
+|---|---|---|---|
+| gptq-4bit **permissive** | 5.8% | 8.2% | **11.2%** ← exceeds the trigger |
+| gptq-4bit strict | 5.4% | 7.4% | 7.4% |
+| awq-4bit permissive | 7.6% | 9.4% | 9.6% |
+| gptq-8bit permissive | 6.8% | 7.0% | 7.8% |
+| bnb-nf4 permissive | 6.6% | 0.2% | 0.0% |
+| **bf16, every level** | **0.0%** | **0.0%** | **0.0%** |
+
+**11.2% exceeds the 10 pp trigger, at the value that had been frozen.** §9 requires the freeze
+to be *escalated* before being made, not forbidden — the escalation happened and ruled: **move
+to 32.** `max_num_seqs = 32` is frozen.
+
+⚠️ **The substantive point is not the threshold, it is that the original rationale is void.**
+The freeze chose 64 because the level-dependence looked like noise (~0.6 SE). On corrected data
+the same series is monotone across ~5.4 pp. The inert items were flattening exactly the
+dependence the decision turned on.
+
+⚠️ **Why 32 and not 8.** No value is clean; even B=8 sits at 5.8–7.6%. This is a point on a
+frontier, not safe harbour. Under **fixed** ordering, order divergence contributes zero
+*differential* noise to our deltas (R16.5/R17), so 8's extra ~1.8 pp of margin buys
+defensibility on a quantity that does not contaminate our estimates, at 30–50 extra GPU-hours.
+
+⚠️ **32's fragility is reported, not buried:** 9.4% is **three items of margin** at n=500 and
+the trend across levels is monotone. The paper states the full frontier, that our originally
+frozen value exceeded our own pre-registered threshold, and that we moved.
+
+**What is and is not re-run:** `pilot-v2` is **not** re-run — R11/O11 established that the
+annotation pool need not be byte-identical to `main-v1`, since judge validation is a claim about
+the population of generations rather than about specific strings; it is recorded as having run at
+B=64. The 10-ordering H8 run spans {8, 32, 64} by design and stands. **The template probe is
+re-run at B=32.**
 
 ### 9a. Ordering as an accuracy statistic — CONFIRMATORY EXTENSION, explicitly not pre-data
 
@@ -925,7 +982,7 @@ never will be. The paper may state an observed range only as a description of th
 |---|---|
 | orderings | **10** — the 3 above plus 7 additional. Seeds, PINNED HERE rather than promised: `0, 20260827, 20260828, 20260829, 20260830, 20260831, 20260901, 20260902, 20260903, 20260904`. The first three are the original seeds unchanged and in order, so the 3-ordering result stays exactly recoverable as a prefix. Defined in `quantartifact.determinism.ORDERING_SEEDS_EXTENDED`. |
 | arms | bf16, gptq-4bit, awq-4bit, bnb-nf4 |
-| `max_num_seqs` | **64 only** (the frozen serving value) |
+| `max_num_seqs` | **32 only** (the frozen serving value) — ⚠️ the completed run used **64**, the then-frozen value; see §9's amended outcome. The two are not pooled. |
 | items | **500** — the same probe, unchanged |
 | model | qwen2.5-3b (audit model) |
 | primary rung | **rung 2 (permissive)**, with rung 1 (strict) reported alongside, per §2.2's headline contrast |
