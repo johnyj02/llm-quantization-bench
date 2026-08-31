@@ -1,0 +1,67 @@
+{
+  "stage": "diagnose",
+  "baseline": "pilot-v2",
+  "n_items": 40,
+  "probes": [
+    {
+      "model": "qwen2.5-3b",
+      "arm": "bf16",
+      "invocations": [
+        "diagnose-v1__qwen2.5-3b__bf16__inv1"
+      ],
+      "vs_baseline": {
+        "n": 40,
+        "identical": 40,
+        "differ": 0
+      }
+    },
+    {
+      "model": "qwen2.5-3b",
+      "arm": "gptq-4bit",
+      "invocations": [
+        "diagnose-v1__qwen2.5-3b__gptq-4bit__inv1"
+      ],
+      "vs_baseline": {
+        "n": 40,
+        "identical": 22,
+        "differ": 18
+      }
+    },
+    {
+      "model": "llama-3.1-8b",
+      "arm": "bf16",
+      "invocations": [
+        "diagnose-v1__llama-3.1-8b__bf16__inv1",
+        "diagnose-v1__llama-3.1-8b__bf16__inv2"
+      ],
+      "vs_baseline": {
+        "n": 40,
+        "identical": 23,
+        "differ": 17
+      },
+      "across_invocations": {
+        "n": 40,
+        "identical": 40,
+        "differ": 0
+      }
+    },
+    {
+      "model": "qwen2.5-3b",
+      "arm": "bf16",
+      "invocations": [
+        "diagnose-v1__qwen2.5-3b__bf16__inv1",
+        "diagnose-v1__qwen2.5-3b__bf16__inv2"
+      ],
+      "vs_baseline": {
+        "n": 40,
+        "identical": 40,
+        "differ": 0
+      },
+      "across_invocations": {
+        "n": 40,
+        "identical": 40,
+        "differ": 0
+      }
+    }
+  ]
+}

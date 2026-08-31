@@ -160,3 +160,68 @@ raw accuracy delta on that cell.
 implies. Raised with the planner as R23 rather than implemented, because it changes which arms
 need K=2: if H3 is class 3 then qwen needs repetition too, despite showing 0.00 at n=180 — and
 qwen carries the largest rung gaps (19–23 pp), i.e. the most H3 signal.
+
+
+---
+
+## 8. The diagnose job (2026-08-31) — Q1 answered, Q2 not, and my test was confounded
+
+One job, $0.58, 4 probes x 40 items. Report: `artifacts/diagnose_report.json`.
+
+| probe | vs stored `pilot-v2` | 2 invocations |
+|---|---|---|
+| qwen bf16 | **40/40 identical** | 40/40 identical |
+| qwen gptq-4bit | 22/40 | — |
+| llama bf16 | 23/40 | **40/40 identical** |
+
+### ✅ Q1 — the old sampling configuration WAS neutral
+
+**Prior data is not corrupted by a hidden `repetition_penalty`.** `qwen/bf16` regenerated
+**40/40 identical** to its stored `pilot-v2` output, and qwen is the cell with zero invocation
+noise, so it is the only cleanly interpretable comparison in the set.
+
+Also checked directly: the `generation_config.json` in our quantized checkpoints is
+**semantically identical** to the HF base repo's — both carry `repetition_penalty 1.05`,
+`top_k 20`, `temperature 0.7`, `top_p 0.8`, differing only in `transformers_version`. So that
+file cannot explain arm-dependence either.
+
+⚠️ **The pinning stays anyway.** It cost nothing, it removes the question rather than answering
+it once, and "greedy with no penalties" is a property the paper *reports* — it should be
+enforced rather than observed to have been true on one occasion.
+
+### 🚨 MY Q1 TEST WAS CONFOUNDED, by this study's own H8 effect
+
+I generated **40** items and compared against `pilot-v2`'s run of **100**. `run_cell` submits
+the whole item list in one `generate()` call, so **40 vs 100 is a different batch composition**
+— and H8 established that `qwen/gptq-4bit` diverges **71.6%** under reordering while
+`qwen/bf16` is *exactly* batch-invariant.
+
+So `gptq-4bit`'s 18 differences are **H8's effect produced by my own change of n**, not a
+configuration effect. Reading them as evidence about the sampling config would have been wrong,
+and it is the kind of error this project keeps having to catch: **a comparison is only valid if
+every difference except the one under test is held fixed, and item COUNT is one of those
+differences on batch-sensitive arms.**
+
+A correct Q1 test would use the same 100 items. Not worth a job now that qwen/bf16 has answered
+it.
+
+### ⚠️ Q2 — INCONCLUSIVE BY DESIGN, and the design was mine
+
+`llama/bf16` came out **40/40 identical across two invocations**, which looks like the fix
+working. It does not establish that, because **both invocations ran back-to-back inside ONE
+job**, whereas the original evidence was `pilot-v1` vs `pilot-v2` — separate jobs, days apart.
+Two invocations within a job had never been tested before, so 40/40 is equally consistent with:
+
+* the configuration change resolved it, or
+* the effect was always cross-**job** only, and within-job invocations were always identical.
+
+The planned re-runs settle it by construction: they are new jobs, so comparing their output
+against `pilot-v2` on the *same* item counts is exactly the missing test.
+
+### Defect in the diagnose stage itself
+
+Probe 4 (`qwen/bf16`, 2 invocations) logged `0 written, 40 skipped` on its first invocation: its
+`run_id` (`diagnose-v1__qwen2.5-3b__bf16__inv1`) **collided with probe 1's**, since the scheme
+omits the probe index. The comparison remained valid — probe 1's output and probe 4's second
+invocation are still two separate engine loads — but the run_id must include the probe index.
+Eighth instance of a resume key that does not distinguish what it needs to.
