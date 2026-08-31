@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# Ask the Reviewer session to check code correctness, test adequacy and hygiene.
+#
+#   ./ask-reviewer "review the K=2 implementation in sm_reference.py"
+#   ./ask-reviewer "$(git diff HEAD~1)"            # review a specific change
+#   FORK=1 ./ask-reviewer "quick question"          # do not write to its history
+#
+# The counterpart to ./ask-planner: the Planner rules on SCIENCE, the Reviewer rules on
+# CODE. Neither writes code.
+#
+# Like the planner it RESUMES one long-lived session, so it accumulates memory of what it
+# has already flagged and what was ruled on -- which is most of its value. A fresh reviewer
+# re-litigates settled decisions and re-reports known-and-accepted quirks; this one does not.
+#
+# TWO DIFFERENCES FROM ask-planner, both deliberate:
+#
+# 1. 🚨 READ-ONLY BY CONSTRUCTION. `Edit`, `Write` and `NotebookEdit` are denied at the CLI,
+#    so the reviewer cannot modify the repository even if the prompt asks it to. A reviewer
+#    that edits is no longer a second pair of eyes -- it becomes an author whose work nobody
+#    reviews. It still has Read/Grep/Glob/Bash, because running the tests beats reasoning
+#    about them.
+# 2. The role lives in `notes/reviewer-charter.md` and is loaded as an appended system prompt
+#    on EVERY call, rather than seeded once into the conversation. So the charter is
+#    versioned in git, editable without re-seeding, and still in force in a --fork or after
+#    a compaction. The session carries the FINDINGS; the file carries the ROLE.
+#
+# ⚠️ The reviewer can run `bash`. The charter forbids billable commands (D10: no GPU job
+# without the user's explicit confirmation), but that is an instruction, not a lock. Do not
+# hand it a prompt that asks it to submit a job.
+
+set -euo pipefail
+
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REVIEWER_SESSION="f1f37c1a-0da5-4ef8-ad24-19df1810323b"
+CHARTER="${REPO}/notes/reviewer-charter.md"
+EFFORT="${EFFORT:-max}"          # highest of: low medium high xhigh max
+# Opus 5 with the 1M-token context window, same as the planner. Code review over a repo this
+# size wants the large window: the reviewer reads real files rather than a summary.
+MODEL="${MODEL:-global.anthropic.claude-opus-5[1m]}"
+
+# Where the CLI keeps this project's sessions. Used only to decide create-vs-resume.
+SESSION_DIR="${HOME}/.claude/projects/-Users-johnyj02-workspaces-QuantArtifact"
+
+if [ $# -eq 0 ]; then
+  cat >&2 <<'USAGE'
+usage: ./ask-reviewer "<what to review>"
+
+  ./ask-reviewer "review the K=2 implementation in sm_reference.py"
+  ./ask-reviewer "is decoding_fingerprint complete? what determines a generation and is missing?"
+  ./ask-reviewer "$(git diff HEAD~1)"
+  FORK=1 ./ask-reviewer "throwaway question"
+
+env: FORK=1  read its context without writing to history
+     EFFORT  low|medium|high|xhigh|max   (default max)
+     MODEL   override the model
+USAGE
+  exit 1
+fi
+
+if [ ! -f "$CHARTER" ]; then
+  echo "ask-reviewer: charter missing at ${CHARTER}" >&2
+  echo "  The reviewer's whole value is the charter -- it is what stops it reviewing" >&2
+  echo "  this research code as though it were a product. Refusing to run without it." >&2
+  exit 1
+fi
+
+# First call CREATES the session at a fixed id; later calls RESUME it. Keeping the id fixed
+# is what makes the memory accumulate -- a fresh id every time would give a reviewer with
+# amnesia, which is the thing this script exists to avoid.
+if [ -f "${SESSION_DIR}/${REVIEWER_SESSION}.jsonl" ]; then
+  SESSION_ARGS=(--resume "$REVIEWER_SESSION")
+  [ "${FORK:-0}" = "1" ] && SESSION_ARGS+=(--fork-session)
+else
+  echo "ask-reviewer: no session yet — creating ${REVIEWER_SESSION}" >&2
+  SESSION_ARGS=(--session-id "$REVIEWER_SESSION")
+fi
+
+cd "$REPO"
+claude "${SESSION_ARGS[@]}" \
+  --model "$MODEL" \
+  --effort "$EFFORT" \
+  --append-system-prompt-file "$CHARTER" \
+  --disallowed-tools Edit Write NotebookEdit \
+  -p "$*" \
+  --output-format json < /dev/null | jq -r '.result'

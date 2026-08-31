@@ -30,22 +30,47 @@ that can drift will drift — that already happened once with the ledger.
 TASKS wins on execution, PLAN wins on science. TASKS §0.2 lists eleven intentional
 overrides; a conflict *not* listed there is a planning bug — stop and report it.
 
-### Asking the planner
+### Asking the planner, and asking the reviewer
 
-Scientific questions go to the **planner**, not the user (D13):
+Two long-lived advisor sessions, neither of which writes code. **The planner rules on SCIENCE;
+the reviewer rules on CODE.** Scientific questions go to the planner rather than to the user
+(D13); code questions go to the reviewer.
 
 ```bash
-./ask-planner "question"                    # resumes its session — it remembers everything
+./ask-planner  "question"                   # resumes its session — it remembers everything
+./ask-reviewer "review sm_reference.py's K=2 path"
+./ask-reviewer "$(git diff HEAD~1)"         # review a specific change
 FORK=1 ./ask-planner "throwaway question"   # reads its context without writing to its history
 ```
 
-Opus 5 (1M context) at `--effort max`, resuming session `54ba15b1-…`. Two rules:
+Both resume a **fixed session id**, which is most of their value: they remember what was already
+ruled on, so they do not re-litigate settled decisions or re-report known quirks.
 
-- ⚠️ **Batch the questions.** Each call re-sends the planner's whole context, so five
+**The reviewer is read-only by construction** — `Edit`, `Write` and `NotebookEdit` are denied at
+the CLI, so it cannot modify the repo even if the prompt asks. It keeps `Read`/`Grep`/`Bash`
+because running the tests beats reasoning about them, and it is told to label what it *verified*
+separately from what it *suspects*.
+
+Its role lives in `notes/reviewer-charter.md`, loaded as an appended system prompt on every
+call — so the charter is versioned in git and editable without re-seeding, while the session
+carries the findings history. **The charter is what makes it useful:** it names this project's
+actual bug family (ten instances of a value that determines an outcome not being part of that
+outcome's identity or enforcement path) and tells the reviewer to hunt that first, rather than
+reviewing research code as though it were a product.
+
+⚠️ The reviewer can run `bash`. The charter forbids billable commands per D10, but that is an
+instruction, not a lock — do not hand it a prompt that asks it to submit a job.
+
+Both run Opus 5 (1M context) at `--effort max`. Planner session `54ba15b1-…`, reviewer session
+`f1f37c1a-…`. Two rules that apply to **both**:
+
+- ⚠️ **Batch the questions.** Each call re-sends that advisor's whole context, so five
   separate calls cost five times what one does.
-- ⚠️ **Save the answer unabridged to `notes/planner-answers/`, never read it through
-  `tail -n`.** A `tail -60` silently truncated R15 and lost two of its points. Then
-  distil it into `notes/planner-rulings.md` as an R-number.
+- ⚠️ **Save the answer unabridged to a file, never read it through `tail -n`.** A `tail -60`
+  silently truncated R15 and lost two of its points. Planner answers go to
+  `notes/planner-answers/` and are distilled into `notes/planner-rulings.md` as an R-number;
+  reviewer answers go to `notes/reviews/` and any finding acted on is recorded there with what
+  changed.
 
 ## 1. The one architectural rule
 
