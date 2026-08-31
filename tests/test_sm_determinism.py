@@ -431,3 +431,74 @@ class TestCellTagDistinguishesOrderingCount:
         tag = sm_determinism.cell_tag(
             "bf16", 64, n_orderings=len(ORDERING_SEEDS_EXTENDED))
         assert tag.endswith("ord10x"), tag
+
+
+class TestDecodingFingerprint:
+    """🚨 THE ROOT FIX for a bug family this project hit EIGHT times: a cached unit of work
+    keyed on an identity that omits something determining what the work produces.
+
+    `desc_act`, `async_scheduling`, `add_bos_token` (declared, never forwarded); the pilot's
+    per-level `until` (forwarded, not in the key); job 1b's destination path (derived in the
+    callee); the determinism resume key (no ordering count); the diagnose run_id (no probe
+    index). Each was patched individually. The general rule: **anything that changes what a
+    cell produces must change the cell's identity.**
+    """
+
+    def test_env_hash_was_never_a_config_fingerprint(self):
+        """It covers {gpu, cuda} only, which is why it stayed byte-identical across BOTH
+        the BBH terminator change and the sampling change. Documented so nobody reaches
+        for it again."""
+        gen = (Path(__file__).resolve().parents[1] / "src" / "quantartifact"
+               / "generate.py").read_text()
+        assert 'env_hash({"gpu": hardware["gpu"], "cuda": hardware["cuda"]})' in gen
+
+    def test_fingerprint_changes_when_the_sampling_config_changes(self):
+        from quantartifact.generate import (  # noqa: PLC0415
+            EngineSpec,
+            decoding_fingerprint,
+        )
+        base = EngineSpec(model_repo="m", model_revision="r")
+        # generation_config is part of what decoding IS.
+        other = EngineSpec(model_repo="m", model_revision="r", generation_config="auto")
+        assert decoding_fingerprint(base) != decoding_fingerprint(other)
+
+    def test_fingerprint_changes_with_disabled_kernels(self):
+        """The Marlin-off cells are a different measurement and must not share a key."""
+        from quantartifact.generate import (  # noqa: PLC0415
+            EngineSpec,
+            decoding_fingerprint,
+        )
+        a = EngineSpec(model_repo="m", model_revision="r")
+        b = EngineSpec(model_repo="m", model_revision="r",
+                       disabled_kernels="MarlinLinearKernel")
+        assert decoding_fingerprint(a) != decoding_fingerprint(b)
+
+    def test_fingerprint_is_stable_for_the_same_config(self):
+        from quantartifact.generate import (  # noqa: PLC0415
+            EngineSpec,
+            decoding_fingerprint,
+        )
+        spec = EngineSpec(model_repo="m", model_revision="r")
+        assert decoding_fingerprint(spec) == decoding_fingerprint(spec)
+
+    def test_cell_tag_includes_it_and_so_invalidates_old_cells(self):
+        from quantartifact.generate import (  # noqa: PLC0415
+            EngineSpec,
+            decoding_fingerprint,
+        )
+        fp = decoding_fingerprint(EngineSpec(model_repo="m", model_revision="r"))
+        assert sm_determinism.cell_tag("bf16", 64) != \
+            sm_determinism.cell_tag("bf16", 64, decoding=fp)
+        assert sm_determinism.cell_tag("bf16", 64, decoding=fp).endswith(f"dec{fp}")
+
+    def test_measure_cell_passes_a_fingerprint(self):
+        source = (Path(__file__).resolve().parents[1] / "sm_determinism.py").read_text()
+        assert "decoding=fingerprint" in source
+
+    def test_the_assertion_and_the_fingerprint_share_one_source_of_truth(self):
+        """If the asserted sampling values and the hashed ones could diverge, the key
+        would certify a configuration that was never enforced."""
+        gen = (Path(__file__).resolve().parents[1] / "src" / "quantartifact"
+               / "generate.py").read_text()
+        assert "for field, allowed in NEUTRAL_SAMPLING.items()" in gen
+        assert '"sampling": {k: v[0] for k, v in NEUTRAL_SAMPLING.items()}' in gen

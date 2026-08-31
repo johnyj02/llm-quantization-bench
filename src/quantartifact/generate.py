@@ -45,6 +45,66 @@ from quantartifact.records import (
     prompt_sha256,
 )
 
+# 🚨 DECODING FINGERPRINT — the root fix for a bug family this project has now hit EIGHT
+# times: a cached or resumed unit of work keyed on an identity that does not include
+# everything determining what the work produces.
+#
+#   desc_act, async_scheduling, add_bos_token   values declared and never forwarded
+#   the pilot's per-level `until`               forwarded but not in the cache key
+#   job 1b's destination path                   derived in the callee, unoverridable
+#   the determinism resume key                  did not encode the ordering COUNT
+#   the diagnose run_id                         did not encode the probe index
+#
+# Each was patched individually. The general statement is: **anything that changes what a
+# cell produces must change the cell's identity.** `env_hash` does not do this — it covers
+# only `{gpu, cuda}`, which is why it stayed byte-identical across the BBH terminator change
+# AND the sampling-parameter change. It is a hardware fingerprint, not a configuration one.
+#
+# So: bump DECODING_VERSION whenever anything below changes, and include the fingerprint in
+# any resume key. A stale cache then becomes impossible rather than merely unlikely.
+#
+# ⚠️ Deliberately NOT added to the per-record schema. That would bump `schema_version` and
+# make `pilot-v2` and later runs structurally different mid-study, which is a worse trade
+# than the provenance is worth — the fingerprint goes in the job REPORT instead, where it is
+# equally auditable. Revisit at the artifact release (A24).
+DECODING_VERSION = "2"   # 1 -> 2: pinned top_k/penalties, generation_config="vllm"
+
+# The six sampling fields, pinned. `top_k` has two sentinel spellings for "disabled" and
+# vLLM normalises between them, so both are accepted on read-back.
+NEUTRAL_SAMPLING: dict[str, tuple] = {
+    "temperature": (0.0,),
+    "top_p": (1.0,),
+    "top_k": (-1, 0),
+    "repetition_penalty": (1.0,),
+    "presence_penalty": (0.0,),
+    "frequency_penalty": (0.0,),
+}
+
+
+def decoding_fingerprint(spec) -> str:
+    """Short hash of everything that determines what a generation IS.
+
+    Include this in any cache or resume key. If it changes, previously cached cells were
+    produced by a different decoding configuration and must not be reused.
+    """
+    import hashlib  # noqa: PLC0415 - only needed here
+    import json as _json  # noqa: PLC0415
+
+    payload = _json.dumps({
+        "decoding_version": DECODING_VERSION,
+        "sampling": {k: v[0] for k, v in NEUTRAL_SAMPLING.items()},
+        "generation_config": getattr(spec, "generation_config", None),
+        "required_env": REQUIRED_ENV,
+        "batch_invariant": True,
+        "seed": getattr(spec, "seed", None),
+        "enable_prefix_caching": getattr(spec, "enable_prefix_caching", None),
+        "async_scheduling": getattr(spec, "async_scheduling", None),
+        "enforce_eager": getattr(spec, "enforce_eager", None),
+        "disabled_kernels": getattr(spec, "disabled_kernels", None),
+    }, sort_keys=True).encode()
+    return hashlib.sha256(payload).hexdigest()[:12]
+
+
 # Required environment, per EXECUTOR-TASKS.md §3.3. These are the settings that
 # matter; everything else is cargo cult.
 REQUIRED_ENV: dict[str, str] = {
@@ -577,14 +637,11 @@ class VLLMRunner:
         # failed a job on a representation difference rather than a semantic one -- so the
         # accepted set is explicit, and the assertion still catches a REAL value like 20
         # (which is what Qwen's generation_config.json would supply).
-        neutral: dict[str, tuple] = {
-            "temperature": (0.0,), "top_p": (1.0,), "top_k": (-1, 0),
-            "repetition_penalty": (1.0,), "presence_penalty": (0.0,),
-            "frequency_penalty": (0.0,),
-        }
+        # Single source of truth: the same dict that feeds `decoding_fingerprint`, so the
+        # asserted values and the cache key can never disagree.
         wrong = {
             field: getattr(params, field)
-            for field, allowed in neutral.items()
+            for field, allowed in NEUTRAL_SAMPLING.items()
             if getattr(params, field, allowed[0]) not in allowed
         }
         if wrong or params.seed != self.spec.seed:

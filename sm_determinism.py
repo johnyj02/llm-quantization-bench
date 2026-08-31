@@ -95,6 +95,16 @@ from quantartifact.determinism import (  # noqa: E402
     order_sensitivity,
     probe_fingerprint,
 )
+
+# EngineSpec and decoding_fingerprint are pure -- generate.py imports vllm lazily -- so
+# these are safe at module level in the PARENT process. The child gets its own import
+# inside PROBE_SCRIPT.
+from quantartifact.generate import (  # noqa: E402
+    EngineSpec as _EngineSpec,
+)
+from quantartifact.generate import (
+    decoding_fingerprint as _decoding_fingerprint,
+)
 from quantartifact.quantize import config_hash, load_specs, output_dir  # noqa: E402
 
 CHECKPOINT_DIR = Path(os.environ.get("SM_CHECKPOINT_DIR", "/opt/ml/checkpoints"))
@@ -168,6 +178,7 @@ def cell_tag(
     ordering_seed: int = 0,
     autotune: bool = False,
     n_orderings: int | None = None,
+    decoding: str | None = None,
 ) -> str:
     """Filesystem-safe identity for one probe cell. Also its resume key.
 
@@ -205,6 +216,13 @@ def cell_tag(
         parts.append("autotune")
     if n_orderings is not None and n_orderings != len(ORDERING_SEEDS):
         parts.append(f"ord{n_orderings}x")
+    # 🚨 THE DECODING FINGERPRINT. Everything above describes WHAT was measured; this
+    # describes the configuration that produced it. Without it, cells generated under the
+    # old sampling configuration are silently reused after the configuration changes --
+    # which is precisely what would have happened to this re-run, since the sweep uses the
+    # default 3 orderings and so would have matched job 2's tags exactly.
+    if decoding:
+        parts.append(f"dec{decoding}")
     if disabled_kernels:
         parts.append("fallback")
     return "__".join(parts)
@@ -334,7 +352,7 @@ def resolve_model_path(
 PROBE_SCRIPT = r"""
 import json, os, random, sys, time
 sys.path.insert(0, "/opt/ml/code/src")
-from quantartifact.generate import EngineSpec, VLLMRunner
+from quantartifact.generate import EngineSpec, VLLMRunner, decoding_fingerprint
 
 payload = json.loads(open(sys.argv[1]).read())
 spec = EngineSpec(**payload["spec"])
@@ -422,9 +440,21 @@ def measure_cell(
     # ⚠️ `n_orderings` MUST be passed. It is what distinguishes a 3-ordering cell from a
     # 10-ordering one at the same arm and level; omitting it is what made the R17.3 run
     # silently reuse job 2's results.
+    # The fingerprint needs an EngineSpec, and the payload's is built further down, so a
+    # minimal one is constructed here with the SAME per-cell fields. Only
+    # `disabled_kernels` varies per cell; everything else the fingerprint reads is an
+    # EngineSpec default, which is exactly what we want captured -- if a default changes,
+    # every cached cell is invalidated automatically.
+    path_for_spec, _ = resolved[arm]
+    fingerprint = _decoding_fingerprint(_EngineSpec(
+        model_repo=path_for_spec,
+        model_revision=model["revision"],
+        max_num_seqs=level,
+        disabled_kernels=disabled_kernels,
+    ))
     tag = cell_tag(arm, level, disabled_kernels, model_key=model_key,
                    repeats=repetition_passes, autotune=autotune,
-                   n_orderings=len(orderings))
+                   n_orderings=len(orderings), decoding=fingerprint)
     result_path = PROBE_DIR / f"{tag}.json"
 
     if SMOKE and result_path.exists():
