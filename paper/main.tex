@@ -131,6 +131,23 @@ instrument. Their null result on MATH deserves emphasis rather than a footnote
 verifier leaves little for a protocol effect to explain. This bounds our claim
 rather than supporting it, and it is why our task selection targets benchmarks
 whose canonical extractors are regular expressions.
+\paragraph{The nearest prior work, and what it deliberately designed out.}
+\citet{pape2026silent} is the closest study to our \S\ref{sec:h8} and must be
+distinguished precisely. They survey 35{,}000 publications, find that only 36\% of
+papers without released code name even their inference backend, and show that
+switching backend alone moves GSM8K by 16.6 points. We adopt their framing and
+their survey rather than repeating it. But their controlled comparison runs at
+\emph{batch size one}, chosen explicitly to prevent batching-induced instability,
+holds precision at FP16, and varies only random seeds within an engine; batch
+invariance and quantized kernel selection do not enter. The instability they
+design out is the one we make the object of study: we hold the engine, the
+weights and the decoding configuration fixed, vary only which items share a
+batch, and attribute the resulting divergence to a named quantized kernel by
+intervention. Their root-cause analysis independently supports our wider point ---
+their two largest outliers were a spurious BOS injection and an unnoticed
+repetition penalty, worth 8.3 and 11.7 points, both configuration defaults rather
+than model properties.
+
 \citet{sclar2024formatspread} establish that spurious formatting choices move
 scores substantially, and \citet{jo2025finding} and \citet{yu2025xfinder} show
 that answer extraction from reasoning traces is itself an unreliable step.

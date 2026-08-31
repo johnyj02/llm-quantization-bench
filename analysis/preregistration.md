@@ -593,6 +593,16 @@ prediction above is what is being tested, and it is recorded before any data exi
 
 `gsm8k` additionally makes **Anchor C** (arXiv:2601.14277) reproducible.
 
+⚠️ **SCOPED 2026-08-30 after reading the source (R19.3, `notes/protocol-survey.md`).** Anchor C
+is **llama.cpp GGUF K-quants on CPU** (`commit b7600`, dual Xeon 8488C), not vLLM with GPTQ/AWQ
+on a GPU. So what is reproducible is its **extraction gap** — F16 `GSM8K (FE) EM 77.63` vs
+`GSM8K (SM) EM 24.64`, one model under two filters, on a task config we also run (`gsm8k`,
+5-shot, hash marker, chat template on, `lm_eval` v0.4.9.2). Its **quantized** deltas are *not*
+comparable to ours in kind. The substrate difference must be stated wherever the anchor is
+invoked. ✅ Its chat-template setting **is** reported (*"prompts were formatted using the default
+Llama-3.1-8B-Instruct chat template"*), which confirms R1.2's diagnosis on evidence rather than
+plausibility.
+
 Scope cost: +1,319 × 15 ≈ **19,785 generations**, ~20% above the `EXECUTOR-TASKS.md` §2.2
 matrix. Approved by the user 2026-08-23.
 
