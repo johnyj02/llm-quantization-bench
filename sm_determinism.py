@@ -81,6 +81,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 import yaml  # noqa: E402
+from sm_pilot import frozen_max_num_seqs  # noqa: E402
 
 from quantartifact.determinism import (  # noqa: E402
     DETERMINISM_VERSION,
@@ -633,10 +634,23 @@ def main() -> int:
         # so sampling variance largely cancels, but resolution does not: at 250 items one
         # item is 0.4 pp while the whole effect is ~8 items.
         arms = ["bf16", "gptq-4bit", "awq-4bit", "bnb-nf4"]
-        levels = [max(ORDER_SWEEP_LEVELS)]
+        # 🚨 THE FROZEN VALUE, read from `models.yaml`. Was `max(ORDER_SWEEP_LEVELS)`.
+        #
+        # Those two coincided while the freeze was 64 and DIVERGED the moment R24.1 moved it
+        # to 32 -- the sweep still measures {8, 32, 64}, so the old expression would have
+        # re-run this at 64, the value the study just abandoned for exceeding its own
+        # pre-registered threshold. And it is the table the H8 section LEADS with.
+        #
+        # The comment above this block already said "at the FROZEN batch size only", so the
+        # intent was right and the implementation derived the number instead of reading it.
+        # That is the tenth instance of declared-versus-enforced in this project, and the
+        # third where a DERIVED value silently stood in for a frozen one (the other two:
+        # `\hEightFrozenB` in the table generator, and `max_num_seqs` missing from the
+        # decoding fingerprint). A value the study freezes must be READ, never re-derived.
+        levels = [frozen_max_num_seqs()]
         orderings = ORDERING_SEEDS_EXTENDED
         print(f"ORDERINGS MODE (R17.3): {len(arms)} arms x {len(orderings)} orderings "
-              f"at max_num_seqs={levels[0]} only")
+              f"at max_num_seqs={levels[0]} only (FROZEN value, read from models.yaml)")
     if SMOKE and SD_MODE:
         # ⚠️ ORDER MATTERS AND THIS BLOCK EXISTS BECAUSE OF IT. Written as a plain
         # `if SMOKE:` after the SD_MODE block, the smoke would have overridden arms and

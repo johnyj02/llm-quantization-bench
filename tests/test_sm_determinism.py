@@ -502,3 +502,34 @@ class TestDecodingFingerprint:
                / "generate.py").read_text()
         assert "for field, allowed in NEUTRAL_SAMPLING.items()" in gen
         assert '"sampling": {k: v[0] for k, v in NEUTRAL_SAMPLING.items()}' in gen
+
+
+class TestOrderingsModeReadsTheFrozenValue:
+    """🚨 REGRESSION (R24.1, 2026-08-31). A frozen value must be READ, never re-derived.
+
+    The orderings mode's level was `max(ORDER_SWEEP_LEVELS)`. That equalled the frozen
+    value while the freeze was 64 and diverged the instant R24.1 moved it to 32 -- the
+    sweep still measures {8, 32, 64}, so it would have re-run at the value the study just
+    abandoned for exceeding its own pre-registered trigger, in the table H8 LEADS with.
+
+    Third instance of a DERIVED value standing in for a frozen one, after
+    `\\hEightFrozenB` in the table generator and `max_num_seqs` missing from the decoding
+    fingerprint.
+    """
+
+    SOURCE = (Path(__file__).resolve().parents[1] / "sm_determinism.py").read_text()
+
+    def test_it_calls_the_frozen_getter(self):
+        assert "levels = [frozen_max_num_seqs()]" in self.SOURCE
+
+    def test_it_does_NOT_derive_the_level_from_the_sweep(self):
+        assert "levels = [max(ORDER_SWEEP_LEVELS)]" not in self.SOURCE, (
+            "the orderings level must be read from models.yaml, not derived from the "
+            "sweep's levels -- those diverged when the freeze moved"
+        )
+
+    def test_the_frozen_getter_still_fails_closed(self):
+        """It must refuse an unaudited value rather than print one into the paper."""
+        pilot = (Path(__file__).resolve().parents[1] / "sm_pilot.py").read_text()
+        assert "max_num_seqs_resolved_by_audit" in pilot
+        assert "REFUSING TO RUN" in pilot
