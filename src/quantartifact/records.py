@@ -219,6 +219,84 @@ def build_resume_index(path: Path) -> set[tuple]:
     }
 
 
+# The record fields that must match for a cached cell to be REUSABLE. Every one of these
+# changes what a generation IS, and every one is already stored on the record -- so a stale
+# cache is detectable from data we already have, with no path change and no new sidecar.
+#
+# ⚠️ `decoding_fingerprint()` was the declared root fix for this, and it was wired into
+# `sm_determinism.py` ONLY -- while its own comment named `pilot`, `template` and `reference`
+# as the vulnerable stages, "precisely the stages whose output feeds the paper's deltas".
+# So the fix did not land where the comment said it did. Found by the code reviewer,
+# 2026-08-31.
+#
+# The alternative fixes -- appending the fingerprint to `run_id` or to `cell_path` -- were
+# REJECTED: both silently partition, so an unchanged config would keep resuming while a
+# changed one would quietly start a parallel file set and regenerate everything. That
+# regenerates `pilot-v2`, the annotation pool the planner ruled must NOT be re-run (R11/O11),
+# and it turns a configuration mistake into an expensive silent success. Guards in this
+# project refuse rather than warn, so this one refuses.
+RESUME_CRITICAL_FIELDS: tuple[str, ...] = (
+    "max_num_seqs",       # our own H8 result: changes generated text by up to 59%
+    "disabled_kernels",   # the Marlin intervention; changes the kernel doing the matmul
+    "seed",
+    "batch_invariant",
+    "engine",             # vllm==X.Y.Z
+    "max_gen_toks",       # the budget level's resolved absolute cap
+    "decoding",           # "greedy"
+    "model_revision",     # commit SHA, never a tag
+    "quant_config_hash",  # which checkpoint's weights
+)
+
+
+class StaleCacheError(RuntimeError):
+    """An existing cell was produced under a different generation configuration.
+
+    Always fatal. Resuming across it would mix two configurations inside one cell file and
+    report success, which is the failure mode this project has hit ten times.
+    """
+
+
+def assert_cell_reusable(path: Path, expected: dict[str, Any]) -> dict[str, Any] | None:
+    """Refuse to resume a cell that was generated under a different configuration.
+
+    Compares the FIRST stored record's decoding-critical fields against ``expected``.
+    Returns the stored values (for logging), or None when the file does not exist yet.
+
+    Only the first record is read: every record in one cell comes from one `run_cell` call
+    with one spec, so the first is representative, and reading one line keeps this cheap
+    enough to run before every cell.
+
+    ⚠️ A field absent from the stored record is SKIPPED, not treated as a mismatch. Records
+    written before a field existed (`invocation_id`, and any future addition) must stay
+    resumable -- otherwise adding a field to the schema silently invalidates every cell ever
+    written, which is the same class of expensive surprise this guard exists to prevent.
+    """
+    if not path.exists():
+        return None
+    stored = next(iter(read_records(path)), None)
+    if stored is None:
+        return None
+
+    mismatches = []
+    for field in RESUME_CRITICAL_FIELDS:
+        if field not in stored or field not in expected:
+            continue
+        if stored[field] != expected[field]:
+            mismatches.append((field, stored[field], expected[field]))
+    if mismatches:
+        lines = "\n".join(
+            f"    {field}: stored {was!r}  ->  now {now!r}" for field, was, now in mismatches
+        )
+        raise StaleCacheError(
+            f"REFUSING TO RESUME {path}\n"
+            f"  It was generated under a DIFFERENT configuration:\n{lines}\n\n"
+            f"  Resuming would mix two configurations inside one cell file and exit 0.\n"
+            f"  Either use a new run_id, or delete this cell deliberately -- but do not\n"
+            f"  resume across a configuration change."
+        )
+    return stored
+
+
 def assert_join_key_unique(records: Sequence[dict[str, Any]]) -> None:
     """Fail loudly on a duplicated join key.
 

@@ -41,6 +41,7 @@ from typing import Any
 from quantartifact.records import (
     GenerationRecord,
     append_records,
+    assert_cell_reusable,
     build_resume_index,
     cell_path,
     env_hash,
@@ -120,6 +121,14 @@ def decoding_fingerprint(spec) -> str:
         # The generation stages (`pilot`, `template`, `reference`) key on
         # `run_id/cell_id/task`, where `cell_id` is `model|precision` — no batch size
         # anywhere. Those are precisely the stages whose output feeds the paper's deltas.
+        #
+        # ⚠️ AND THIS FUNCTION DOES NOT PROTECT THEM. It is called from `sm_determinism.py`
+        # only. The comment above described a fix that landed in one of four callers, which
+        # the code reviewer caught on 2026-08-31. The generation stages are guarded instead by
+        # `records.assert_cell_reusable()`, called from `run_cell` below, which compares the
+        # stored records' own fields and REFUSES rather than silently partitioning. Keep both:
+        # this fingerprint is the determinism stage's cell identity, that guard is the
+        # generation stages' resume check.
         "max_num_seqs": getattr(spec, "max_num_seqs", None),
     }, sort_keys=True).encode()
     return hashlib.sha256(payload).hexdigest()[:12]
@@ -766,6 +775,29 @@ def run_cell(
     saver available to us.
     """
     path = cell_path(output_root, run_id, cell_id, task, subtask, budget_level, prompt_variant)
+
+    # 🚨 REFUSE to resume a cell produced under a different generation configuration.
+    #
+    # This is the protection `decoding_fingerprint()` was supposed to give the generation
+    # stages and did not: it was wired into `sm_determinism.py` only, while its own comment
+    # named pilot/template/reference as the vulnerable ones. Those are the stages whose output
+    # feeds the paper's deltas, and they were the three left unguarded.
+    #
+    # Checked against the STORED RECORDS rather than a sidecar, because the record already
+    # carries every field that matters -- so this works retroactively on `pilot-v2`'s existing
+    # data without regenerating it, and without changing any path or join key.
+    assert_cell_reusable(path, {
+        "max_num_seqs": runner.spec.max_num_seqs,
+        "disabled_kernels": runner.spec.disabled_kernels,
+        "seed": runner.spec.seed,
+        "batch_invariant": os.environ.get("VLLM_BATCH_INVARIANT") == "1",
+        "engine": f"vllm=={_vllm_version()}",
+        "max_gen_toks": max_gen_toks,
+        "decoding": "greedy",
+        "model_revision": runner.spec.model_revision,
+        "quant_config_hash": quant_config_hash,
+    })
+
     already = build_resume_index(path)
 
     pending = [

@@ -48,6 +48,9 @@ try:  # noqa: SIM105
 except ImportError:
     MATH_VERIFY = False
 
+# Rung 2 is primary per §2.2's headline contrast (R17.4); rung 1 reported alongside.
+PRIMARY_RUNG = "permissive"
+
 RUNGS = ("strict", "strict_last", "permissive")
 if MATH_VERIFY:
     RUNGS = (*RUNGS, "math_verify")
@@ -131,6 +134,15 @@ def score_one(record: dict) -> dict:
 
     row = {
         "cell_id": record["cell_id"],
+        # 🚨 K=2 (prereg §9f). Carried onto every row because `aggregate()` MUST group by it:
+        # ten cells of the reference run are generated TWICE, in two separate engine loads,
+        # to estimate the invocation-noise floor. Without this the two invocations are pooled
+        # into one accuracy for exactly those ten cells and not the other five -- so the
+        # K=2 cells would report a two-invocation mean and the rest a one-invocation mean,
+        # which is not comparable and looks entirely plausible.
+        "repeat_idx": record.get("repeat_idx", 0),
+        # Provenance only, never a grouping key (R21.3): which engine load produced this.
+        "invocation_id": record.get("invocation_id", ""),
         "task": task,
         "subtask": subtask,
         "item_id": record["item_id"],
@@ -151,14 +163,48 @@ def mean(values) -> float | None:
     return sum(values) / len(values) if values else None
 
 
+def cell_key(cell_id: str, repeat_idx: int) -> str:
+    """JSON-safe display key. `cell_id` for the first invocation, `cell_id#k1` after.
+
+    ⚠️ The suffix is added ONLY for repeat_idx != 0, deliberately. Every run before K=2 has
+    repeat_idx 0 throughout, so their keys are unchanged and existing saved scores stay
+    readable and comparable. The cost of that choice is that the key alone does not tell you
+    the repeat index -- so `repeat_idx` is ALSO stored inside every entry, and consumers must
+    read the field rather than parse the key. A value that has to be recovered by string
+    parsing is the shape of bug this project keeps finding.
+    """
+    return cell_id if repeat_idx == 0 else f"{cell_id}#k{repeat_idx}"
+
+
 def aggregate(rows: list[dict]) -> dict:
-    by_cell: dict[str, list[dict]] = defaultdict(list)
+    """Per-cell statistics, keyed by (cell_id, repeat_idx).
+
+    🚨 THE KEY INCLUDES `repeat_idx`, AND THAT IS NOT OPTIONAL. Grouping by `cell_id` alone
+    silently averaged the two K=2 invocations of the ten designated reference cells into a
+    single accuracy, while the other five cells were single-invocation means. The two are not
+    comparable, and the resulting table looks completely normal.
+
+    ⚠️ Why the join-key uniqueness check below does NOT catch it, which is the instructive
+    part: `repeat_idx` IS in `records.JOIN_KEY`, so the two invocations are correctly distinct
+    records and the duplicate check passes. The guard that exists to catch double-counting
+    confirms the records are fine and then the aggregator pools them anyway. A uniqueness
+    constraint on the *records* says nothing about the grouping applied to them.
+
+    Eleventh instance of this project's recurring family, one layer downstream of the ten
+    already recorded: a value that determines an outcome was not part of that outcome's
+    identity -- here the outcome is an aggregate rather than a cached cell.
+    """
+    by_cell: dict[tuple[str, int], list[dict]] = defaultdict(list)
     for row in rows:
-        by_cell[row["cell_id"]].append(row)
+        by_cell[(row["cell_id"], row.get("repeat_idx", 0))].append(row)
 
     cells = {}
-    for cell_id, group in sorted(by_cell.items()):
-        entry: dict = {"n_items": len(group)}
+    for (cell_id, repeat_idx), group in sorted(by_cell.items()):
+        # Both stored explicitly so no consumer has to parse them back out of the key.
+        entry: dict = {"cell_id": cell_id, "repeat_idx": repeat_idx,
+                       "n_items": len(group),
+                       "invocation_ids": sorted({r["invocation_id"] for r in group
+                                                 if r.get("invocation_id")})}
         for rung in RUNGS:
             entry[f"acc_{rung}"] = mean(r[f"correct_{rung}"] for r in group)
             entry[f"found_{rung}"] = mean(r[f"found_{rung}"] for r in group)
@@ -180,12 +226,12 @@ def aggregate(rows: list[dict]) -> dict:
         lengths = [r["n_gen_tokens"] for r in group if r["n_gen_tokens"] is not None]
         entry["n_gen_tokens_mean"] = mean(lengths)
         entry["n_gen_tokens_median"] = statistics.median(lengths) if lengths else None
-        cells[cell_id] = entry
+        cells[cell_key(cell_id, repeat_idx)] = entry
 
     # Per (cell, task) as well: the format gradient is a per-task claim, and a blended
     # number over gsm8k + arc + six BBH subtasks would hide it entirely.
     by_task: dict[str, dict] = {}
-    for cell_id, group in sorted(by_cell.items()):
+    for (cell_id, repeat_idx), group in sorted(by_cell.items()):
         per_task: dict[str, dict] = {}
         buckets: dict[str, list[dict]] = defaultdict(list)
         for row in group:
@@ -199,7 +245,7 @@ def aggregate(rows: list[dict]) -> dict:
                 "trunc_budget_rate": mean(
                     r["termination"] == compliance.TRUNC_BUDGET for r in bucket),
             }
-        by_task[cell_id] = per_task
+        by_task[cell_key(cell_id, repeat_idx)] = per_task
     return {"cells": cells, "by_task": by_task}
 
 
@@ -210,9 +256,19 @@ def awq_replicate(cells: dict) -> dict | None:
     weights differ but not whether it MATTERS. This is the accuracy consequence, and it
     is the whole reason cells 16--17 exist.
     """
+    # Both are repeat_idx 0 (neither is a K=2 cell), so the bare cell_id IS the key --
+    # asserted rather than assumed, because if either ever joins the K=2 set the bare
+    # lookup would silently miss and this contrast would vanish from the report.
     a, b = "qwen2.5-3b|awq-4bit-offload", "qwen2.5-3b|awq-4bit-nooffload"
     if a not in cells or b not in cells:
         return None
+    for key in (a, b):
+        if cells[key].get("repeat_idx", 0) != 0:
+            raise SystemExit(
+                f"awq_replicate: {key} has repeat_idx "
+                f"{cells[key]['repeat_idx']}; this contrast assumes a single invocation "
+                f"per arm and must be re-specified if the arm is now run at K=2"
+            )
     out: dict = {"arms": [a, b], "n_items": cells[a]["n_items"]}
     for rung in RUNGS:
         out[f"acc_{rung}"] = [cells[a][f"acc_{rung}"], cells[b][f"acc_{rung}"]]
@@ -270,19 +326,45 @@ def main() -> int:
     out_path.write_text(json.dumps(report, indent=2, sort_keys=True))
 
     print()
-    header = f"{'cell':32} {'n':>4}"
+    header = f"{'cell':36} {'n':>4}"
     for rung in RUNGS:
         header += f" {rung[:9]:>9}"
     print(header + f" {'perm-str':>9} {'trunc':>7} {'tok':>6}")
     print("-" * (len(header) + 25))
     for cell_id, entry in report["cells"].items():
-        line = f"{cell_id:32} {entry['n_items']:>4}"
+        line = f"{cell_id:36} {entry['n_items']:>4}"
         for rung in RUNGS:
             line += f" {entry[f'acc_{rung}']:>8.1%}"
         line += (f" {entry['rung_gap_permissive_minus_strict']:>+8.1%}"
                  f" {entry['trunc_budget_rate']:>6.1%}"
                  f" {entry['n_gen_tokens_median']:>6.0f}")
         print(line)
+
+    # 🚨 Report the K=2 pairs as PAIRS. The whole point of the second invocation is that the
+    # two numbers are compared, not averaged -- printing them adjacently makes an accidental
+    # pooling visible at a glance instead of hiding inside one row.
+    k2 = {}
+    for entry in report["cells"].values():
+        if entry.get("repeat_idx", 0) != 0 or any(
+            e.get("cell_id") == entry.get("cell_id") and e.get("repeat_idx", 0) != 0
+            for e in report["cells"].values()
+        ):
+            k2.setdefault(entry["cell_id"], {})[entry.get("repeat_idx", 0)] = entry
+    if k2:
+        print(f"\n=== K=2 pairs (prereg §9f): {len(k2)} cells, two invocations each ===")
+        print(f"{'cell':32} {'acc k0':>8} {'acc k1':>8} {'|delta|':>8}   invocations")
+        for cell_id, pair in sorted(k2.items()):
+            a0, a1 = pair.get(0), pair.get(1)
+            if not (a0 and a1):
+                print(f"{cell_id:32}  INCOMPLETE — only repeat_idx "
+                      f"{sorted(pair)} present")
+                continue
+            v0 = a0[f"acc_{PRIMARY_RUNG}"]
+            v1 = a1[f"acc_{PRIMARY_RUNG}"]
+            ids = len(set(a0.get("invocation_ids", []) + a1.get("invocation_ids", [])))
+            print(f"{cell_id:32} {v0:>7.2%} {v1:>7.2%} {abs(v1 - v0):>7.2%}   "
+                  f"{ids} distinct")
+        print("  (the per-arm invocation SD in §9f is estimated from these differences)")
 
     print(f"\nreport -> {out_path}")
     return 0

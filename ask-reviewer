@@ -76,10 +76,33 @@ else
 fi
 
 cd "$REPO"
+
+# 🚨 SAVE THE QUESTION WITH THE ANSWER. `notes/reviews/` used to store only answers, so the
+# prompt that produced a finding was unrecoverable -- and a finding whose question is lost
+# cannot be re-asked, re-scoped, or checked for having been leading. Same discipline as
+# `notes/planner-answers/`, one step further: both halves, one file, written BEFORE the call
+# so an interrupted run still leaves the question on disk. (Run 1 was killed by a session
+# teardown and lost its output entirely; the question survived only in a transcript.)
+REVIEWS="${REPO}/notes/reviews"
+mkdir -p "$REVIEWS"
+STAMP="$(date -u +%Y-%m-%dT%H%M%SZ)"
+TRANSCRIPT="${REVIEWS}/${STAMP}.md"
+{
+  printf '# Review %s\n\n' "$STAMP"
+  printf '- session: `%s`%s\n' "$REVIEWER_SESSION" \
+    "$([ "${FORK:-0}" = "1" ] && printf ' (FORKED — not written to its history)')"
+  printf '- model: `%s`   effort: `%s`\n' "$MODEL" "$EFFORT"
+  printf '- charter: `notes/reviewer-charter.md` @ `%s`\n\n' \
+    "$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
+  printf '## Question\n\n```\n%s\n```\n\n## Answer\n\n' "$*"
+} > "$TRANSCRIPT"
+
 claude "${SESSION_ARGS[@]}" \
   --model "$MODEL" \
   --effort "$EFFORT" \
   --append-system-prompt-file "$CHARTER" \
   --disallowed-tools Edit Write NotebookEdit \
   -p "$*" \
-  --output-format json < /dev/null | jq -r '.result'
+  --output-format json < /dev/null | jq -r '.result' | tee -a "$TRANSCRIPT"
+
+printf '\nsaved: %s\n' "${TRANSCRIPT#$REPO/}" >&2
