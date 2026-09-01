@@ -30,6 +30,31 @@ scope/schedule in `EXECUTOR-TASKS.md`; decisions in `notes/decisions.md`. This f
     what the log said) are the ones that evaporate first.
 5. **Route questions to the planner**, not the user: `./ask-planner "..."` (D13). Batch them;
    each call re-sends its whole context. `FORK=1` for throwaway questions.
+6. **🚨 CONSULT THE CODE REVIEWER AFTER CODE CHANGES.** `./ask-reviewer "..."` — before the
+   change feeds a billable job, and before it is called done.
+   ```bash
+   ./ask-reviewer "review <what changed>. $(git diff HEAD~1)"
+   ```
+   The planner rules on **science**; the reviewer rules on **code**. Neither writes code.
+   Tell it what the change is *for*, not just what it is, and point it at the authority
+   document the change is supposed to satisfy — it checks against the registered design, not
+   against your description of it.
+
+   **Why this is a rule and not a suggestion.** Its first run found a wrong-number bug in
+   `score_pilot.aggregate()` that every existing test passed over, and one place where a
+   comment claimed a fix had landed in four callers when it had landed in one. Both were
+   confirmed. Tests green and ruff clean are necessary and have repeatedly not been
+   sufficient.
+
+   Three obligations that come with it:
+   - **Verify before acting.** The reviewer labels what it *ran* separately from what it
+     *read*; a reading-only claim gets checked before it changes code.
+   - **Record the outcome** next to the raw answer in `notes/reviews/`, including findings
+     **declined and why**. A finding dismissed without a recorded reason is one it re-raises
+     every time its memory refreshes.
+   - **It is ADVISORY.** It does not hold job submissions — that authority is the planner's
+     and the user's. Act on its findings because they are verified, not because it ranked
+     something `BLOCKER`.
 
 ---
 

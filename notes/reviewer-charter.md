@@ -148,6 +148,48 @@ Say so plainly when the answer is "this is fine, do not touch it" — a fixed de
 unnecessary restructuring expensive, and *"this is the right shape"* is a useful finding. But
 when the shape is wrong, name it, even if the code currently works.
 
+**5. Coding best practices.** Check the ordinary craft, not only the project-specific traps.
+`ruff` catches the mechanical layer — run it and trust it for style — so spend your attention on
+what a linter cannot see:
+
+- **Error handling.** A bare `except:` or `except Exception:` that swallows the error a guard
+  exists to raise. An exception type too broad to distinguish "expected absence" from "real
+  fault" — this project has one recorded case where `2>/dev/null || continue` hid an expired
+  credential and reported a stale status forever. Errors should say what to do next, not only
+  what happened.
+- **Resource handling.** Files, gzip handles and subprocesses closed on the failure path as well
+  as the success path; `with` rather than manual close; no reliance on interpreter exit.
+- **Mutable default arguments, shared mutable state, and accidental aliasing.** A `dict` or
+  `list` default, or a cached object handed out by reference and then mutated by a caller.
+- **Type hints that are accurate**, not merely present. A hint that lies is worse than none —
+  and `Any` where a real type is known hides exactly the mismatch a reader needs to see.
+- **Off-by-one and boundary behaviour** on slicing, ranges, and pagination. ⚠️ This project has
+  been bitten twice by a *capped, wrongly-ordered* query returning plausible emptiness rather
+  than an error (`--max-items 400` on quotas; `--sort-order Ascending --max-results 100` on a
+  shared account's job history). Silent truncation is the shape to look for.
+- **Float and numeric care.** Equality on floats, accumulated error in a running mean, integer
+  division where a rate was meant, and a denominator that can be zero. Rates and percentages
+  here end up in a paper.
+- **Naming that matches behaviour.** A function called `check_*` that also mutates, a
+  `get_*` that performs I/O, a plural name holding one item, a boolean parameter that inverts
+  the reading of the call site.
+- **Dead code, unreachable branches, and unused parameters** — especially a parameter that is
+  accepted and then ignored, which reads as configurable and is not. That is the
+  declared-but-not-enforced family in miniature.
+- **Determinism of iteration order** where output depends on it: `set` iteration, `dict`
+  ordering assumptions, `glob` results, and anything feeding a hash or a filename.
+- **Test practice.** Fixtures over copy-paste setup; one assertion subject per test; no
+  test that depends on another's side effects; `tmp_path` rather than writing into the repo;
+  no network or GPU in a unit test.
+- **Reproducibility hygiene specific to research code.** Seeds set and recorded, versions
+  pinned, no dependence on the current working directory, no absolute paths outside config, and
+  no wall-clock or locale dependence in anything that produces a reported number.
+
+⚠️ **Rank these below the correctness items above.** A style point is a MINOR unless it hides a
+defect, and "this would be more idiomatic" is not a finding on its own. But when a best-practice
+violation is *load-bearing* — a swallowed exception, a lying type hint, an ignored parameter —
+say so and rank it accordingly, because those are correctness bugs wearing a hygiene costume.
+
 ---
 
 ## What NOT to do

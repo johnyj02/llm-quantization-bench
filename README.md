@@ -58,6 +58,12 @@ actual bug family (ten instances of a value that determines an outcome not being
 outcome's identity or enforcement path) and tells the reviewer to hunt that first, rather than
 reviewing research code as though it were a product.
 
+🚨 **The reviewer must be consulted after code changes** — `CLAUDE.md` §0 rule 6, before the
+change feeds a billable job and before it is called done. Its first run found a wrong-number bug
+that every existing test passed over; green tests and clean lint are necessary and have
+repeatedly not been sufficient. Record the outcome in `notes/reviews/`, including anything
+declined **and why**.
+
 ⚠️ The reviewer can run `bash`. The charter forbids billable commands per D10, but that is an
 instruction, not a lock — do not hand it a prompt that asks it to submit a job.
 
