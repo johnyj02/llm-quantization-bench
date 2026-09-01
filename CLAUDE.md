@@ -52,6 +52,18 @@ scope/schedule in `EXECUTOR-TASKS.md`; decisions in `notes/decisions.md`. This f
    - **Record the outcome** next to the raw answer in `notes/reviews/`, including findings
      **declined and why**. A finding dismissed without a recorded reason is one it re-raises
      every time its memory refreshes.
+   - **Findings come classified CRITICAL, MODERATE or MINOR** (`notes/reviewer-charter.md`).
+     Act on CRITICAL and MODERATE. 🚨 **MINOR items are NOT acted on**, by the user's
+     instruction of 2026-09-01; the reviewer still lists them in one line each so they are on
+     record, and that list is the whole of what happens to them.
+
+     ⚠️ The one risk in ignoring minors, and the charter tells the reviewer to guard it: some
+     correctness bugs look like hygiene. A swallowed exception, a type hint that lies, and a
+     parameter accepted then ignored have all appeared here as apparent tidiness issues. The
+     reviewer is instructed to **promote** such an item to MODERATE or CRITICAL rather than
+     leave it as a MINOR with a warning attached, and to say when it has promoted something.
+     If you find yourself arguing that a MINOR really matters, that is the signal it was
+     misclassified: ask for a re-rank instead of quietly acting on it.
    - **It is ADVISORY.** It does not hold job submissions; that authority is the planner's
      and the user's. Act on its findings because they are verified, not because it ranked
      something `BLOCKER`.
