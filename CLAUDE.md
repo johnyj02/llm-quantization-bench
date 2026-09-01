@@ -28,6 +28,32 @@ scope/schedule in `EXECUTOR-TASKS.md`; decisions in `notes/decisions.md`. This f
     Then fill in the `TODO` line with what changed as a result. Do this **as soon as a job reaches
     a terminal state**, not at the end of a session — the details that matter (which check failed,
     what the log said) are the ones that evaporate first.
+4b. **🚨 READ A SAMPLE OF 3 GENERATIONS, EVERY TIME PREDICTIONS ARE PRODUCED.** Not optional,
+    and not only when something looks wrong.
+    ```bash
+    .venv/bin/python scripts/peek_generations.py --run-id main-v1            # 3 at random
+    .venv/bin/python scripts/peek_generations.py --run-id main-v1 --task bbh # per task
+    ```
+    Do this as soon as a generating job reaches a terminal state, before scoring it and before
+    reporting any number from it.
+
+    **Why this is a rule.** Three defects in this project were plainly visible in the raw
+    generation text and were found weeks later by a scorer instead, because nobody looked:
+
+    | defect | what a single record showed |
+    |---|---|
+    | the BBH terminator zeroing | `generation_text` was `""` with `n_gen_tokens=1` and `stop_reason="Q"`, on five of six subtasks, for every arm including bf16 Llama-8B |
+    | the double BOS on Llama | `prompt_text` began with two `<\|begin_of_text\|>` tokens |
+    | GSM8K's unreduced gold | `gold` was the whole worked solution ending `#### 18` while the extractor produced `18`, so every item scored wrong |
+
+    Each was a **wrong number that looked plausible in aggregate and was obvious in one
+    record**. That is the whole argument: aggregates hide precisely what a sample reveals, so
+    this check is not redundant with the scorers or the tests.
+
+    What to actually check is printed by the script, but the two that have caught the most are:
+    is the text non-empty and a plausible length, and does `n_gen_tokens` sit far below
+    `max_gen_toks` on a chain-of-thought task, which usually means a stop sequence fired early.
+
 5. **Route questions to the planner**, not the user: `./ask-planner "..."` (D13). Batch them;
    each call re-sends its whole context. `FORK=1` for throwaway questions.
 6. **🚨 CONSULT THE CODE REVIEWER AFTER CODE CHANGES.** `./ask-reviewer "..."` — before the

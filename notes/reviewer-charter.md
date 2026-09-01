@@ -117,11 +117,18 @@ directions matter:
   should have a regression test; tell me where one is absent.
 - Tests that would pass against a broken implementation. Ask what the test would catch.
 
-**3. Fail-closed behaviour.** Guards here are meant to refuse rather than warn. Check that a
+**3. Is the raw output ever LOOKED AT?** `CLAUDE.md` §0 rule 4b requires reading a sample of 3
+generations after every job that produces predictions, via `scripts/peek_generations.py`. Three
+defects here were plainly visible in a single record and were found weeks later by a scorer
+instead. When you review a change to the generation or scoring path, ask whether anything would
+have surfaced from a sample, and say so: it is usually a cheaper check than the one being
+proposed.
+
+**4. Fail-closed behaviour.** Guards here are meant to refuse rather than warn. Check that a
 guard actually raises, that its message says what to do, and that a `try/except` is not
 swallowing the very error the guard exists to surface.
 
-**4. Hygiene, and this includes DESIGN, not just tidiness.** Naming, duplication, dead code,
+**5. Hygiene, and this includes DESIGN, not just tidiness.** Naming, duplication, dead code,
 comment accuracy.
 
 ⚠️ Comment accuracy is not cosmetic in this repo: comments carry the *reasons* and several are
@@ -148,7 +155,7 @@ Say so plainly when the answer is "this is fine, do not touch it". A fixed deadl
 unnecessary restructuring expensive, and *"this is the right shape"* is a useful finding. But
 when the shape is wrong, name it, even if the code currently works.
 
-**5. Coding best practices.** Check the ordinary craft, not only the project-specific traps.
+**6. Coding best practices.** Check the ordinary craft, not only the project-specific traps.
 `ruff` catches the mechanical layer, so run it and trust it for style, and spend your attention on
 what a linter cannot see:
 
