@@ -30,8 +30,9 @@ from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = "1.2.0"   # 1.0.0 -> 1.1.0: added invocation_id (R21.3)
+SCHEMA_VERSION = "1.3.0"   # 1.0.0 -> 1.1.0: added invocation_id (R21.3)
 #                          # 1.1.0 -> 1.2.0: added until (self-classifying artifact)
+#                          # 1.2.0 -> 1.3.0: added template_level (ditto)
 
 # The join key across generations and EVERY scorer. Enforced as a uniqueness
 # constraint by the loader, which fails loudly on a duplicate -- a silently
@@ -135,6 +136,12 @@ class GenerationRecord:
     # config produced which cell. `records.py`'s own docstring already claims that property;
     # this field is what actually delivers it.
     until: list[str] | None = None
+    # Which level of the template FACTOR produced this (prereg §3b-bis): "chat" or "raw".
+    # `sm_template` encodes it in `cell_id`; `sm_pilot` and `sm_reference` do not, so for
+    # `main-v1` a third party would otherwise have to KNOW it is chat-only. With `until`
+    # recorded they could infer it -- BBH's two sets differ -- but inference is exactly what
+    # recording `until` removed from the termination path, and the same argument applies here.
+    template_level: str | None = None
     schema_version: str = SCHEMA_VERSION
 
     def key(self) -> tuple:
@@ -253,9 +260,19 @@ def read_records(
                     continue
                 try:
                     record = json.loads(line)
-                except json.JSONDecodeError:
-                    # Truncated tail from an interrupted write. Stop here; anything
-                    # after it is unreadable anyway.
+                except json.JSONDecodeError as exc:
+                    # 🚨 SAME EVENT CLASS as a truncated member, from the consumer's point of
+                    # view: an unknown number of records is missing from the tail, so every
+                    # rate in this cell has a wrong denominator. It used to `return` bare
+                    # regardless of the flag -- guarding one of two routes to the same wrong
+                    # number. Both routes now obey `tolerate_truncation`.
+                    if not tolerate_truncation:
+                        raise TruncatedCellError(
+                            f"{path} has a TRUNCATED final line ({recovered} records "
+                            f"recovered, unknown number lost).\n"
+                            f"  Scoring a short cell silently would give every rate in it a "
+                            f"wrong denominator. Resume the stage to regenerate the tail."
+                        ) from exc
                     return
                 recovered += 1
                 yield record
@@ -313,6 +330,13 @@ RESUME_CRITICAL_FIELDS: tuple[str, ...] = (
     "decoding",           # "greedy"
     "model_revision",     # commit SHA, never a tag
     "quant_config_hash",  # which checkpoint's weights
+    # 🚨 The field with the PROVEN track record of causing exactly this failure. `pilot-v1`
+    # ran BBH with the raw-level terminators, five of six subtasks came out inert (§9b), and
+    # the only thing that stopped a resume from mixing two terminator sets inside one cell
+    # file was a manual `run_id` bump. `CELL_SCRIPT` reads `until` from `tasks.yaml` at run
+    # time, so editing it mid-run is a live path. This guard exists for this family; `until`
+    # is the member it should most obviously cover.
+    "until",
 )
 
 
@@ -342,8 +366,9 @@ def assert_cell_reusable(path: Path, expected: dict[str, Any]) -> dict[str, Any]
     if not path.exists():
         return None
     # Only the FIRST record is needed, and one line always decompresses even in a truncated
-    # member -- so this is unaffected by truncation. Tolerant anyway, to say so explicitly
-    # rather than relying on the read stopping early.
+    # member -- so this is unaffected by truncation. ⚠️ The flag is therefore INERT here: the
+    # generator never reaches its `raise`. Passed explicitly anyway to state the intent, but do
+    # not read it as protection that is being exercised.
     stored = next(iter(read_records(path, tolerate_truncation=True)), None)
     if stored is None:
         return None

@@ -18,6 +18,7 @@ from quantartifact.records import (
     JOIN_KEY,
     GenerationRecord,
     SchemaError,
+    TruncatedCellError,
     append_records,
     assert_join_key_unique,
     build_resume_index,
@@ -208,20 +209,43 @@ def test_resume_index_of_missing_file_is_empty(tmp_path):
     assert build_resume_index(tmp_path / "nope.jsonl.gz") == set()
 
 
-def test_truncated_final_line_is_tolerated(tmp_path):
-    """A half-written line is the signature of a killed process, not corruption.
-
-    It must be skipped so the resume path regenerates that one item, rather than
-    the whole cell being treated as unreadable.
-    """
+def _cell_with_truncated_final_line(tmp_path):
     path = tmp_path / "cell.jsonl.gz"
     append_records(path, [make_record(item_id="good")])
     with gzip.open(path, "at", encoding="utf-8") as handle:
         handle.write('{"run_id": "main-v1", "cell_id": "trunc')  # no newline, no close
+    return path
 
-    back = list(read_records(path))
+
+def test_truncated_final_line_is_tolerated_on_the_RESUME_path(tmp_path):
+    """A half-written line is the signature of a killed process, not corruption.
+
+    On the resume path it must be skipped so that one item regenerates, rather than the whole
+    cell being treated as unreadable.
+    """
+    path = _cell_with_truncated_final_line(tmp_path)
+    back = list(read_records(path, tolerate_truncation=True))
     assert len(back) == 1
     assert back[0]["item_id"] == "good"
+
+
+def test_truncated_final_line_REFUSES_on_the_scoring_path(tmp_path):
+    """🚨 The default changed, and deliberately.
+
+    A short cell silently scored gives every rate in it a wrong denominator, which is a
+    plausible-looking wrong number. Tolerance is now something a caller opts INTO -- the
+    resume path does, scoring does not. Previously this route returned bare regardless, so
+    the guard covered only one of two ways to reach the same wrong denominator.
+    """
+    path = _cell_with_truncated_final_line(tmp_path)
+    with pytest.raises(TruncatedCellError, match="TRUNCATED final line"):
+        list(read_records(path))
+
+
+def test_the_resume_index_is_tolerant_by_construction(tmp_path):
+    """`build_resume_index` must never raise on a killed write -- that IS the recovery path."""
+    path = _cell_with_truncated_final_line(tmp_path)
+    assert len(build_resume_index(path)) == 1
 
 
 def test_repeat_idx_distinguishes_determinism_probe_repeats(tmp_path):

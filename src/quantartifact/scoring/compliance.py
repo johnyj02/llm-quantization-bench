@@ -1,6 +1,13 @@
 """Compliance labelling, termination classes, and the H2 trace scan.
 
-PURE FUNCTIONS, NO I/O -- same contract as ``extract.py``.
+PURE FUNCTIONS, with ONE exception, declared here because purity is what makes this layer
+re-runnable by a third party and a false claim of it is worse than the exception:
+
+⚠️ ``_harness_until_from_config()`` reads ``configs/tasks.yaml`` at IMPORT time to build the
+``HARNESS_UNTIL`` fallback. It exists only for records written before schema 1.2.0, which do
+not carry their own ``until``. Every scoring function is otherwise a pure function of its
+arguments, and callers holding a record should pass ``until=record["until"]``, which bypasses
+the fallback entirely. Once no pre-1.2.0 records are in play, the read can go.
 
 Three things live here, and they are the paper's mechanism measurements rather
 than bookkeeping:
@@ -39,6 +46,16 @@ from quantartifact.scoring.extract import (
     extract_strict,
     normalise_answer,
 )
+
+
+class UnclassifiableTerminationError(RuntimeError):
+    """The terminators that produced a generation are unknown, so it cannot be classified.
+
+    Raised rather than defaulting to ``COMPLETE``. "Unrecognised" and "the model chose to
+    stop" must never be the same answer -- that conflation is what let BLOCKER 1 (BBH's
+    ``trunc_stopseq_rate`` reading 0.0%) survive several scoring runs.
+    """
+
 
 COMPLIANCE_VERSION = "1.0.0"
 TRACE_SCAN_VERSION = "1.0.0"
@@ -83,11 +100,21 @@ def _harness_until_from_config() -> dict[str, tuple[str, ...]]:
     """
     import yaml  # noqa: PLC0415 - config read, only needed on the fallback path
 
+    # 🚨 NO `except`. This used to swallow OSError/KeyError and `return {}` -- which restores
+    # BLOCKER 1 exactly: an empty table means `HARNESS_UNTIL.get(task, ())` is `()`, no
+    # stop_reason ever matches, and every stop-sequence kill is reported COMPLETE. A guard
+    # against a silent zero must not itself fail to a silent zero.
+    #
+    # And this is the LIVE path for the data already on disk: every `pilot-v2` and
+    # `template-v1` record predates schema 1.2.0, so `record.get("until")` is None and this
+    # fallback is what produced the re-scored 16.0% / 48.7%. Those numbers must not rest on an
+    # unasserted file read.
+    #
+    # The path is right in-repo and at `/opt/ml/code` (submit_job stages `configs/`), but would
+    # be wrong for a `pip install`ed copy -- so let it raise there rather than silently
+    # reporting zeros.
     path = Path(__file__).resolve().parents[3] / "configs" / "tasks.yaml"
-    try:
-        tasks = yaml.safe_load(path.read_text())["tasks"]
-    except (OSError, KeyError):  # pragma: no cover - config always present in-repo
-        return {}
+    tasks = yaml.safe_load(path.read_text())["tasks"]
 
     out: dict[str, tuple[str, ...]] = {}
     for name, config in tasks.items():
@@ -212,9 +239,39 @@ def classify_termination(
             # The model emitted EOS with no answer: degeneration or refusal,
             # not a harness artifact. Not our stop-sequence class.
             return COMPLETE
+        # 🚨 A NUMERIC `stop_reason` IS A TOKEN ID, NOT A STOP STRING, and it gets its own
+        # branch rather than falling through.
+        #
+        # vLLM's contract: `None` for EOS-via-eos_token_id or length, a `str` when a `stop`
+        # string matched, an `int` when a stop TOKEN fired. This study passes `stop=until` and
+        # NO `stop_token_ids`, so a numeric value is always an EOS-family token -- the model
+        # chose to stop. Observed in real data: `32007` (Phi `<|end|>`, 1,227 records) and
+        # `151643` (Qwen `<|endoftext|>`, 472).
+        #
+        # ⚠️ Deliberately NOT fixed by adding those two ids to `_EOS_STOP_REASONS`. Putting
+        # model-specific magic numbers in a scorer is precisely how `HARNESS_UNTIL` drifted:
+        # it fixes the instance and keeps the class.
+        if stop_reason is not None and str(stop_reason).lstrip("-").isdigit():
+            return COMPLETE
+
         # 🚨 The ACTUAL list when the caller has it, the config-derived union otherwise.
         # Never a hardcoded literal: that is what drifted (see HARNESS_UNTIL above).
-        terminators = tuple(until) if until is not None else HARNESS_UNTIL.get(task, ())
+        if until is not None:
+            terminators: tuple[str, ...] = tuple(until)
+        elif task in HARNESS_UNTIL:
+            terminators = HARNESS_UNTIL[task]
+        else:
+            # 🚨 REFUSE rather than assume. "I cannot know this task's terminators" and "the
+            # model chose to stop" are different answers, and collapsing them into COMPLETE is
+            # how BLOCKER 1 stayed hidden for weeks: 1,106 BBH records took the catch-all and
+            # were reported as complete. An unclassifiable record must be loud.
+            raise UnclassifiableTerminationError(
+                f"cannot classify termination for task {task!r}: the record carries no "
+                f"`until` (pre-schema-1.2.0) and {task!r} is not in the config-derived "
+                f"HARNESS_UNTIL {sorted(HARNESS_UNTIL)}.\n"
+                f"  Pass `until=` from the record, or add the task to configs/tasks.yaml. "
+                f"Returning COMPLETE here would silently under-count TRUNC_STOPSEQ."
+            )
         if stop_reason in terminators:
             return TRUNC_STOPSEQ
         return COMPLETE

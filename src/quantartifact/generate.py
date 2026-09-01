@@ -760,6 +760,9 @@ def run_cell(
     max_gen_toks: int,
     until: list[str],
     quant_config_hash: str | None,
+    # Which level of the template factor this cell belongs to. Recorded per generation so a
+    # re-analyst never has to know it out of band -- see GenerationRecord.template_level.
+    template_level: str | None = None,
     output_root: Path,
     repeat_idx: int = 0,
     batch_size: int = 64,
@@ -796,6 +799,9 @@ def run_cell(
         "decoding": "greedy",
         "model_revision": runner.spec.model_revision,
         "quant_config_hash": quant_config_hash,
+        # See RESUME_CRITICAL_FIELDS: `until` is read from tasks.yaml at run time, so a
+        # mid-run edit must refuse to resume rather than mix two terminator sets in one file.
+        "until": list(until) if until is not None else None,
     })
 
     already = build_resume_index(path)
@@ -871,6 +877,7 @@ def run_cell(
                 # The list actually passed to the engine for THIS cell, so no scorer has to
                 # infer it from a task-keyed table. See GenerationRecord.until.
                 until=list(until) if until is not None else None,
+                template_level=template_level,
             )
             for item, output in zip(batch, outputs, strict=True)
         ]

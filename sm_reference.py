@@ -258,7 +258,15 @@ def main() -> int:
     # prove the second subprocess launches, that `repeat_idx=1` reaches `run_cell`, that the
     # scratch paths do not collide, and that both invocations land in the report -- at the cost
     # of one extra 4-item cell.
-    k2 = cells[:1] if SMOKE else [c for c in cells if c["cell_id"] in K2_CELLS]
+    # ⚠️ BY NAME, never `cells[:1]`. Position depends on `models.yaml` key order and
+    # `PRECISIONS` order; reorder either and the smoke's doubled cell becomes
+    # `llama-3.1-8b|bf16`, which pulls ~16 GB from HF TWICE inside the 1800 s smoke cap.
+    # `sm_pilot` documents that exact hazard and picks Llama's quantized arm to avoid it.
+    SMOKE_K2_CELL = "qwen2.5-3b|bf16"   # cheapest model, and a registered K=2 cell
+    if SMOKE:
+        k2 = [c for c in cells if c["cell_id"] == SMOKE_K2_CELL]
+    else:
+        k2 = [c for c in cells if c["cell_id"] in K2_CELLS]
     run_list: list[tuple[dict, int]] = [(c, 0) for c in cells] + [(c, 1) for c in k2]
 
     per_cell = sum(n for *_, n in plan)
@@ -281,8 +289,9 @@ def main() -> int:
                 f"estimated from a different set than the one registered."
             )
     if k2:
-        print(f"K=2 cells    : {len(k2)} of {len(K2_CELLS)} registered "
-              f"(prereg §9f) -> +{len(k2) * per_cell:,} generations")
+        scope = ("SMOKE: one cell doubled to exercise the path"
+                 if SMOKE else f"{len(k2)} of {len(K2_CELLS)} registered (prereg §9f)")
+        print(f"K=2 cells    : {scope} -> +{len(k2) * per_cell:,} generations")
         for cell in k2:
             print(f"  {cell['cell_id']:40} repeat_idx 0 and 1, separate engine loads")
     print(f"run units    : {len(run_list)} (cells + K=2 second invocations)")

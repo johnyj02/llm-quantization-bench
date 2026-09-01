@@ -1,0 +1,32 @@
+{
+  "$comment": [
+    "Project settings, committed. The allowlist below exists for ONE reason: ./ask-reviewer.",
+    "",
+    "The reviewer's charter tells it that running something beats reading it, and that it must",
+    "label what it VERIFIED separately from what it suspects. For three consecutive reviews it",
+    "reported 'execution blocked - This command requires approval' and could not confirm that",
+    "the tests pass or that ruff is clean. Consulting it is now a hard rule (CLAUDE.md SS0 rule",
+    "6), so a mandatory reviewer that cannot execute its own verification steps is a gap in the",
+    "rule, not a quirk of the tool.",
+    "",
+    "Scoped deliberately to READ-ONLY verification, not to `.venv/bin/python:*`. That broader",
+    "form would also permit scripts/submit_job.py, which spends money and is governed by D10",
+    "(no billable job without the user's explicit confirmation). The charter forbids it too, but",
+    "an instruction is not a lock and the permission layer is the lock.",
+    "",
+    "Nothing here can write to the repo: the reviewer additionally runs with",
+    "--disallowed-tools Edit Write NotebookEdit."
+  ],
+  "permissions": {
+    "allow": [
+      "Bash(.venv/bin/python -m pytest:*)",
+      "Bash(.venv/bin/python -m ruff:*)",
+      "Bash(.venv/bin/pytest:*)",
+      "Bash(.venv/bin/ruff:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git show:*)",
+      "Bash(git status:*)"
+    ]
+  }
+}

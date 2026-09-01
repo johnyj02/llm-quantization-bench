@@ -172,6 +172,19 @@ def main() -> int:
     # exit 0. That is the favourable half of a decision rule pre-registered in §3b-bis,
     # declared from zero data. Every upstream cause is now caught in `score_run`, and this is
     # the backstop: a vacuous truth must never satisfy a pre-registered criterion.
+    # 🚨 PARTIAL incompleteness, not only total. `except KeyError: continue` above drops a
+    # (model, arm) whose `raw` half is missing, so 3 of 6 comparisons resolving would give
+    # `3/3 -> BRANCH 1`. Same shape as the K=2 guard that was nested inside `if k2:`: catching
+    # emptiness and missing partiality. The expected count is derivable, so assert it.
+    expected = len(models) * (len(ARMS) - 1)     # every arm but bf16, for every model
+    if verdicts and len(verdicts) < expected:
+        raise SystemExit(
+            f"REFUSING TO REPORT A BRANCH: only {len(verdicts)} of {expected} expected "
+            f"(model x arm) comparisons resolved.\n"
+            f"  §3b-bis's rule needs BOTH template levels for the SAME (model, arm). A "
+            f"partial set can report {len(verdicts)}/{len(verdicts)} and look unanimous.\n"
+            f"  Check that every arm appears at both levels."
+        )
     if not verdicts:
         raise SystemExit(
             "REFUSING TO REPORT A BRANCH: no (model, arm) comparisons resolved.\n"

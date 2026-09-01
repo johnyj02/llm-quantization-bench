@@ -446,8 +446,15 @@ class TestUntilIsRecordedOnTheGeneration:
         assert "until" in GenerationRecord.__dataclass_fields__
 
     def test_schema_version_records_the_addition(self):
-        assert SCHEMA_VERSION == "1.2.0", (
-            "a new field changes the released artifact's shape; bump the version"
+        """A new field changes the released artifact's shape, so the version must move.
+
+        ⚠️ A LOWER BOUND, not equality and not `!= "1.0.0"`. Equality breaks on every
+        subsequent legitimate bump (it did, when `template_level` took it to 1.3.0), and
+        `!= "1.0.0"` is satisfied by `"0.0.1"` -- a tripwire that means nothing.
+        """
+        major, minor, _ = (int(part) for part in SCHEMA_VERSION.split("."))
+        assert (major, minor) >= (1, 2), (
+            f"until was added at 1.2.0; SCHEMA_VERSION is {SCHEMA_VERSION}"
         )
 
     def test_run_cell_stamps_it(self):

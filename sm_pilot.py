@@ -273,6 +273,9 @@ for lm_eval_task, task, subtask, limit in payload["plan"]:
         # `invocation_id` is NOT in the join key -- `repeat_idx` carries the identity and
         # `invocation_id` carries the provenance.
         repeat_idx=payload.get("repeat_idx", 0),
+        # Recorded on every generation so the released artifact states its own template
+        # level rather than requiring a reader to know it (prereg §3b-bis).
+        template_level=payload["template_level"],
     )
     elapsed = time.monotonic() - started
     for key in totals:

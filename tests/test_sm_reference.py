@@ -306,11 +306,25 @@ class TestSmokeExercisesKTwo:
     ~17 h run is the most expensive outcome available.
     """
 
-    def test_smoke_still_doubles_one_cell(self):
-        assert "k2 = cells[:1] if SMOKE else" in SOURCE, (
-            "smoke must double at least one cell so the second subprocess, repeat_idx=1, "
-            "the scratch-path split and the report entry are all exercised"
+    def test_smoke_doubles_one_cell(self):
+        """Smoke must double a cell so the K=2 path is actually exercised."""
+        assert 'SMOKE_K2_CELL = "qwen2.5-3b|bf16"' in SOURCE
+        assert 'c["cell_id"] == SMOKE_K2_CELL' in SOURCE
+
+    def test_the_smoke_cell_is_chosen_BY_NAME_not_by_position(self):
+        """⚠️ `cells[:1]` depended on `models.yaml` key order and `PRECISIONS` order.
+
+        Reorder either and the doubled smoke cell becomes `llama-3.1-8b|bf16`, pulling ~16 GB
+        from HF twice inside the 1800 s smoke cap. `sm_pilot` documents that hazard and picks
+        Llama's quantized arm to avoid it.
+        """
+        assert "k2 = cells[:1]" not in SOURCE, (
+            "selecting the smoke K=2 cell by list position is order-dependent"
         )
+
+    def test_the_named_smoke_cell_is_the_cheapest_model_and_registered(self):
+        """It must be a real K=2 cell, or the smoke rehearses something the run never does."""
+        assert "qwen2.5-3b|bf16" in sm_reference.K2_CELLS
 
     def test_the_completeness_guard_is_not_nested_inside_if_k2(self):
         """Nested, it caught PARTIAL drift and missed TOTAL drift.
