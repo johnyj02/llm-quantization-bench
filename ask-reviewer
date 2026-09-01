@@ -87,14 +87,24 @@ REVIEWS="${REPO}/notes/reviews"
 mkdir -p "$REVIEWS"
 STAMP="$(date -u +%Y-%m-%dT%H%M%SZ)"
 TRANSCRIPT="${REVIEWS}/${STAMP}.md"
+# ⚠️ EVERY LINE HERE USES `printf '%s\n'`, NEVER a format string starting with '-'.
+# bash's printf parses a leading '-' in the FORMAT as an option, so `printf '- session: %s\n'`
+# dies with "printf: - : invalid option" -- and under `set -e` that killed the whole script
+# before it ever called claude. The first thorough review silently did not run because of it.
+# I had checked `bash -n` and the usage path and not the happy path, which is the actual
+# lesson: a syntax check is not a test.
+FORKED=""
+[ "${FORK:-0}" = "1" ] && FORKED=" (FORKED — not written to its history)"
 {
-  printf '# Review %s\n\n' "$STAMP"
-  printf '- session: `%s`%s\n' "$REVIEWER_SESSION" \
-    "$([ "${FORK:-0}" = "1" ] && printf ' (FORKED — not written to its history)')"
-  printf '- model: `%s`   effort: `%s`\n' "$MODEL" "$EFFORT"
-  printf '- charter: `notes/reviewer-charter.md` @ `%s`\n\n' \
-    "$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
-  printf '## Question\n\n```\n%s\n```\n\n## Answer\n\n' "$*"
+  printf '%s\n\n' "# Review ${STAMP}"
+  printf '%s\n' "- session: \`${REVIEWER_SESSION}\`${FORKED}"
+  printf '%s\n' "- model: \`${MODEL}\`   effort: \`${EFFORT}\`"
+  printf '%s\n\n' "- charter: \`notes/reviewer-charter.md\` @ \`$(git rev-parse --short HEAD 2>/dev/null || echo unknown)\`"
+  printf '%s\n\n' "## Question"
+  printf '%s\n' '```'
+  printf '%s\n' "$*"
+  printf '%s\n\n' '```'
+  printf '%s\n\n' "## Answer"
 } > "$TRANSCRIPT"
 
 claude "${SESSION_ARGS[@]}" \
