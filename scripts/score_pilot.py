@@ -28,7 +28,6 @@ error the prereg exists to prevent, so every consumer of this file should read
 from __future__ import annotations
 
 import argparse
-import gzip
 import json
 import statistics
 import sys
@@ -99,12 +98,20 @@ def reduce_gold(gold: str, task: str) -> str:
 
 
 def read_records(root: Path) -> list[dict]:
+    """Every record under `root`.
+
+    🚨 Delegates to `records.read_records`, which REFUSES a truncated gzip member on the
+    scoring path. This used to be a bare `gzip.open` loop with no `try` at all: a container
+    killed mid-flush leaves a truncated member, and the reader raised a bare `EOFError`
+    naming no file. Worse, the tempting fix -- catching it and continuing -- would score a
+    short cell as though complete, giving every rate in that cell a wrong denominator.
+    Verified by truncating a real 139 KB cell to half its length.
+    """
+    from quantartifact.records import read_records as _read  # noqa: PLC0415 - src on path
+
     records: list[dict] = []
     for path in sorted(root.rglob("*.jsonl.gz")):
-        with gzip.open(path, "rt") as handle:
-            for line in handle:
-                if line.strip():
-                    records.append(json.loads(line))
+        records.extend(_read(path))
     return records
 
 
@@ -130,6 +137,11 @@ def score_one(record: dict) -> dict:
         finish_reason=record.get("finish_reason"),
         stop_reason=record.get("stop_reason"),
         strict=strict, permissive=permissive,
+        # 🚨 The terminators THIS generation was produced with, from the record itself.
+        # `None` for records written before the field existed, which falls back to the
+        # config-derived table -- imprecise for BBH, whose two template levels have
+        # different sets, but never wrong the way the old hardcoded literal was.
+        until=record.get("until"),
     )
 
     row = {

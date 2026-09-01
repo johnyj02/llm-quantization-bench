@@ -20,6 +20,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from quantartifact.records import SCHEMA_VERSION, GenerationRecord
 from quantartifact.scoring import compliance
 from quantartifact.scoring.compliance import (
     ABSENT,
@@ -430,3 +431,36 @@ class TestCommitmentMarkersUseWordBoundaries:
         text = r"Work it out. \boxed{42}"
         assert compliance._appears_after_commitment_marker(
             text, [text.find("42")]) is True
+
+
+class TestUntilIsRecordedOnTheGeneration:
+    """🚨 The structural fix for the HARNESS_UNTIL drift (reviewer run 2, BLOCKER 1).
+
+    A scorer that has to INFER which terminators produced a generation will eventually get
+    it wrong -- it did, for 1,106 BBH records. The record now carries the list, which also
+    makes the released artifact self-classifying (A24): the termination classes are
+    recomputable from the JSONL alone.
+    """
+
+    def test_the_field_exists_on_the_schema(self):
+        assert "until" in GenerationRecord.__dataclass_fields__
+
+    def test_schema_version_records_the_addition(self):
+        assert SCHEMA_VERSION == "1.2.0", (
+            "a new field changes the released artifact's shape; bump the version"
+        )
+
+    def test_run_cell_stamps_it(self):
+        source = (REPO / "src" / "quantartifact" / "generate.py").read_text()
+        assert "until=list(until) if until is not None else None," in source
+
+    def test_the_scorer_passes_it_through(self):
+        source = (REPO / "scripts" / "score_pilot.py").read_text()
+        assert 'until=record.get("until")' in source, (
+            "the scorer must use the recorded list, not re-derive it"
+        )
+
+    def test_a_record_without_it_still_classifies(self):
+        """Records predating the field must not crash or silently misclassify."""
+        assert compliance.classify_termination(
+            "bbh", "stop", "Q:", committed=False, until=None) == compliance.TRUNC_STOPSEQ

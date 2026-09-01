@@ -87,8 +87,13 @@ STAGES: dict[str, dict] = {
     },
     "reference": {
         "entry_point": "sm_reference.py",
-        "description": "THE MAIN RUN, run_id=main-v1: 15 cells x 4,238 items = 63,570 gens",
-        # ~10.5 h projected (scripts/project_budget.py, from pilot-v2's measured rates).
+        # ⚠️ Keep this in step with sm_reference.K2_CELLS. --plan-only is what D10's
+        # confirmation is given AGAINST, so an understated figure here means the user approves
+        # a run that is not the run. This said "63,570 gens / ~10.5 h" after K=2 added ten
+        # doubled cells -- a 67% understatement.
+        "description": ("THE MAIN RUN, run_id=main-v1: 15 cells x 4,238 items = 63,570 gens, "
+                        "PLUS 10 K=2 cells run twice (prereg §9f) = ~105,950 total"),
+        # ~17.5 h projected (scripts/project_budget.py, from pilot-v2's measured rates).
         # 48 h because a cap costs nothing unless it fires and a timeout costs a queue cycle
         # on a 1-slot shared account; per-item resume means a restart loses no work.
         "max_run": 172800,

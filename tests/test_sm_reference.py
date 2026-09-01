@@ -8,6 +8,7 @@ and a rehearsal sharing the run_id still prints success.
 
 from __future__ import annotations
 
+import importlib.util
 import sys
 from pathlib import Path
 
@@ -295,3 +296,48 @@ class TestInvocationId:
     def test_schema_version_was_bumped(self):
         """A new field changes the released artifact's shape; the version must say so."""
         assert SCHEMA_VERSION != "1.0.0"
+
+
+class TestSmokeExercisesKTwo:
+    """🚨 REGRESSION (reviewer run 1, MAJOR 4). `--smoke` used to EXCLUDE the K=2 path.
+
+    That inverted what a rehearsal is for: the mandatory smoke could not test the newest and
+    least-proven code in the stage. With one job slot and a queue, K=2 failing inside the real
+    ~17 h run is the most expensive outcome available.
+    """
+
+    def test_smoke_still_doubles_one_cell(self):
+        assert "k2 = cells[:1] if SMOKE else" in SOURCE, (
+            "smoke must double at least one cell so the second subprocess, repeat_idx=1, "
+            "the scratch-path split and the report entry are all exercised"
+        )
+
+    def test_the_completeness_guard_is_not_nested_inside_if_k2(self):
+        """Nested, it caught PARTIAL drift and missed TOTAL drift.
+
+        If every registered cell_id stopped matching, `k2` was empty, the guard never ran,
+        and the run completed with no K=2 data and exit 0.
+        """
+        guard = SOURCE.index("missing = sorted(K2_CELLS")
+        # The guard must sit under `if not SMOKE:`, not under `if k2:`.
+        preceding = SOURCE[:guard].rstrip().splitlines()[-1]
+        assert "if not SMOKE" in preceding, (
+            f"the K=2 completeness guard must not be conditional on k2 being non-empty; "
+            f"preceding line is {preceding!r}"
+        )
+
+
+class TestPlanOnlyStatesTheRealSize:
+    """--plan-only is what D10's confirmation is given AGAINST.
+
+    The description said 63,570 generations and ~10.5 h after K=2 added ten doubled cells --
+    a 67% understatement of the run the user would be approving.
+    """
+
+    def test_the_description_mentions_k2(self):
+        spec = importlib.util.spec_from_file_location(
+            "submit_job", REPO / "scripts" / "submit_job.py")
+        submit_job = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(submit_job)
+        description = submit_job.STAGES["reference"]["description"]
+        assert "K=2" in description and "105,950" in description, description

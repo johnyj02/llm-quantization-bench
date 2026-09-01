@@ -868,6 +868,9 @@ def run_cell(
                 env_hash=environment,
                 wall_ms=per_item_ms,
                 invocation_id=runner.invocation_id,
+                # The list actually passed to the engine for THIS cell, so no scorer has to
+                # infer it from a task-keyed table. See GenerationRecord.until.
+                until=list(until) if until is not None else None,
             )
             for item, output in zip(batch, outputs, strict=True)
         ]

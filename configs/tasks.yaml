@@ -451,7 +451,9 @@ chat_template:
 
 # ---------------------------------------------------------------------------
 # Item counts per cell (EXECUTOR-TASKS.md §2.2)
-#   Reference:  gsm8k 1319 + bbh 900 + arc 500(x2 modes) = 2719 generative
+#   Reference:  gsm8k 1319 + gsm8k_cot 1319 + bbh 1100 + arc 500 = 4238 generative
+#               (was recorded as 2719 -- omitted gsm8k_cot, and BBH is 1100 not 900
+#                because R1.3 raised the two single-subtask contrast levels to 250)
 #   Sweep/0shot: gsm8k 500 + bbh 900                     = 1400
 # ---------------------------------------------------------------------------
 # Revised per planner ruling R6. Supersedes the EXECUTOR-TASKS.md 2.6 table.
@@ -467,7 +469,7 @@ chat_template:
 #  =======
 # ~133,500
 item_counts:
-  reference_generative_per_cell: 2719
+  reference_generative_per_cell: 4238   # corrected 2026-09-01; sm_reference derives this
   sweep_per_cell: 1400
   zeroshot_per_cell: 1400
   revised_total_estimate: 133500

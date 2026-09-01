@@ -30,7 +30,8 @@ from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = "1.1.0"   # 1.0.0 -> 1.1.0: added invocation_id (R21.3)
+SCHEMA_VERSION = "1.2.0"   # 1.0.0 -> 1.1.0: added invocation_id (R21.3)
+#                          # 1.1.0 -> 1.2.0: added until (self-classifying artifact)
 
 # The join key across generations and EVERY scorer. Enforced as a uniqueness
 # constraint by the loader, which fails loudly on a duplicate -- a silently
@@ -117,6 +118,23 @@ class GenerationRecord:
     # field a resumed run's records cannot be attributed to the process that produced them
     # -- the noise could not be estimated at all, only assumed.
     invocation_id: str = ""
+    # 🚨 THE STOP SEQUENCES THAT PRODUCED THIS GENERATION.
+    #
+    # Recorded because a scorer that has to INFER them will get it wrong. It already did:
+    # `compliance.HARNESS_UNTIL` hardcoded BBH's pre-correction terminators, so every BBH
+    # generation cut by `"Q:"` was classified COMPLETE and `trunc_stopseq_rate` read 0.0% --
+    # 1,106 records misclassified, in §4's pre-registered TRUNC_STOPSEQ test.
+    #
+    # ⚠️ And a task-keyed table cannot be right in principle. `tasks.yaml` gives BBH TWO
+    # terminator sets via `until_by_template`, one per template level, because the set is part
+    # of each level's definition (prereg §3b-bis) -- and `template-v1` runs both levels in one
+    # run. Only the record itself knows which one applied to it.
+    #
+    # This is also what makes the released artifact SELF-CLASSIFYING (A24): a third party can
+    # recompute the termination classes from the JSONL alone, without reconstructing which
+    # config produced which cell. `records.py`'s own docstring already claims that property;
+    # this field is what actually delivers it.
+    until: list[str] | None = None
     schema_version: str = SCHEMA_VERSION
 
     def key(self) -> tuple:
@@ -186,26 +204,73 @@ def append_records(path: Path, records: Sequence[GenerationRecord]) -> int:
     return len(records)
 
 
-def read_records(path: Path) -> Iterator[dict[str, Any]]:
-    """Stream records back. Tolerates a truncated final line.
+class TruncatedCellError(RuntimeError):
+    """The gzip stream ends before its end-of-stream marker: a killed write.
 
-    A half-written final line is the expected signature of a killed process, so
-    it is skipped rather than treated as corruption -- the resume path then
-    simply regenerates that one item.
+    Raised by ``read_records`` unless the caller explicitly opts into recovery. The
+    distinction is the point -- see that function.
+    """
+
+
+def read_records(
+    path: Path, *, tolerate_truncation: bool = False
+) -> Iterator[dict[str, Any]]:
+    """Stream records back.
+
+    Two DIFFERENT kinds of truncation, and they need opposite treatment:
+
+    * **A half-written final LINE** -- valid gzip, invalid JSON on the last line. Always
+      tolerated: it is the ordinary signature of a killed process and the resume path simply
+      regenerates that one item.
+    * **A truncated gzip MEMBER** -- the stream ends before its end-of-stream marker, so
+      `gzip` raises ``EOFError`` partway through. This is the failure that actually happens
+      when a container is killed mid-flush, and it was **unhandled**: verified by truncating
+      a real 139 KB cell file to half its length, both this function and
+      ``scripts/score_pilot.read_records`` raised
+      ``EOFError: Compressed file ended before the end-of-stream marker was read``.
+
+    🚨 **The default is to REFUSE, and the asymmetry is deliberate.**
+
+    A truncated member means an unknown number of records are missing from the tail. For the
+    **resume** path that is recoverable and even routine -- take what decompressed and
+    regenerate the rest -- so `run_cell` passes ``tolerate_truncation=True``. For the
+    **scoring** path it is not: silently returning a short cell gives every rate in that cell
+    a wrong denominator, and a wrong denominator is a plausible-looking wrong number, which is
+    the one failure this project cannot afford. So scoring gets the exception.
+
+    A single flag with opposite defaults per caller is the whole fix; making both callers
+    tolerant would have been the bug, and making both strict would have made a killed job
+    unresumable.
     """
     if not path.exists():
         return
-    with gzip.open(path, "rt", encoding="utf-8") as handle:
-        for line in handle:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                yield json.loads(line)
-            except json.JSONDecodeError:
-                # Truncated tail from an interrupted write. Stop here; anything
-                # after it is unreadable anyway.
-                return
+    recovered = 0
+    try:
+        with gzip.open(path, "rt", encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError:
+                    # Truncated tail from an interrupted write. Stop here; anything
+                    # after it is unreadable anyway.
+                    return
+                recovered += 1
+                yield record
+    except EOFError as exc:
+        if not tolerate_truncation:
+            raise TruncatedCellError(
+                f"{path} is a TRUNCATED gzip stream ({recovered} records recovered before "
+                f"the break, unknown number lost).\n"
+                f"  Scoring a short cell silently would give every rate in it a wrong "
+                f"denominator.\n"
+                f"  The generation path can recover this by resuming -- re-run the stage and "
+                f"the missing tail regenerates. Do not score it until then."
+            ) from exc
+        # Resume path: the recovered prefix is exactly what we want to skip re-generating.
+        return
 
 
 def build_resume_index(path: Path) -> set[tuple]:
@@ -214,8 +279,11 @@ def build_resume_index(path: Path) -> set[tuple]:
     `EXECUTOR-TASKS.md` §7.3: re-running a command with identical arguments
     must produce zero new work and exit 0.
     """
+    # Tolerant: this IS the recovery path. A truncated tail means those records are missing
+    # from the index, so `run_cell` regenerates them -- which is correct.
     return {
-        tuple(record.get(field) for field in JOIN_KEY) for record in read_records(path)
+        tuple(record.get(field) for field in JOIN_KEY)
+        for record in read_records(path, tolerate_truncation=True)
     }
 
 
@@ -273,7 +341,10 @@ def assert_cell_reusable(path: Path, expected: dict[str, Any]) -> dict[str, Any]
     """
     if not path.exists():
         return None
-    stored = next(iter(read_records(path)), None)
+    # Only the FIRST record is needed, and one line always decompresses even in a truncated
+    # member -- so this is unaffected by truncation. Tolerant anyway, to say so explicitly
+    # rather than relying on the read stopping early.
+    stored = next(iter(read_records(path, tolerate_truncation=True)), None)
     if stored is None:
         return None
 

@@ -1183,8 +1183,16 @@ resampling check confirms `SD(Δ) = 100·√(churn/n)` to within the finite-popu
 (observed/predicted 0.766; FPC predicts 0.58–0.92 over the tested range, observed 0.56–0.94).
 
 🚨 **THEREFORE THE PREREGISTERED QUANTITY IS THE ESTIMATOR, NOT A NUMBER.** The pilot's floor was
-measured at **n=180**; the reference condition is **n=2,719**, ~15× larger, so the floor falls by
-~√15. Baking the pilot figure into a threshold would cripple H3 with a number that does not
+measured at **n=180**; the reference condition is **n=4,238**, ~24× larger, so the floor falls by
+~√24.
+
+⚠️ **CORRECTED 2026-09-01: this said n=2,719.** That was the count before `gsm8k_cot` (1,319) was
+added as a separate task alongside `gsm8k`; the real per-cell total is
+`gsm8k 1319 + gsm8k_cot 1319 + arc 500 + BBH 1100 = 4,238`, which `sm_reference.reference_plan`
+computes from `configs/tasks.yaml`. Corrected **before** the first `main-v1` generation, which is
+when §1–§9 become append-only — after that it would have needed an amendment. The registered
+quantity is the *estimator*, so the derived floors below are predictions and are unaffected in
+kind; they are restated at the right n. Baking the pilot figure into a threshold would cripple H3 with a number that does not
 apply to it.
 
 - **Estimator, frozen:** the per-arm invocation SD, estimated from the **K=2 cells at reference
@@ -1194,8 +1202,9 @@ apply to it.
   class-3 floor. Class-2 claims bind to the class-2 floor. Class-1 claims bind to the
   **repetition floor (0.000%)**, unchanged.
 - **Preliminary estimate, cited as such with its n:** at n=180 the per-arm SD is 1.39 pp;
-  extrapolated to n=2,719 it is **0.36 pp**, and **0.25 pp** after K=2 averaging, giving a
-  class-3 interaction floor of roughly **0.36 pp**. These are predictions, superseded by the
+  extrapolated to n=4,238 it is **0.29 pp**, and **0.20 pp** after K=2 averaging, giving a
+  class-3 interaction floor of roughly **0.29 pp** (the ×√2 for contrasting two independently
+  invoked arms cancels the √2 of the K=2 average). These are predictions, superseded by the
   K=2 measurement at full n.
 - ⚠️ **The one cell that may be bias rather than churn:** phi/bnb-NF4 flipped 9 up and 1 down.
   If a cell's churn is systematically asymmetric its shift does **not** shrink with n. Per-cell

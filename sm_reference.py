@@ -249,7 +249,16 @@ def main() -> int:
     #   2. It puts a maximum of other engine loads between the two invocations of a cell,
     #      so if the undiagnosed mechanism is sensitive to what ran before it, this is the
     #      arrangement most likely to EXPOSE that rather than hide it.
-    k2 = [c for c in cells if c["cell_id"] in K2_CELLS] if not SMOKE else []
+    # 🚨 THE SMOKE MUST EXERCISE K=2. It used to be excluded (`if not SMOKE else []`), which
+    # made the mandatory rehearsal unable to test the newest and least-proven code in the
+    # stage -- exactly inverting what a rehearsal is for. With one job slot and a queue, the
+    # K=2 path failing inside the real 17-hour run is the most expensive outcome available.
+    #
+    # In smoke the cell set is already reduced to 2 arms, so ONE of them is doubled: enough to
+    # prove the second subprocess launches, that `repeat_idx=1` reaches `run_cell`, that the
+    # scratch paths do not collide, and that both invocations land in the report -- at the cost
+    # of one extra 4-item cell.
+    k2 = cells[:1] if SMOKE else [c for c in cells if c["cell_id"] in K2_CELLS]
     run_list: list[tuple[dict, int]] = [(c, 0) for c in cells] + [(c, 1) for c in k2]
 
     per_cell = sum(n for *_, n in plan)
@@ -259,21 +268,23 @@ def main() -> int:
     print(f"arms         : {list(PRECISIONS)}")
     print(f"cells        : {len(cells)}   items/cell: {per_cell:,}   "
           f"total: {len(cells) * per_cell:,} generations")
-    if k2:
+    # 🚨 The completeness check runs REGARDLESS of whether any K=2 cell resolved. Nested
+    # inside `if k2:` it caught PARTIAL drift and missed TOTAL drift -- if every registered
+    # cell_id stopped matching, `k2` was empty, the guard never ran, and the run completed
+    # with no K=2 data at all and exit 0. Run-1 MAJOR 1.
+    if not SMOKE:
         missing = sorted(K2_CELLS - {c["cell_id"] for c in cells})
-        print(f"K=2 cells    : {len(k2)} of {len(K2_CELLS)} registered "
-              f"(prereg §9f) -> +{len(k2) * per_cell:,} generations")
-        for cell in k2:
-            print(f"  {cell['cell_id']:40} repeat_idx 0 and 1, separate engine loads")
         if missing:
-            # Fails LOUD: a registered K=2 cell that does not resolve means the floor is
-            # estimated from fewer cells than the prereg says, which is a silent weakening
-            # of a registered analysis.
             raise SystemExit(
                 f"REFUSING TO RUN: {len(missing)} cell(s) registered for K=2 in prereg §9f "
                 f"do not exist in this run: {missing}. The invocation floor would be "
                 f"estimated from a different set than the one registered."
             )
+    if k2:
+        print(f"K=2 cells    : {len(k2)} of {len(K2_CELLS)} registered "
+              f"(prereg §9f) -> +{len(k2) * per_cell:,} generations")
+        for cell in k2:
+            print(f"  {cell['cell_id']:40} repeat_idx 0 and 1, separate engine loads")
     print(f"run units    : {len(run_list)} (cells + K=2 second invocations)")
     for lm_eval_task, task, subtask, n in plan:
         print(f"  {task + ('/' + subtask if subtask else ''):40} {n:>5}  ({lm_eval_task})")
