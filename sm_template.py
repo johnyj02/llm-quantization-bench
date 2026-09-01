@@ -67,7 +67,22 @@ SMOKE = os.environ.get("SM_HP_SMOKE") == "1" or "--smoke" in sys.argv
 # Separate `run_id` from every other stage: these generations are a DIFFERENT population
 # (two template levels), and pooling them into `pilot-v2` would silently contaminate the
 # annotation pool that A11 samples blind.
-RUN_ID = "template-v1-smoke" if SMOKE else "template-v1"
+#
+# 🚨 BUMPED v1 -> v2 on 2026-09-01. NOT cosmetic, and NOT a deletion.
+#
+# `template-v1` ran at `max_num_seqs=64`. R24.1 moved the frozen value to 32 because
+# order-induced correctness divergence at 64 crossed §9's pre-registered 10 pp trigger, so the
+# probe has to be re-measured at the value the study actually uses. Two consequences:
+#
+#   1. `records.assert_cell_reusable` now REFUSES to resume a cell whose stored
+#      `max_num_seqs` differs from the current one, so re-running as `template-v1` would abort
+#      rather than regenerate. Verified against a real stored cell before bumping this.
+#   2. Even without that guard, resuming would have mixed 64-batch and 32-batch generations
+#      inside one cell file, which is the failure that guard exists to prevent.
+#
+# `template-v1` is RETAINED, not deleted. Its BRANCH 1 result stands as the measurement taken
+# at 64, and the two runs are reported as what they are rather than pooled.
+RUN_ID = "template-v2-smoke" if SMOKE else "template-v2"
 GENERATIONS_ROOT = CHECKPOINT_DIR / "generations"
 
 # The two levels of the factor. Order matters only for log readability.

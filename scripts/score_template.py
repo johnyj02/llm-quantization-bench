@@ -30,6 +30,7 @@ subject. The test is whether it survives the template change.
 
 from __future__ import annotations
 
+import argparse
 import gzip
 import json
 import statistics
@@ -44,7 +45,10 @@ sys.path.insert(0, str(REPO / "scripts"))
 from quantartifact.scoring import extract  # noqa: E402
 from score_pilot import reduce_gold  # noqa: E402
 
-RUN = "template-v1"
+# ⚠️ Overridable, because there are now two runs and they must not be pooled: `template-v1`
+# measured at max_num_seqs=64, `template-v2` at the frozen 32 (R24.1). Default to the current
+# one; pass --run to score the earlier measurement.
+RUN = "template-v2"
 RUNGS = ("strict", "permissive")
 ARMS = ("bf16", "gptq-4bit", "awq-4bit")
 LEVELS = ("chat", "raw")
@@ -110,7 +114,16 @@ def score_run(root: Path) -> dict:
 
 
 def main() -> int:
-    root = REPO / "artifacts" / "generations" / RUN
+    parser = argparse.ArgumentParser(
+        description="Score the template-factor probe and decide §3b-bis's branch")
+    parser.add_argument(
+        "--run", default=RUN,
+        help=f"run_id to score (default {RUN}). template-v1 was measured at "
+             f"max_num_seqs=64, template-v2 at the frozen 32; they are NOT pooled.")
+    args = parser.parse_args()
+    run = args.run
+
+    root = REPO / "artifacts" / "generations" / run
     if not root.is_dir():
         raise SystemExit(f"no generations at {root} — sync from S3 first")
 
@@ -204,10 +217,10 @@ def main() -> int:
         print("   quantization effect -- and is reported as the primary framing, NOT as a")
         print("   limitation. We pre-committed to this.")
 
-    out = REPO / "artifacts" / "scores" / f"scores_{RUN}.json"
+    out = REPO / "artifacts" / "scores" / f"scores_{run}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(
-        {"run_id": RUN, "tolerance_pp": MAGNITUDE_TOLERANCE_PP,
+        {"run_id": run, "tolerance_pp": MAGNITUDE_TOLERANCE_PP,
          "accuracy": {f"{lv}|{m}|{a}": v for (lv, m, a), v in acc.items()},
          "n_invariant": n_ok, "n_comparisons": len(verdicts)}, indent=2, sort_keys=True))
     print(f"\nreport -> {out}")

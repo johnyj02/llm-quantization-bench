@@ -145,3 +145,32 @@ class TestFailureIsLoadBearing:
         source = (REPO / "sm_template.py").read_text()
         assert "load-bearing" in source
         assert "return 1" in source
+
+
+class TestRunIdWasBumpedForTheFrozenBatchSize:
+    """🚨 `template-v1` ran at max_num_seqs=64; R24.1 moved the freeze to 32.
+
+    Re-running as `template-v1` would now ABORT, because `assert_cell_reusable` refuses to
+    resume a cell whose stored `max_num_seqs` differs. Even without that guard it would have
+    mixed 64-batch and 32-batch generations inside one cell file. `template-v1` is retained as
+    the measurement taken at 64, and the two runs are never pooled.
+    """
+
+    SOURCE = (Path(__file__).resolve().parents[1] / "sm_template.py").read_text()
+
+    def test_run_id_is_v2(self):
+        assert sm_template.RUN_ID in ("template-v2", "template-v2-smoke")
+
+    def test_the_superseded_id_is_not_reused(self):
+        assert "template-v1" not in sm_template.RUN_ID
+
+    def test_the_reason_is_recorded_next_to_it(self):
+        """A bump without its reason gets reverted by the next person."""
+        assert "max_num_seqs=64" in self.SOURCE
+        assert "assert_cell_reusable" in self.SOURCE
+
+    def test_the_scorer_defaults_to_the_new_run_but_can_read_the_old(self):
+        source = (Path(__file__).resolve().parents[1]
+                  / "scripts" / "score_template.py").read_text()
+        assert 'RUN = "template-v2"' in source
+        assert '"--run"' in source, "the earlier measurement must stay readable"
