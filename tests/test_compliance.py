@@ -15,8 +15,12 @@ not ask the obvious question -- so it has to be airtight.
 
 from __future__ import annotations
 
-import pytest
+from pathlib import Path
 
+import pytest
+import yaml
+
+from quantartifact.scoring import compliance
 from quantartifact.scoring.compliance import (
     ABSENT,
     COMPLETE,
@@ -29,6 +33,8 @@ from quantartifact.scoring.compliance import (
     label_compliance,
     scan_trace,
 )
+
+REPO = Path(__file__).resolve().parents[1]
 
 # ---------------------------------------------------------------------------
 # Compliance 2x2 -- orthogonal to correctness
@@ -318,3 +324,109 @@ def test_incidental_match_floor_reports_small_gold_separately():
     assert floor["n_small_gold"] == 2
     assert floor["floor_permissive_small_gold"] == pytest.approx(1.0)
     assert floor["floor_permissive"] == pytest.approx(2 / 3)
+
+
+class TestTerminatorsComeFromConfigNotLiterals:
+    """🚨 REGRESSION. `HARNESS_UNTIL["bbh"]` held the PRE-R18.1 raw-level strings.
+
+    `tasks.yaml` was corrected to BBH's chat-level set `["</s>", "Q:", "<|im_end|>"]`
+    (R18.1/R19.1); the table still said `("</s>", "Q", "\\n\\n")`. `"Q:"` is the only non-EOS
+    terminator that can fire at the chat level, and it was not in the table -- so every BBH
+    generation cut mid-reasoning by it was classified `COMPLETE` and `trunc_stopseq_rate`
+    read **0.0% in every arm**. That is §4's pre-registered TRUNC_STOPSEQ
+    differential-by-precision test reporting a stale literal as a measurement.
+
+    ⚠️ The old tests locked the drift in: they asserted with `"Q"` and `"\\n\\n"` and NEVER
+    with `"Q:"`. That absence is why this went unnoticed, so the `"Q:"` case is pinned here
+    first.
+    """
+
+    def test_the_chat_level_terminator_is_recognised(self):
+        """The one case whose absence hid the bug."""
+        assert compliance.classify_termination(
+            "bbh", "stop", "Q:", committed=False) == compliance.TRUNC_STOPSEQ
+
+    def test_the_table_is_derived_from_tasks_yaml(self):
+        """Not retyped. A literal can drift from the config; a read cannot."""
+        tasks = yaml.safe_load((REPO / "configs" / "tasks.yaml").read_text())["tasks"]
+        for task, declared in (("bbh", tasks["bbh"]["until"]),
+                               ("gsm8k", tasks["gsm8k"]["until"]),
+                               ("gsm8k_cot", tasks["gsm8k_cot"]["until"])):
+            for terminator in declared:
+                assert terminator in compliance.HARNESS_UNTIL[task], (
+                    f"{task}: {terminator!r} is declared in tasks.yaml but absent from "
+                    f"HARNESS_UNTIL -- the table has drifted from the config again"
+                )
+
+    def test_an_explicit_until_overrides_the_table(self):
+        """The real fix: the caller passes the list that produced the generation.
+
+        The table cannot be right in principle for BBH, which declares two sets via
+        `until_by_template` and runs both levels in one `template-v1` run.
+        """
+        chat = ["</s>", "Q:", "<|im_end|>"]
+        assert compliance.classify_termination(
+            "bbh", "stop", "Q:", committed=False, until=chat) == compliance.TRUNC_STOPSEQ
+        # A bare "Q" cannot fire at the chat level, so it is NOT a stop-sequence kill there.
+        assert compliance.classify_termination(
+            "bbh", "stop", "Q", committed=False, until=chat) == compliance.COMPLETE
+
+    def test_the_two_template_levels_are_distinguishable(self):
+        """The interface defect the table could not express."""
+        raw = ["</s>", "Q", "\n\n"]
+        chat = ["</s>", "Q:", "<|im_end|>"]
+        assert compliance.classify_termination(
+            "bbh", "stop", "\n\n", committed=False, until=raw) == compliance.TRUNC_STOPSEQ
+        assert compliance.classify_termination(
+            "bbh", "stop", "\n\n", committed=False, until=chat) == compliance.COMPLETE
+
+    def test_label_compliance_forwards_until(self):
+        """A value declared and not forwarded is this project's signature bug."""
+        labels = compliance.label_compliance(
+            "Let me think about it", "bbh", None,
+            finish_reason="stop", stop_reason="Q:", until=["</s>", "Q:", "<|im_end|>"])
+        assert labels.termination == compliance.TRUNC_STOPSEQ
+
+
+class TestCommitmentMarkersUseWordBoundaries:
+    """🚨 REGRESSION. `"so"` was matched as a bare SUBSTRING via `rfind`.
+
+    It hit inside `also`, `reason`, `reasoning`, `person`, `resolve`, `absolutely` --
+    ubiquitous in chain-of-thought prose. An incidental hit late in the text pushed the
+    last-marker position past the gold, so `after_marker` was almost always `False` and
+    `conservative = (in_final_span or after_marker) and ...` collapsed to `in_final_span
+    and ...`. Half of H2's pre-registered conservative definition was inert, and the
+    under-count scales with generation length and vocabulary -- both of which differ BY ARM,
+    making the bias differential.
+    """
+
+    # Real marker early, gold immediately after, then ordinary prose whose words CONTAIN
+    # "so" without any standalone "so". Old code: False. Correct: True.
+    TEXT = ("Therefore the answer is 42. Let me also double-check that reasoning, "
+            "since a person could resolve it differently.")
+
+    def test_an_incidental_so_inside_a_word_does_not_move_the_marker(self):
+        positions = [self.TEXT.find("42")]
+        assert compliance._appears_after_commitment_marker(self.TEXT, positions) is True
+
+    def test_a_standalone_so_still_counts(self):
+        text = "Let me think. So the answer is 42."
+        assert compliance._appears_after_commitment_marker(
+            text, [text.find("42")]) is True
+
+    def test_gold_before_the_marker_is_still_False(self):
+        text = "42 first. Therefore seven."
+        assert compliance._appears_after_commitment_marker(
+            text, [text.find("42")]) is False
+
+    def test_no_marker_at_all_is_False(self):
+        """Absent marker means the gold cannot be after one. False for the RIGHT reason."""
+        text = "The value 42 appears with no commitment language whatsoever."
+        assert compliance._appears_after_commitment_marker(
+            text, [text.find("42")]) is False
+
+    def test_boxed_marker_still_matches(self):
+        r"""`\boxed{` has no word boundary on either side -- `\` and `{` are non-word."""
+        text = r"Work it out. \boxed{42}"
+        assert compliance._appears_after_commitment_marker(
+            text, [text.find("42")]) is True

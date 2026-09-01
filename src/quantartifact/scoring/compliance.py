@@ -30,6 +30,7 @@ from __future__ import annotations
 import dataclasses
 import re
 from collections.abc import Sequence
+from pathlib import Path
 
 from quantartifact.scoring.extract import (
     Extraction,
@@ -52,18 +53,55 @@ TRUNC_BUDGET = "TRUNC_BUDGET"
 TRUNC_STOPSEQ = "TRUNC_STOPSEQ"
 COMPLETE = "COMPLETE"
 
-# Harness `until` strings per task, from vendor/lm-eval-configs/ (v0.4.12).
-# Needed to tell a PREMATURE stop-sequence kill from a legitimate EOS.
-HARNESS_UNTIL: dict[str, tuple[str, ...]] = {
-    "gsm8k": ("Question:", "</s>", "<|im_end|>"),
-    "gsm8k_cot": ("Q:", "</s>", "<|im_end|>"),
-    # A BARE CAPITAL "Q" and a blank line. Any chain of thought containing
-    # either is cut mid-reasoning.
-    "bbh": ("</s>", "Q", "\n\n"),
-    # A SINGLE PERIOD, with max_gen_toks=100 and a required closing
-    # "The best answer is X". A live failure mode, not a hypothetical.
-    "arc_challenge_chat": ("\n\n", "."),
-}
+# 🚨 FALLBACK ONLY. Pass the ACTUAL `until` list instead wherever you have it.
+#
+# This table drifted and produced a wrong number. It held BBH's PRE-R18.1 raw-level set
+# `("</s>", "Q", "\n\n")` while `configs/tasks.yaml` had been corrected to the chat-level set
+# `["</s>", "Q:", "<|im_end|>"]`. Consequence: `"Q:"` -- the only non-EOS terminator that can
+# fire at the chat level -- was not in the table, so every BBH generation cut mid-reasoning by
+# it was classified `COMPLETE`, and `trunc_stopseq_rate` for BBH read **0.0% in every arm**.
+# That is §4's pre-registered TRUNC_STOPSEQ differential-by-precision test reporting a stale
+# literal as a measurement. The tests locked the drift in: they asserted with `"Q"` and
+# `"\n\n"` and never with `"Q:"`.
+#
+# ⚠️ AND THE TABLE CANNOT BE RIGHT IN PRINCIPLE. `tasks.yaml` gives BBH two terminator sets --
+# `until_by_template` -- one per template level, because the terminator set is part of each
+# level's DEFINITION (prereg §3b-bis). `template-v1` runs both levels in one run, so no
+# single hardcoded tuple can classify both. A lookup keyed on `task` alone is the wrong shape.
+#
+# Hence `classify_termination(..., until=...)`: the caller passes the list that actually
+# produced the generation, recorded on the record itself. This table remains only for callers
+# that genuinely have no `until` -- records written before the field existed -- and is
+# deliberately loaded from `tasks.yaml` rather than retyped, so it cannot drift again.
+def _harness_until_from_config() -> dict[str, tuple[str, ...]]:
+    """Every declared `until`, per task, read from `configs/tasks.yaml`.
+
+    Includes BOTH template levels' sets where a task declares `until_by_template`, because a
+    fallback that has to serve both levels can only be the union. That is imprecise by
+    construction -- it cannot tell a `raw`-level kill from a `chat`-level one -- which is
+    exactly why passing the real list is preferred and this is the fallback.
+    """
+    import yaml  # noqa: PLC0415 - config read, only needed on the fallback path
+
+    path = Path(__file__).resolve().parents[3] / "configs" / "tasks.yaml"
+    try:
+        tasks = yaml.safe_load(path.read_text())["tasks"]
+    except (OSError, KeyError):  # pragma: no cover - config always present in-repo
+        return {}
+
+    out: dict[str, tuple[str, ...]] = {}
+    for name, config in tasks.items():
+        if not isinstance(config, dict):
+            continue
+        strings: list[str] = list(config.get("until") or [])
+        for level_until in (config.get("until_by_template") or {}).values():
+            strings.extend(level_until or [])
+        if strings:
+            out[name] = tuple(dict.fromkeys(strings))   # dedupe, keep order
+    return out
+
+
+HARNESS_UNTIL: dict[str, tuple[str, ...]] = _harness_until_from_config()
 
 # EOS-ish stop reasons that indicate the model chose to stop, not that the
 # harness cut it off.
@@ -94,6 +132,7 @@ def label_compliance(
     stop_reason: str | None = None,
     strict: Extraction | None = None,
     permissive: Extraction | None = None,
+    until: Sequence[str] | None = None,
 ) -> ComplianceLabels:
     """Assign the compliance label and the termination class.
 
@@ -124,6 +163,7 @@ def label_compliance(
         finish_reason=finish_reason,
         stop_reason=stop_reason,
         committed=permissive.committed,
+        until=until,
     )
 
     note = None
@@ -150,6 +190,7 @@ def classify_termination(
     finish_reason: str | None,
     stop_reason: str | None,
     committed: bool,
+    until: Sequence[str] | None = None,
 ) -> str:
     """Three mutually exclusive termination classes.
 
@@ -171,7 +212,10 @@ def classify_termination(
             # The model emitted EOS with no answer: degeneration or refusal,
             # not a harness artifact. Not our stop-sequence class.
             return COMPLETE
-        if stop_reason in HARNESS_UNTIL.get(task, ()):
+        # 🚨 The ACTUAL list when the caller has it, the config-derived union otherwise.
+        # Never a hardcoded literal: that is what drifted (see HARNESS_UNTIL above).
+        terminators = tuple(until) if until is not None else HARNESS_UNTIL.get(task, ())
+        if stop_reason in terminators:
             return TRUNC_STOPSEQ
         return COMPLETE
 
@@ -187,6 +231,23 @@ _COMMITMENT_MARKERS: tuple[str, ...] = (
     "therefore",
     "so",
     "\\boxed{",
+)
+
+# 🚨 MARKERS MATCH ON WORD BOUNDARIES. `"so"` used to be matched as a bare SUBSTRING with
+# `rfind`, so it hit inside `also`, `reason`, `reasoning`, `person`, `resolve`, `absolutely`,
+# `consonant` -- words that appear constantly in chain-of-thought text. An incidental hit late
+# in the generation pushed the last-marker position past the gold, `after_marker` became
+# `False`, and `conservative = (in_final_span or after_marker) and ...` collapsed to
+# `in_final_span and ...`. Half of H2's PRE-REGISTERED conservative definition was inert, and
+# the size of the under-count scales with generation length and vocabulary -- both of which
+# differ BY ARM, so the bias was differential.
+#
+# `\boxed{` gets no trailing boundary because `{` is not a word character, and no leading one
+# because `\` is not either -- `\b` there would never match.
+_MARKER_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
+    re.compile(re.escape(marker) if marker.startswith("\\")
+               else rf"\b{re.escape(marker)}\b")
+    for marker in _COMMITMENT_MARKERS
 )
 
 
@@ -272,11 +333,18 @@ def _find_gold_positions(
 
 
 def _appears_after_commitment_marker(generation: str, positions: Sequence[int]) -> bool:
+    """Does the gold appear AFTER the last commitment marker?
+
+    ⚠️ Word-boundary matched, not substring matched. See `_MARKER_PATTERNS` for why: `"so"`
+    inside `also`/`reason`/`resolve` used to set the last-marker position near the end of the
+    text and make this return `False` almost always.
+    """
     lowered = generation.lower()
-    marker_positions = [
-        lowered.rfind(marker) for marker in _COMMITMENT_MARKERS
-    ]
-    last_marker = max(marker_positions)
+    last_marker = -1
+    for pattern in _MARKER_PATTERNS:
+        # The LAST occurrence of each marker; `re` has no rfind, so scan and keep the last.
+        for match in pattern.finditer(lowered):
+            last_marker = max(last_marker, match.start())
     if last_marker < 0:
         return False
     return any(position > last_marker for position in positions)

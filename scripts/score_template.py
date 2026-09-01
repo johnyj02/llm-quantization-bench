@@ -58,10 +58,26 @@ MAGNITUDE_TOLERANCE_PP = 5.0
 def score_run(root: Path) -> dict:
     """(level, model, arm, task) -> list of per-rung correctness."""
     rows: dict[tuple, list[dict]] = defaultdict(list)
+    seen_cells, skipped_cells = 0, []
     for path in sorted(root.rglob("*.jsonl.gz")):
         cell = path.parent.name
-        model, arm, level = cell.split("__")
+        seen_cells += 1
+        # 🚨 Do NOT swallow an unparseable cell name. This used to be
+        # `model, arm, level = cell.split("__")` followed by a bare `continue` on any
+        # unrecognised arm or level -- so a change to `cell_id`'s arity, or an added arm,
+        # skipped EVERY record silently and left `rows` empty. See the guard at the end of
+        # `main`: an empty result then declared the favourable branch of a pre-registered
+        # two-branch decision rule.
+        parts = cell.split("__")
+        if len(parts) != 3:
+            raise SystemExit(
+                f"cannot parse cell directory {cell!r} as model__arm__level "
+                f"(got {len(parts)} parts). The template probe's cell naming changed; "
+                f"fix the parse rather than letting records be skipped."
+            )
+        model, arm, level = parts
         if arm not in ARMS or level not in LEVELS:
+            skipped_cells.append(cell)
             continue
         with gzip.open(path, "rt") as handle:
             for line in handle:
@@ -75,6 +91,21 @@ def score_run(root: Path) -> dict:
                 )
                 rows[(level, model, arm)].append(
                     {rung: bool(scored[rung]["correct"]) for rung in RUNGS})
+
+    # Skipping SOME cells is legitimate (a cell outside the probe's arms); skipping ALL of
+    # them is the silent-empty failure. Report the counts either way so a partial skip is
+    # visible instead of inferred from a suspiciously small table.
+    if skipped_cells:
+        print(f"  skipped {len(skipped_cells)} cell(s) outside "
+              f"ARMS={list(ARMS)} / LEVELS={list(LEVELS)}: {sorted(set(skipped_cells))}")
+    if seen_cells and not rows:
+        raise SystemExit(
+            f"REFUSING TO REPORT: found {seen_cells} cell director"
+            f"{'y' if seen_cells == 1 else 'ies'} and matched NONE of them against "
+            f"ARMS={list(ARMS)} / LEVELS={list(LEVELS)}.\n"
+            f"  An empty result cannot decide §3b-bis's two-branch rule, and the branch it "
+            f"would have printed is the favourable one."
+        )
     return rows
 
 
@@ -136,6 +167,18 @@ def main() -> int:
 
     print()
     n_ok = sum(verdicts)
+    # 🚨 `n_ok == len(verdicts)` is TRUE for an empty list (0 == 0), so an empty run used to
+    # print "BRANCH 1: the interaction is template-invariant ... ANSWERED EMPIRICALLY" and
+    # exit 0. That is the favourable half of a decision rule pre-registered in §3b-bis,
+    # declared from zero data. Every upstream cause is now caught in `score_run`, and this is
+    # the backstop: a vacuous truth must never satisfy a pre-registered criterion.
+    if not verdicts:
+        raise SystemExit(
+            "REFUSING TO REPORT A BRANCH: no (model, arm) comparisons resolved.\n"
+            "  §3b-bis's rule needs BOTH template levels for the SAME (model, arm) to say "
+            "anything.\n"
+            "  Check that both levels ran and that every arm appears at both."
+        )
     print(f"invariant in {n_ok}/{len(verdicts)} (model x arm) comparisons "
           f"at a {MAGNITUDE_TOLERANCE_PP} pp tolerance")
     if n_ok == len(verdicts):
