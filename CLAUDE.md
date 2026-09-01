@@ -52,9 +52,41 @@ scope/schedule in `EXECUTOR-TASKS.md`; decisions in `notes/decisions.md`. This f
    - **Record the outcome** next to the raw answer in `notes/reviews/`, including findings
      **declined and why**. A finding dismissed without a recorded reason is one it re-raises
      every time its memory refreshes.
-   - **It is ADVISORY.** It does not hold job submissions — that authority is the planner's
+   - **It is ADVISORY.** It does not hold job submissions; that authority is the planner's
      and the user's. Act on its findings because they are verified, not because it ranked
      something `BLOCKER`.
+
+## 0a. How to write to the user
+
+Two rules, both stated by the user directly, and both about their own reading rather than
+about the work. Neither is open to partial compliance.
+
+1. **Be concise, but write in FULL SENTENCES. Never shorthand.**
+
+   The user asked for brevity on 2026-08-26 and then clarified it on 2026-09-01, because
+   brevity had been over-applied into telegraphic writing: sentence fragments, clipped noun
+   phrases, and dense tables standing in for an explanation that needed a sentence. Their
+   words were *"talk to the user concisely but in FULL sentences NOT SHORT hand"*. Both
+   halves are the instruction, and the second half exists because the first was taken too far.
+
+   In practice: lead with the answer or the blocker and then stop early, but let a proper
+   sentence carry the point. Tables remain right for genuinely tabular data, such as a number
+   per arm, and wrong as a substitute for prose. Do not narrate what the visible tool calls
+   already show.
+
+2. **🚨 NEVER USE AN EM DASH.** Stated flatly on 2026-09-01 as *"never use —"*.
+
+   Rewrite rather than substitute a lookalike, because an en dash or a double hyphen reads as
+   ignoring the instruction. An aside becomes a comma pair or parentheses, a pause before a
+   conclusion becomes a colon or a new sentence, and two joined independent clauses become a
+   semicolon or two sentences.
+
+   This applies to every surface the user reads, which includes chat replies, commit messages,
+   and prose written into repository files such as this one, `README.md`, and `notes/`. It does
+   not apply to a double hyphen inside a flag such as `--i-have-confirmation`, which is code.
+
+   ⚠️ This needs deliberate attention rather than good intentions. Em dashes are a strong
+   default habit and slip in mid-sentence unnoticed, so re-read prose before sending it.
 
 ---
 
