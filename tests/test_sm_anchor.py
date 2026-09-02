@@ -113,7 +113,6 @@ class TestPairedDifference:
 class TestCellConstruction:
     def test_six_cells_three_arms_two_sides(self):
         models = yaml.safe_load((REPO / "configs" / "models.yaml").read_text())["models"]
-        from quantartifact.quantize import load_specs
         specs, calibration = load_specs(REPO / "configs" / "quant.yaml")
         try:
             cells = sm_anchor.anchor_cells(models, specs, calibration)
