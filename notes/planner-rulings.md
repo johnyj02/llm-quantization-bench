@@ -1983,3 +1983,79 @@ measured; the bound stays wide.
 doing any work, which narrows what H6's control is a control *for*. ARC-chat is constrained in its
 **answer space**, not its **extraction surface**, whereas §1.3 justified it assuming the latter.
 H6's test is unaffected and the narrower justification is stated.
+
+---
+
+## R30 — Anchor A's criterion: gate on `gsm8k_cot` PERMISSIVE, at n=1319, against the INTERVAL
+
+Raw answer: `notes/planner-answers/R30-anchor-a-metric-and-n.txt`. Implemented in `sm_anchor.py`
+and `scripts/score_anchor.py`. Distilled late, and the CODE REVIEWER was right to flag that: R30 is
+the entire criterion of a mandatory blocking gate, and until this entry existed a reviewer had to
+read the raw answer to check the code against the registered design rather than against my
+description of it.
+
+### R30.1 The gate metric is `gsm8k_cot` **permissive**. Not strict, and not both
+
+A9 says "GSM8K accuracy", and we have two registered GSM8K configs and four rungs whose values
+differ by an order of magnitude, so which one the ±2.0 pp band applies to decides whether the gate
+can fail at all.
+
+- ❌ **The hash arm at rung 1 is floored near 1%**, so a ±2.0 pp band is wider than the whole
+  measurable range and the gate would validate nothing.
+- ✅ **Permissive is the correct gate metric** because *"Anchor A's job is to detect a calibration or
+  serving error, and those damage competence. Strict conflates competence with marker compliance, so
+  gating on strict means a real compliance effect (which is a finding we want to measure) could
+  spuriously fail a blocking gate and send you debugging a non-problem."*
+- ❌ **Requiring BOTH rungs was rejected**: *"±2.0 pp against a 13.5% value is a 15% relative band on
+  a metric known to vary between checkpoints for reasons unrelated to calibration. That's
+  false-failure risk on a blocking gate."*
+
+**Two-tier instead:** permissive within ±2.0 pp **blocks**; a strict discrepancy is a **documented
+diagnostic requiring explanation, not a block**, and *"a large strict gap with a small permissive one
+is informative in its own right, since it points at chat-template or BOS handling rather than
+calibration."*
+
+`gsm8k_cot` over `gsm8k` is *"a disambiguation, not a substitution: both are GSM8K, and §9c already
+made `gsm8k_cot` primary."*
+
+### R30.2 🚨 n = 1319, because at 500 the gate is miscalibrated
+
+The comparison is **paired**, so the SE on the difference is driven by item-level **discordance**
+rather than by the ~63% marginals. At a plausible 10–20% discordance between two quantizations:
+
+| n | SE on the difference | ±2.0 pp band |
+|---|---|---|
+| 500 | 1.4–2.0 pp | 1.0–1.4 SE |
+| 1319 | 0.9–1.2 pp | 1.6–2.3 SE |
+
+> *"At n=500 a perfect pipeline fails this gate roughly one time in six. That is a badly calibrated
+> blocking gate, and it runs once."*
+
+Roughly 3 h and $9. `gsm8k` stays at 500 because it is diagnostic only and never blocks.
+
+### R30.3 Evaluate against the INTERVAL, not the point alone
+
+Report the point difference plus a **paired bootstrap CI over items**, pass on the point estimate,
+and **pre-register that a CI straddling ±2.0 pp is recorded as `INCONCLUSIVE, investigate` rather
+than a clean pass.** The reasoning is the paper's own: *"otherwise you'll be making a blocking
+decision on a number whose resolution you haven't stated, which is the exact criticism H7 levels at
+everyone else."*
+
+⚠️ **The registered wording addresses only the PASS side**, so a marginal FAIL blocks with no
+INCONCLUSIVE escape. Raised as R31 before the gate runs rather than after it fails.
+
+### R30.4 Do the free preflight first, and gate the run behind it
+
+*"Read `quantize_config.json` / `config.json` from the three official checkpoints and assert
+`group_size`, `desc_act`/`actorder`, `bits`, symmetry, and quantization format match ours. Zero
+generations, and it directly tests the most likely failure mode."*
+
+✅ **Ran 2026-09-02 and PASSED**: all three agree on `bits`, `group_size` 128, `desc_act` False on
+both GPTQ arms, and AWQ's gemm/`zero_point`. `scripts/anchor_preflight.py`, runs in `.venv-harness`.
+
+### R30.5 What Anchor A tests, and this framing must reach the paper
+
+> *"The official Qwen checkpoints were calibrated on **their** data, not our `ultrachat_200k`
+> 512×2048. So Anchor A does not test *reproduction* — it tests that our pipeline produces a
+> checkpoint of **comparable quality**. ±2.0 pp is a quality-comparability band. Say so explicitly,
+> or a reviewer reads the anchor as a reproduction claim it can't support."*

@@ -181,8 +181,22 @@ for lm_eval_task, task, limit in payload["plan"]:
     print(f"    {task:16} {counts['written']:4} written, {counts['skipped']:4} skipped",
           flush=True)
 
-Path(payload["out_path"]).write_text(json.dumps(totals))
-print(f"__CELL_OK__ {json.dumps(totals)}")
+# 🚨 The ENGINE STATE, and it is what turns this stage's central claim into a checked one.
+# The docstring says both sides are measured "at the frozen serving configuration ... so any
+# pipeline error is COMMON to both and cancels". Without recording the state, the job produces
+# no evidence for that sentence.
+#
+# The axis that is NOT held fixed by construction is the one following from the weights: our
+# GPTQ-Int4 checkpoint and Qwen's are the same bit-width but not the same on-disk size, so at a
+# fixed gpu_memory_utilization they can yield a different KV-cache size and therefore a different
+# num_gpu_blocks -- and this project's own H8 result is that scheduling changes generated text by
+# up to 59%. vLLM also picks its GPTQ kernel from the checkpoint's config, so the two sides could
+# take Marlin and non-Marlin paths, and H8 pinned Marlin specifically as the order-sensitive one.
+# Neither is likely to bite, but the defect was that the job could not TELL us whether it had.
+totals["engine_state"] = getattr(runner, "engine_state", None)
+totals["batch_invariance"] = getattr(runner, "batch_invariance", None)
+Path(payload["out_path"]).write_text(json.dumps(totals, default=str))
+print(f"__CELL_OK__ {json.dumps({k: v for k, v in totals.items() if k in ('written','skipped','total')})}")
 """
 
 

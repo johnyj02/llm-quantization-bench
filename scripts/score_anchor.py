@@ -38,8 +38,12 @@ from collections import defaultdict
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "src"))
 sys.path.insert(0, str(REPO / "scripts"))
+
+from sm_anchor import ANCHOR_MODEL as ANCHOR_MODEL_KEY  # noqa: E402
+from sm_anchor import ANCHOR_TASKS  # noqa: E402
 
 from quantartifact.scoring import extract  # noqa: E402
 from score_pilot import MATH_VERIFY, RUNGS, read_records, reduce_gold  # noqa: E402
@@ -133,7 +137,12 @@ def main() -> int:
     if not records:
         raise SystemExit(f"no records under {root}")
 
-    # (task, rung, arm, side) -> item -> correct
+    # ⚠️ (MODEL, task, rung, arm, side) -> item -> correct. The model is IN the key even though
+    # this stage is single-model, because `item_id` is doc-scoped and keying on it alone is exactly
+    # what produced a CRITICAL in `interaction._collect`, where three models and six BBH subtasks
+    # shared an id namespace. Here the precondition holds today (one model, no subtasks, one budget
+    # level, one prompt variant) but it is a set of facts about the stage rather than a property of
+    # the code, and one tuple element removes the precondition entirely.
     scored: dict[tuple, dict[str, bool]] = defaultdict(dict)
     arms: set[str] = set()
     for record in records:
@@ -144,7 +153,7 @@ def main() -> int:
                 f"cell_id {cell_id!r} is not '<model>|<arm>|<side>'. Refusing to guess which side "
                 f"a record came from: mislabelling one would invert the comparison."
             )
-        _, arm, side = parts
+        model_key, arm, side = parts
         if side not in ("ours", "official"):
             raise SystemExit(f"cell_id {cell_id!r}: side must be 'ours' or 'official'")
         arms.add(arm)
@@ -154,10 +163,37 @@ def main() -> int:
             record["generation_text"], gold, task, record.get("subtask"),
             rungs=RUNGS, math_verify_available=MATH_VERIFY)
         for rung in RUNGS:
-            scored[(task, rung, arm, side)][record["item_id"]] = bool(result[rung]["correct"])
+            scored[(model_key, task, rung, arm, side)][record["item_id"]] = bool(
+                result[rung]["correct"])
+
+    # 🚨 The cross-side engine check, which is what makes the "any pipeline error is common to
+    # both and cancels" claim checked rather than asserted. Compares what the two sides' engines
+    # actually REPORTED, not what we asked for.
+    engine_mismatches: list[str] = []
+    job_report = REPO / "artifacts" / "anchor_report.json"
+    if job_report.is_file():
+        cells = {c["cell_id"]: c for c in json.loads(job_report.read_text()).get("cells", [])}
+        for arm in sorted({c["arm"] for c in cells.values() if "arm" in c}):
+            sides = {}
+            for side in ("ours", "official"):
+                cell = cells.get(f"{ANCHOR_MODEL_KEY}|{arm}|{side}")
+                state = (cell or {}).get("engine_state") or {}
+                sides[side] = {k: state.get(k) for k in
+                               ("num_gpu_blocks", "quantization", "max_num_seqs",
+                                "enable_prefix_caching")}
+            if sides["ours"] != sides["official"] and all(
+                    any(v is not None for v in s.values()) for s in sides.values()):
+                engine_mismatches.append(
+                    f"{arm}: engine state differs between sides. ours={sides['ours']} "
+                    f"official={sides['official']}")
+    else:
+        engine_mismatches.append(
+            f"{job_report.name} not found, so the two sides' engine states were NOT compared. "
+            f"The claim that pipeline error is common to both is unverified for this run.")
 
     report: dict = {
         "gate": "G5a", "anchor": "A", "run_id": args.run_id,
+        "engine_state_mismatches": engine_mismatches,
         "criterion_metric": list(CRITERION_METRIC), "criterion_pp": CRITERION_PP,
         "what_this_tests": (
             "comparable QUALITY, not reproduction: the official checkpoints were calibrated on "
@@ -166,15 +202,35 @@ def main() -> int:
     }
 
     gate_task, gate_rung = CRITERION_METRIC
+    models = {key[0] for key in scored}
+    if len(models) != 1:
+        raise SystemExit(
+            f"expected exactly one anchor model, found {sorted(models)}. Anchor A is defined on "
+            f"the one model with official quantized checkpoints; more than one means the pairing "
+            f"spans models and must be keyed per model before a verdict is computed."
+        )
+    model = next(iter(models))
+
+    # 🚨 MODERATE 3: the registered item count is part of the CRITERION, not an implementation
+    # detail. R30 chose 1319 over 500 because at 500 the +/-2.0 pp band is about one paired SE and
+    # a perfect pipeline would fail this blocking gate roughly one time in six.
+    #
+    # The direction of a short run is SAFE: smaller n widens the interval, which makes `straddles`
+    # more likely, which yields INCONCLUSIVE. So a truncated cell cannot produce a spurious PASS.
+    # But it can go unmet with no signal, and an INCONCLUSIVE caused by a short cell reads
+    # identically to one caused by a real discrepancy -- sending us to debug the checkpoints when
+    # the answer is "re-run the cell".
+    registered_n = {task: n for _, task, n in ANCHOR_TASKS}[gate_task]
     verdicts: list[str] = []
     print(f"Anchor A, gate G5a. Blocking metric: {gate_task} {gate_rung}, "
           f"+/-{CRITERION_PP} pp\n")
+    print(f"registered n for the gate task: {registered_n}\n")
     print(f"{'arm':11} {'ours':>8} {'official':>9} {'diff':>8} "
-          f"{'95% CI':>18} {'disc':>5}  verdict")
-    print("-" * 84)
+          f"{'95% CI':>18} {'n':>6} {'disc':>5}  verdict")
+    print("-" * 92)
     for arm in sorted(arms):
-        ours = scored.get((gate_task, gate_rung, arm, "ours"))
-        official = scored.get((gate_task, gate_rung, arm, "official"))
+        ours = scored.get((model, gate_task, gate_rung, arm, "ours"))
+        official = scored.get((model, gate_task, gate_rung, arm, "official"))
         if not ours or not official:
             report["blocking"][arm] = {"verdict": "NOT COMPUTED",
                                        "why": "one side produced no records"}
@@ -183,17 +239,29 @@ def main() -> int:
             continue
         result = paired_difference(ours, official)
         verdict, why = verdict_for(result)
+        if result["n"] < registered_n:
+            verdict = "INCONCLUSIVE"
+            why = (f"only {result['n']} of the registered {registered_n} items were scored, a "
+                   f"shortfall of {registered_n - result['n']}. R30 chose {registered_n} because "
+                   f"the band is about one paired SE at 500, so a short cell does not meet the "
+                   f"registered resolution. RE-RUN THE CELL rather than debugging the checkpoints")
         verdicts.append(verdict)
         report["blocking"][arm] = {**result, "verdict": verdict, "why": why}
+        short = "!" if result["n"] < registered_n else " "
         print(f"{arm:11} {result['accuracy_ours_pp']:>7.2f}% "
               f"{result['accuracy_official_pp']:>8.2f}% {result['difference_pp']:>+7.2f} "
               f"[{result['ci_low']:>+6.2f}, {result['ci_high']:>+6.2f}] "
-              f"{result['n_discordant']:>5}  {verdict}")
+              f"{result['n']:>6}{short}{result['n_discordant']:>4}  {verdict}")
+        # ⚠️ Which OBJECT the verdict was evaluated against. R26.1 withdrew the H6 overlap framing
+        # because "a worst-case bound and a bootstrap percentile interval are different objects and
+        # must not be read against each other", and the same `straddles` test is applied to both
+        # here, so the reader is told which one produced this row.
+        print(f"{'':11} interval: {result['interval_method']}")
 
     for task, rung in DIAGNOSTIC_METRICS:
         for arm in sorted(arms):
-            ours = scored.get((task, rung, arm, "ours"))
-            official = scored.get((task, rung, arm, "official"))
+            ours = scored.get((model, task, rung, arm, "ours"))
+            official = scored.get((model, task, rung, arm, "official"))
             if not ours or not official:
                 continue
             result = paired_difference(ours, official)
@@ -212,7 +280,12 @@ def main() -> int:
                else "INCONCLUSIVE" if "INCONCLUSIVE" in verdicts
                else "PASS")
     report["overall_verdict"] = overall
-    assert overall in VERDICTS
+    # A real check, not an `assert`: an assert vanishes under `python -O`, and this is the field a
+    # reader trusts. Per-arm verdicts are checked too, which the assert never did.
+    for label, value in [("overall", overall)] + [
+            (arm, row["verdict"]) for arm, row in report["blocking"].items()]:
+        if value not in VERDICTS:
+            raise SystemExit(f"{label}: verdict {value!r} is not one of {VERDICTS}")
 
     out_dir = REPO / args.out
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -226,6 +299,15 @@ def main() -> int:
             f"{r.get('n_discordant', '')},{r['verdict']}\n"
             for arm, r in sorted(report["blocking"].items())))
     (out_dir / "anchor_a.json").write_text(json.dumps(report, indent=2))
+
+    if engine_mismatches:
+        print()
+        print("⚠️ ENGINE STATE, cross-side:")
+        for message in engine_mismatches:
+            print(f"  - {message}")
+        print("   A difference here means the two sides were not served identically, so the")
+        print("   comparison no longer isolates the weights. That is a finding Anchor A exists to")
+        print("   surface, not a reason to discard the run.")
 
     print()
     print(f"GATE G5a: {overall}")

@@ -16,10 +16,15 @@ import yaml
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "scripts"))
+# ⚠️ `src` was MISSING, which is what broke the build: hoisting the `load_specs` import to the top
+# level left it unresolvable, and the test it broke is the cell-construction test for a mandatory
+# blocking gate that has never run.
+sys.path.insert(0, str(REPO / "src"))
 
 import sm_anchor  # noqa: E402
 
 import score_anchor  # noqa: E402
+from quantartifact.quantize import load_specs  # noqa: E402
 
 
 class TestCriterionCannotBeUnfalsifiable:

@@ -84,6 +84,32 @@ make. Say "CODE REVIEWER" for code and "planner" for science, every time, in cha
 ⚠️ An **ARR reviewer** is a different thing entirely: a person, and the Oct 14 registration
 obligation. Do not conflate the two.
 
+## 🚨 NEVER ASSERT A STATE YOU HAVE NOT SEEN
+
+On 2026-09-02 I committed `bffda77` titled *"Hoist a test import; ruff clean across the repo"* and
+told the user "505 tests, ruff clean". **Both were false: ruff had one error and the suite was red.**
+The CODE REVIEWER found it, and the test that was broken was the cell-construction test for a
+**mandatory blocking gate that has never run**, so the thing most needing to be pinned was unpinned.
+
+**The mechanism, because it will recur otherwise.** I chained
+`pytest ... ; echo "exit=$?"` and then `git commit` in one call using `;` rather than `&&`, so the
+commit ran regardless of the result, the output scrolled past unread, and I reported a state I had
+never looked at. Twice in the same sequence: an earlier `str.replace` silently did not match, because
+ruff had reordered the lines, and I did not check that the edit landed either.
+
+**Three rules, all cheap:**
+
+1. **Gate the commit on the check.** `pytest ... && ruff ... && git commit`, never `;`. A failing
+   check must make the commit not happen.
+2. **Print a verdict, not a stream.** `&& echo "PYTEST GREEN" || { echo "PYTEST RED"; ... }`. A
+   truncated wall of dots is indistinguishable from a truncated wall of dots with an F in it.
+3. **Verify an edit landed.** After a scripted `replace`, assert the new text is present. A pattern
+   that does not match fails silently and looks identical to success.
+
+⚠️ **A suite you believe is green while it is red is how a red suite becomes normal.** The claim is
+the deliverable here as much as the code is: the user cannot re-run every check, so an unverified
+"tests pass" is worse than saying nothing.
+
 🚨 **ASKING IS NOT ENOUGH. WAIT FOR THE ANSWER BEFORE CALLING THE WORK DONE.**
 
 Recorded because it happened on 2026-09-01: the analysis layer (`A19`) was written, committed,

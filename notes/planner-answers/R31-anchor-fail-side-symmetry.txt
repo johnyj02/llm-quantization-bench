@@ -1,0 +1,33 @@
+The asymmetry is real and R30's one-sided wording is my drafting error. But (iii) fails on arithmetic, so the fix is symmetry applied to the **point estimate**, not to the CI.
+
+## Why CI-containment can't be the criterion
+
+At n=1319 with 10–20% discordance, the paired SE is 0.9–1.2 pp, so the CI is ~3.6–4.8 pp wide against a band that is 4.0 pp wide. Requiring the whole CI inside the band means PASS needs `|point| + half-width ≤ 2.0`, i.e. **|point| ≲ 0.2 pp** — a near-exact match.
+
+So under (iii), and largely under (i)'s pass side too, almost every outcome lands in INCONCLUSIVE. A gate that always defers to a human is not a gate. The threshold and the achievable resolution were never matched, and that's the actual defect the CODE REVIEWER's asymmetry example exposed.
+
+## The verdict rule
+
+Symmetric, on the point estimate:
+
+- **PASS**: |point difference| ≤ 2.0 pp
+- **FAIL**: |point difference| > 2.0 pp
+- **Both** report the paired bootstrap CI and the implied resolution.
+- **INCONCLUSIVE**: reserved for a genuinely uninformative measurement — when the CI cannot distinguish |diff| ≤ 2.0 from |diff| ≥ 4.0, i.e. the run tells us nothing about *gross* error. Rare, and it means something when it fires.
+
+**INCONCLUSIVE blocks, exactly as FAIL does.** That is what makes symmetry free: being honest about the evidence costs nothing in safety, because both non-pass verdicts stop main-v1. They differ only in what they tell you to do next — FAIL says debug the checkpoints, INCONCLUSIVE says the measurement is too weak to decide. R30 said "investigate" and should have said "blocks"; that gap was mine.
+
+Your -1.9/[-3.5,-0.3] and -2.1/[-4.0,+0.5] examples now get symmetric treatment: PASS and FAIL respectively, each with its CI on the record.
+
+**On false-pass safety:** a broken calibration produces a *large* gap, not a 2.1 pp gap. Gating the point estimate at ±2.0 pp catches gross error reliably, which is what Anchor A is for. Certifying near-equality to 2 pp was never achievable at this n and pretending otherwise is the thing H7 criticises.
+
+State the resolution in the paper alongside the verdict. "Our resolution is ±X pp; we can rule out a gap larger than Y" is the honest claim, and it's exactly what we ask of others.
+
+## Q2 — Acceptable here, but label the interval type, and treat a degenerate result as a red flag
+
+R26.1's objection was to comparing a bound **against a CI** — an inter-quantity comparison, invalid. This is different: each interval is compared to a *fixed threshold*. That's legitimate, and a worst-case bound inside ±2.0 pp is *stronger* evidence of agreement than a percentile CI inside it, not incomparable.
+
+So no separate verdict label. Two requirements:
+
+1. **Record which interval type produced the verdict**, since the guarantees differ — a bound says "cannot be outside," a CI says "95% coverage." Same labelling discipline as the tables.
+2. **A zero-variance result on the gate metric is a red flag, not a pass.** It would require strict and permissive to agree on every item *and* the two checkpoints to agree on every item — which more likely means we compared a checkpoint to itself, or resolved both sides to the same S3 path, than that the pipeline is perfect. Make the degenerate branch on this metric raise rather than PASS.
