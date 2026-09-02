@@ -253,16 +253,58 @@ def holm_bonferroni(effects: list[Effect], *, family: str,
     return rows
 
 
-#: 🚨 R25.1. The largest absolute per-item contribution a single discordant item can make to a
-#: difference-of-differences. The contribution is
-#: `(alt_high - alt_low) - (ref_high - ref_low)`, each term 0 or 1, so it lies in [-2, +2].
+#: 🚨 R26.1. The largest absolute per-item contribution to a difference of differences, and it is
+#: **DERIVED, not chosen**. This replaces the value 2 that R25.1 registered.
 #:
-#: The planner required this be **pre-specified rather than left implicit in the code**, and the
-#: conservative value is the one registered: 2 is the contribution's true range, so a bound built
-#: on it cannot be accused of assuming away the worst case. Using 1 (a single scorer flip in one
-#: direction) would give a bound roughly half as wide and would be a choice about the data rather
-#: than about the estimand.
-MAX_ABS_ITEM_CONTRIBUTION: int = 2
+#: `d_i = (alt_perm - alt_strict) - (ref_perm - ref_strict)`. Under the **rung monotonicity that
+#: G3 already gates on** (anything rung *n* marks correct, rung *n+1* also marks correct),
+#: permissive is a superset of strict, so each parenthesised gap lies in {0, +1} and never -1.
+#: Therefore `d_i` lies in {-1, 0, +1} and **|d_i| <= 1**.
+#:
+#: So 2 described a range monotonicity **forbids**. I had registered 2 as the "conservative"
+#: choice and reported that it weakened H6's contrast, on the reasoning that picking 1 because it
+#: flattered the comparison would be a specification search. The planner's answer dissolves that
+#: worry rather than overruling it: 1 is not the convenient option, it follows from a
+#: pre-registered, gate-tested property of the scoring ladder.
+#:
+#: ⚠️ Used only as the FALLBACK. R26.1 registers the magnitude as the maximum |d_i| **observed
+#: anywhere in the study**, which under monotonicity is 1, so the bound rests on a fact about the
+#: data under a pre-registered rule rather than on an assumption in either direction. See
+#: `observed_max_contribution()`.
+MAX_ABS_ITEM_CONTRIBUTION: int = 1
+
+
+def observed_max_contribution(contributions) -> tuple[int, int]:
+    """The registered magnitude: `max |d_i|` observed, plus the count of monotonicity violations.
+
+    Returns `(magnitude, n_violations)`.
+
+    R26.1 registers the per-item magnitude as **the maximum absolute contribution observed
+    anywhere in the study**, rather than as an assumed bound. Under the rung monotonicity G3 gates
+    on, every `d_i` lies in {-1, 0, +1}, so the observed maximum is 1 and the bound is the tight
+    one. If monotonicity is **violated** in the real data, `|d_i|` can reach 2, the observed
+    maximum reflects that, and the bound widens to match. Either way the number is a measurement
+    under a pre-specified rule rather than a choice.
+
+    A "violation" here is any `|d_i| > 1`, which can only arise if a rung marks an item correct
+    that a more permissive rung marks incorrect. That is precisely what G3's monotonicity fixture
+    tests forbid, so a non-zero count is a finding about the scorers and must be reported, not
+    silently absorbed into a wider interval.
+
+    ⚠️ Monotonicity has only ever been asserted on FIXTURES. R26.1 requires asserting it on the
+    real data, which is what this function makes possible at every call site that needs the bound.
+    """
+    import numpy as np  # noqa: PLC0415
+
+    values = np.abs(np.asarray(contributions, dtype=float))
+    if values.size == 0:
+        raise ValueError(
+            "observed_max_contribution needs at least one contribution; an empty array would "
+            "make the magnitude vacuous and the bound arbitrarily tight."
+        )
+    n_violations = int((values > 1).sum())
+    magnitude = int(max(1, int(values.max())))
+    return magnitude, n_violations
 
 
 def zero_variance_bound(n: int, *, max_abs_contribution: int = MAX_ABS_ITEM_CONTRIBUTION,

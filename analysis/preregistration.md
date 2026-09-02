@@ -54,9 +54,32 @@ engineered to confirm itself. We fix it by construction rather than by argument.
 The primary competence contrast is computed **only** on the *always-compliant stratum*:
 the set of items for which **every** arm produced a committed answer.
 
-- **Stratum definition.** Item `i` is in the stratum iff for all precision levels `p` in
-  the cell's **contrasted** precision set and all scorers `s` in rungs 1–4,
-  `compliance(i, p, s) ∈ {COMPLIANT, RECOVERABLE}` — i.e. never `ABSENT`.
+- **Stratum definition, AMENDED 2026-09-02 (R26.3).** Item `i` is in the always-compliant
+  stratum iff for all precision levels `p` in the cell's **contrasted** precision set and all
+  invocations (§9g), `compliance(i, p) ∈ {COMPLIANT, RECOVERABLE}` — i.e. never `ABSENT` — where
+  compliance is a **generation-level** label that **does not depend on the scoring rung**.
+
+  🚨 **The original wording quantified over "all scorers `s` in rungs 1–4", and that was a
+  drafting error rather than loose phrasing. Recording WHY, because §1.1 is a §4.0 item and the
+  reason is what makes the amendment defensible rather than convenient.**
+
+  **If compliance depended on the scoring rung, stratum membership would depend on the scoring
+  axis, which is one of the two factors in H3's interaction.** A stratum whose membership varies
+  with the scorer makes part of the scoring contrast a *selection* contrast. So scorer-independent
+  compliance is **required by the design**, not merely how the scorer happens to be implemented.
+  The rejected reading does not just shrink the stratum; it breaks the identification §4.0 exists
+  to protect.
+
+  This also matches what the scorer computes: `label_compliance` returns one label per generation,
+  and `RECOVERABLE` is inherently a statement about two rungs at once, meaning "permissive found
+  what strict missed". There is no per-rung compliance to quantify over.
+
+  ⚠️ **One thing the paper must pre-empt, because a sharp reviewer will probe it.** Rung 2 appears
+  both in the definition of `RECOVERABLE` and as an arm of the H3 contrast. That is not circular,
+  and the paper states why in one sentence: rung 2 is used **definitionally, once, identically
+  across arms**, to establish commitment; the stratum restricts only H4's
+  **competence-across-precision** contrast, which is not a scoring contrast; and §4.0's own note
+  already establishes that **H3 is fit on all items** and so is unaffected by the stratum.
 - Membership is determined by the **conjunction across the contrasted arms**, which makes
   the subgroup pre-treatment-defined with respect to any single precision contrast, so the
   contrast within it is identified.
@@ -1006,12 +1029,29 @@ zero, the interval is the **Wilson upper limit on 0 successes out of `n`**, conv
 points by multiplying by the largest magnitude a single differing item can contribute, and
 reported symmetrically about zero.
 
-- **The per-item magnitude is pre-specified, not left implicit in the code.** For a difference of
-  differences the contribution is `(alt_high − alt_low) − (ref_high − ref_low)`, each term 0 or 1,
-  so its true range is `[−2, +2]` and **the registered magnitude is 2**, the conservative choice.
+- 🚨 **The per-item magnitude is DERIVED, not chosen. AMENDED 2026-09-02 (R26.1): it is the
+  maximum `|d_i|` OBSERVED anywhere in the study, which under rung monotonicity is 1.**
+
+  The registered magnitude was briefly 2, on the reasoning that
+  `d_i = (alt_perm − alt_strict) − (ref_perm − ref_strict)` has each term in {0, 1} and so ranges
+  over `[−2, +2]`. **That range is forbidden by a property already pre-registered and gate-tested.**
+  Under the rung monotonicity G3 gates on (anything rung *n* marks correct, rung *n+1* also marks
+  correct), permissive ⊇ strict, so each parenthesised gap lies in {0, +1} and never −1, hence
+  `d_i ∈ {−1, 0, +1}` and `|d_i| ≤ 1`.
+
+  So 1 is not the convenient choice, it is the implied one. Registering the **observed** maximum
+  rather than an assumed bound makes the number a measurement under a pre-specified rule in either
+  direction: if monotonicity is violated in the real data then `|d_i|` can reach 2, the observed
+  maximum reflects it, and the bound widens accordingly.
+
+  ⚠️ **Monotonicity must therefore be asserted on the REAL data, not only on the G3 fixtures**, and
+  any violation reported as a finding about the scorers rather than absorbed silently into a wider
+  interval. Every reported effect carries `observed_max_abs_contribution` and
+  `n_rung_monotonicity_violations`.
+
   For a per-arm indicator such as the compliance shift or the `TRUNC_STOPSEQ` differential the
-  magnitude is **1**. At n=240 the Wilson upper limit is about 1.6%, giving about ±3.2 pp at
-  magnitude 2.
+  magnitude is **1** by construction, since a single item moves the rate by `1/n`. At n=240 the
+  Wilson upper limit is about 1.58%, giving about ±1.6 pp.
 - **The interval method is reported in the table itself, not only in prose.** A column that mixes
   bootstrap percentile intervals with zero-event bounds without marking which is which is exactly
   what a careful reviewer flags, so every reported effect carries its `interval_method`.
@@ -1019,10 +1059,22 @@ reported symmetrically about zero.
   bootstrap path consistent with the zero-discordance path already used for the transition tables
   and the stop-sequence differential.
 
-⚠️ **The bounded form is the STRONGER result, not a hedge.** *"+3.33 pp on BBH against bounded
-within a few points on the structurally constrained task"* is a real contrast and it supports
-**H6**, which predicts the interaction vanishes where extraction is structurally constrained.
-Reporting `[0, 0]` against `+3.33` instead invites the objection that the control is degenerate.
+⚠️ **The bounded form is the STRONGER result, not a hedge**, because reporting `[0, 0]` against
+`+3.33` invites the objection that the control is degenerate.
+
+🚨 **But H6's test is TWO SEPARATE CLAIMS, not interval separation (R26.1).** An earlier framing
+compared "+3.33 pp on BBH against bounded within ±1.6 pp on ARC" as a contrast, and the planner
+withdrew it: a worst-case bound and a bootstrap percentile interval are **different objects and
+must not be read against each other**, so whether they happen to overlap is not the criterion.
+H6 predicts the interaction vanishes where extraction is structurally constrained, and the test is:
+
+1. the ARC interaction is **indistinguishable from zero** (bounded, ±1.6 pp at pilot n), and
+2. the BBH interaction is **distinguishable from zero** (+3.33 pp, [+0.83, +6.11] at pilot n).
+
+Both are separate claims about separate tasks and both currently hold. A formal *between-task*
+claim, if wanted, is reported as the **task × interaction contrast** directly where it is
+estimable, rather than by eyeballing two intervals. At the reference n of 500 the ARC bound
+tightens by about 1.44× to roughly ±1.1 pp.
 
 ### 9a. Ordering as an accuracy statistic — CONFIRMATORY EXTENSION, explicitly not pre-data
 

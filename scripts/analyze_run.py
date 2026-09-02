@@ -244,13 +244,26 @@ def main() -> int:
     # differentiality test harder to declare. The substantive half is the unlabelled row in the
     # primary decomposition table.
     #
-    # ⚠️ OPEN QUESTION FOR THE PLANNER, currently answered by this code rather than by a ruling:
-    # R24.3 excludes the hash arm from *"H4's primary decomposition"*, and §4's TRUNC_STOPSEQ
-    # differentiality test is arguably a separate registered test rather than part of that
-    # decomposition. This treats it as inside the exclusion, which is the conservative reading.
+    # 🚨 R26.2 SETTLED THIS AND REVERSED MY OWN CHOICE. I had excluded gsm8k from the stop-sequence
+    # test too, as the "conservative" reading, and the CODE REVIEWER correctly flagged that the
+    # code was answering a registration question by accident. It was, and the answer was wrong on
+    # two counts:
+    #
+    #   1. TRUNC_STOPSEQ differentiality is a SEPARATE registered test, not part of the
+    #      decomposition, so R24.3 does not reach it. R24.3's exclusion was grounded in the
+    #      *stratum* being ~1% on the hash arm, i.e. the COMPETENCE contrast having no items. The
+    #      stopseq test is a rate over ALL items, needs no stratum, and its indicator has variance
+    #      whether or not the model emits `####`. The rationale simply does not transfer.
+    #   2. It belongs in **H1's** Holm family, not H4's, because an earlier ruling folded
+    #      TRUNC_STOPSEQ into H1 as the second mechanism for the "answer never emitted" construct.
+    #
+    # So my conservative reading was over-correcting `m` in the WRONG FAMILY, which is worse than
+    # over-correcting in the right one: it inflated H4 while leaving H1 under-counted.
+    #
+    # The decomposition itself IS still split, because that exclusion is real (R24.3).
     stratum_ids = {cell: s.item_ids for cell, s in strata.items()}
     decomps, decomps_demo = [], []
-    stopseq, stopseq_demo = [], []
+    stopseq = []
     for task in tasks:
         task_rows = [r for r in rows if r["task"] == task]
         excluded = task in EXCLUDED_FROM_H4_PRIMARY
@@ -258,24 +271,25 @@ def main() -> int:
         (decomps_demo if excluded else decomps).extend(
             decompose(task_rows, sub, rung="strict",
                       alt_arms=ALT_ARMS, allow_excluded=excluded))
-        (stopseq_demo if excluded else stopseq).extend(
-            stopseq_differential(task_rows, alt_arms=ALT_ARMS))
+        # Every task, gsm8k included (R26.2).
+        stopseq.extend(stopseq_differential(task_rows, alt_arms=ALT_ARMS))
     report["h4_decomposition"] = [d.as_dict() for d in decomps]
     report["h4_decomposition_demonstration_only"] = [d.as_dict() for d in decomps_demo]
-    report["h4_stopseq_differential"] = [e.as_dict() for e in stopseq]
-    report["h4_stopseq_demonstration_only"] = [e.as_dict() for e in stopseq_demo]
     report["h4_excluded_tasks"] = sorted(EXCLUDED_FROM_H4_PRIMARY & set(tasks))
-    # §9: the Holm family excludes the demonstration arm, so `m` is the count of registered
-    # primary tests and nothing else.
-    report["h4_holm"] = (
+    # §4's stopseq test, in H1's family per R26.2, over all tasks.
+    report["h1_stopseq_differential"] = [e.as_dict() for e in stopseq]
+    report["h1_holm"] = (
         [{k: v for k, v in r.items() if k != "effect"}
-         for r in holm_bonferroni(stopseq, family="H4")] if stopseq else []
+         for r in holm_bonferroni(stopseq, family="H1")] if stopseq else []
     )
-    print(f"\n§4 H4 DECOMPOSITION: {len(decomps)} cell-arm pairs in the primary table, "
-          f"{len(stopseq)} stopseq tests in the Holm family")
-    if decomps_demo or stopseq_demo:
-        print(f"   plus DEMONSTRATION ONLY (R24.3, excluded from both): "
-              f"{len(decomps_demo)} pairs, {len(stopseq_demo)} stopseq tests")
+    # H4's own family is the decomposition's registered tests, which are not yet implemented as
+    # hypothesis tests, so the key is present and empty rather than absent: an absent key reads as
+    # "not computed" and an empty one reads as "nothing in this family yet", and those differ.
+    report["h4_holm"] = []
+    print(f"\n§4 H4 DECOMPOSITION: {len(decomps)} cell-arm pairs in the primary table")
+    if decomps_demo:
+        print(f"   plus DEMONSTRATION ONLY (R24.3): {len(decomps_demo)} pairs")
+    print(f"§4 TRUNC_STOPSEQ: {len(stopseq)} tests, ALL tasks, in H1's Holm family (R26.2)")
 
     out_dir = REPO / args.out
     out_dir.mkdir(parents=True, exist_ok=True)

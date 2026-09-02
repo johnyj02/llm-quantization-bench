@@ -1729,3 +1729,87 @@ and +3.33 excluding zero as provisional.**
 
 The `gsm8k` inversion to −13.33 pp *"is the floor artifact §9c predicted, which is confirmation
 that excluding the hash arm from the primary family was the right call."*
+
+---
+
+## R26 — Three questions my code had been answering. All three overturned or clarified
+
+Raw answer: `notes/planner-answers/R26-magnitude-stopseq-scope-compliance-rungs.txt`.
+
+🚨 **Raised because the USER caught the pattern, not because I noticed it.** I had recorded three
+conceptual questions in code comments and never sent them, so my implementation was deciding
+registered science. The user also pointed out that I had let the CODE REVIEWER opine on one of
+them, which is outside its remit. Both observations were correct.
+
+### R26.1 Magnitude **1**, and it is DERIVED, not chosen. My "conservative" 2 was forbidden
+
+*"The choice isn't between the two options I offered — one of them is derivable."*
+
+`d_i = (alt_perm − alt_strict) − (ref_perm − ref_strict)`. **Under the rung monotonicity G3
+already gates on** (anything rung *n* marks correct, rung *n+1* also marks correct), permissive ⊇
+strict, so each parenthesised gap lies in {0, +1} and **never −1**. Therefore `d_i ∈ {−1, 0, +1}`
+and `|d_i| ≤ 1`. **My value of 2 described a range monotonicity forbids.**
+
+So my specification-search worry **dissolves rather than being overruled**: 1 is not the
+convenient option, it follows from a pre-registered, gate-tested property. Registering the wrong
+number "to avoid flattering the result" was still the wrong number.
+
+**Registered as data-driven, which is cleaner than either option:** the magnitude is the maximum
+`|d_i|` **observed anywhere in the study**, which under monotonicity is 1. ⚠️ **Monotonicity must
+be asserted on the REAL data, not only on the G3 fixtures**, violations reported, and if any exist
+the observed maximum is what the bound uses. A fact about the data under a pre-registered rule,
+rather than an assumption in either direction.
+
+Measured effect of the change: the ARC bound goes ±3.15 pp → **±1.58 pp**, matching the planner's
+estimate.
+
+### 🔬 R26.1 also WITHDREW the planner's own H6 framing, and this is the more important half
+
+I had reported that magnitude 2 made the ARC bound overlap BBH's effect and so weakened H6. The
+planner's response was not to defend the framing but to retract it: *"the overlap criterion was
+mine and it was wrong."*
+
+**H6's test is TWO SEPARATE CLAIMS, not interval separation.** A worst-case bound and a bootstrap
+percentile interval are **different objects and must not be read against each other**, so whether
+they overlap is irrelevant. The test is:
+
+1. the ARC interaction is **indistinguishable from zero** (bounded ±1.6 pp) ✓
+2. the BBH interaction is **distinguishable from zero** (+3.33 pp, [+0.83, +6.11]) ✓
+
+Both hold. A formal between-task claim, if wanted, is the **task × interaction contrast** reported
+directly where estimable. At reference n=500 the ARC bound tightens ~1.44× to about ±1.1 pp.
+
+### R26.2 The stopseq test is SEPARATE, includes `gsm8k`, and belongs to **H1's** family
+
+My "conservative" reading was wrong on two counts, and the CODE REVIEWER was right to flag that
+the code was answering this by accident.
+
+1. **R24.3 does not reach it.** That exclusion was grounded in the *stratum* being ~1% on the hash
+   arm, i.e. the **competence contrast** having no items. The `TRUNC_STOPSEQ` test is a **rate over
+   all items**, needs no stratum, and its indicator has variance whether or not the model emits
+   `####`. The rationale does not transfer.
+2. **It sits in H1's Holm family, not H4's**, because an earlier ruling folded `TRUNC_STOPSEQ` into
+   **H1** as the second mechanism for the "answer never emitted" construct.
+
+⚠️ So my conservative choice was **over-correcting `m` in the WRONG family**, which is worse than
+over-correcting in the right one: it inflated H4 while leaving H1 under-counted. *"Fix it."* Done:
+96 stopseq tests over all tasks, in H1's family.
+
+### R26.3 Reading (i). Compliance IS generation-level, and reading (ii) would break identification
+
+The *"for all scorers `s` in rungs 1–4"* quantifier in §1.1 is a **drafting error**, not loose
+wording, and the planner required the *reason* be recorded because §1.1 is a §4.0 item:
+
+> **If compliance depended on the scoring rung, stratum membership would depend on the scoring
+> axis, which is one of the two factors in H3's interaction.** A stratum whose membership varies
+> with the scorer makes part of the scoring contrast a **selection** contrast.
+
+So scorer-independent compliance is **required by the design**, not merely how the scorer happens
+to be built. The rejected reading does not only shrink the stratum, **it breaks the identification
+§4.0 exists to protect.** §1.1 amended with the planner's wording verbatim.
+
+🚨 **One thing the paper must pre-empt.** Rung 2 appears both in `RECOVERABLE`'s definition and as
+an arm of the H3 contrast. Not circular, and the paper says why in one sentence: rung 2 is used
+**definitionally, once, identically across arms** to establish commitment; the stratum restricts
+only H4's **competence-across-precision** contrast, which is not a scoring contrast; and §4.0
+already establishes **H3 is fit on all items** and so is unaffected by the stratum.

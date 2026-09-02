@@ -44,6 +44,7 @@ from quantartifact.analysis.decompose import DecompositionError
 from quantartifact.analysis.interaction import _item_key
 from quantartifact.analysis.results import (
     MAX_ABS_ITEM_CONTRIBUTION,
+    observed_max_contribution,
     zero_variance_bound,
 )
 from quantartifact.analysis.stratum import ABSENT_LABEL, COMMITTED_LABELS
@@ -601,15 +602,20 @@ class TestR25ZeroVarianceInterval:
     known to be zero.
     """
 
-    def test_registered_per_item_magnitude_is_the_conservative_one(self):
-        """§9h registers 2, the true range of a difference-of-differences contribution."""
-        assert MAX_ABS_ITEM_CONTRIBUTION == 2
+    def test_registered_per_item_magnitude_is_derived_from_monotonicity(self):
+        """R26.1 replaced the value 2 with 1, and 1 is DERIVED rather than chosen.
+
+        `d_i = (alt_perm - alt_strict) - (ref_perm - ref_strict)`. Under the rung monotonicity G3
+        gates on, permissive is a superset of strict, so each gap lies in {0, +1} and never -1,
+        hence `d_i` lies in {-1, 0, +1}. The value 2 described a range monotonicity forbids.
+        """
+        assert MAX_ABS_ITEM_CONTRIBUTION == 1
 
     def test_bound_is_symmetric_and_nonzero(self):
-        """Wilson upper on 0/240 is about 1.6%, times magnitude 2, so about +/-3.2 pp."""
+        """Wilson upper on 0/240 is about 1.58%, times the derived magnitude 1, so ~+/-1.6 pp."""
         low, high, method = zero_variance_bound(240)
         assert low == pytest.approx(-high)
-        assert 2.5 < high < 4.0
+        assert 1.2 < high < 2.0
         assert "NOT a bootstrap" in method
 
     def test_bound_narrows_as_n_grows(self):
@@ -656,13 +662,15 @@ class TestR25ZeroVarianceInterval:
         for effect in rung_mcnemar(rows, task="bbh"):
             assert effect.interval_method, f"{effect.name} has no interval_method"
 
-    def test_per_arm_indicators_use_magnitude_one(self):
-        """A compliance shift moves by 1/n per item, not 2/n, so its bound is half as wide."""
-        rows = [row(f"i{i}", a, correct=True) for i in range(40)
-                for a in ("bf16", "gptq-4bit")]
-        shift = transition_effects(build_transitions(rows, rungs=("strict",)))[0]
-        _, dod_high, _ = zero_variance_bound(40)
-        assert shift.ci_high == pytest.approx(dod_high / 2.0)
+    def test_magnitude_scales_the_bound_linearly(self):
+        """The magnitude is a multiplier on the Wilson rate, so 2 gives twice the width of 1.
+
+        Both are exercised because a monotonicity violation in real data would push the observed
+        magnitude to 2, and the bound must widen to match rather than silently stay tight.
+        """
+        _, one, _ = zero_variance_bound(240, max_abs_contribution=1)
+        _, two, _ = zero_variance_bound(240, max_abs_contribution=2)
+        assert two == pytest.approx(2.0 * one)
 
 
 class TestR25OddsRatioFitter:
@@ -755,3 +763,48 @@ class TestReviewRegressions20260902Round2:
         unit = effects[0].unit
         assert "NOT a confidence interval" in unit
         assert "VARIATIONAL BAYES" in unit
+
+
+class TestR26DerivedMagnitude:
+    """R26.1: the per-item magnitude is the maximum |d_i| OBSERVED, not an assumed bound."""
+
+    def test_monotone_contributions_give_magnitude_one(self):
+        assert observed_max_contribution([0, 1, 0, -1, 1]) == (1, 0)
+
+    def test_a_violation_widens_the_magnitude_and_is_counted(self):
+        """|d_i| > 1 can only arise if monotonicity fails, which G3's fixtures forbid.
+
+        It must be reported as a finding about the scorers rather than absorbed into a wider
+        interval without comment, so the count travels with the magnitude.
+        """
+        magnitude, violations = observed_max_contribution([0, 1, 2, -1])
+        assert magnitude == 2
+        assert violations == 1
+
+    def test_all_zero_contributions_still_give_magnitude_at_least_one(self):
+        """The ARC case. A magnitude of 0 would collapse the bound to zero width."""
+        assert observed_max_contribution([0, 0, 0]) == (1, 0)
+
+    def test_empty_contributions_raise(self):
+        with pytest.raises(ValueError, match="at least one contribution"):
+            observed_max_contribution([])
+
+    def test_interaction_reports_the_observed_magnitude_and_violations(self):
+        rows = []
+        for i in range(40):
+            rows.append(row(f"i{i}", "bf16", correct={"strict": True, "permissive": True}))
+            rows.append(row(f"i{i}", "gptq-4bit",
+                            correct={"strict": True, "permissive": True}))
+        effect = interaction_marginal(rows, task="bbh", alt_arm="gptq-4bit", n_boot=200)
+        assert effect.context["observed_max_abs_contribution"] == 1
+        assert effect.context["n_rung_monotonicity_violations"] == 0
+
+    def test_arc_style_bound_matches_the_planner_estimate(self):
+        """R26.1 predicted about +/-1.6 pp at n=240 under the derived magnitude."""
+        rows = []
+        for i in range(240):
+            for arm in ("bf16", "gptq-4bit"):
+                rows.append(row(f"i{i}", arm,
+                                correct={"strict": True, "permissive": True}))
+        effect = interaction_marginal(rows, task="bbh", alt_arm="gptq-4bit", n_boot=200)
+        assert effect.ci_high == pytest.approx(1.58, abs=0.05)

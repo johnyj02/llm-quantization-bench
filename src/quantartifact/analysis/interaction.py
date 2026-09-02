@@ -48,7 +48,12 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 
-from .results import Effect, NoiseClass, zero_variance_bound
+from .results import (
+    Effect,
+    NoiseClass,
+    observed_max_contribution,
+    zero_variance_bound,
+)
 
 #: §2's headline contrast, fixed here so no caller can quietly choose a flattering pair.
 HEADLINE_RUNGS: tuple[str, str] = ("strict", "permissive")
@@ -222,13 +227,19 @@ def interaction_marginal(
         # Centred on the point estimate, which is zero in the all-zero case and is not in the
         # all-equal-non-zero one. A bound symmetric about zero around a non-zero estimate would
         # be an interval excluding its own estimate, which `Effect` now refuses outright.
-        ci_low, ci_high, interval_method = zero_variance_bound(n, centre=point)
+        # R26.1: the magnitude is the maximum |d_i| OBSERVED, which under G3's rung monotonicity
+        # is 1. In the all-equal case every |d_i| is the same value, so this reads it off the data
+        # rather than assuming it.
+        magnitude, n_violations = observed_max_contribution(contrib)
+        ci_low, ci_high, interval_method = zero_variance_bound(
+            n, max_abs_contribution=magnitude, centre=point)
     else:
         rng = np.random.default_rng(seed)
         draws = rng.integers(0, n, size=(n_boot, n))
         boot = contrib[draws].mean(axis=1) * 100.0
         ci_low, ci_high = (float(x) for x in np.percentile(boot, [2.5, 97.5]))
         interval_method = f"cluster bootstrap over items, {n_boot} percentile draws"
+        magnitude, n_violations = observed_max_contribution(contrib)
 
     # McNemar on the discordant items: an item is discordant when the two arms differ in whether
     # the permissive rung changed their correctness. This is the test appropriate to an
@@ -256,6 +267,12 @@ def interaction_marginal(
         context={
             "task": task, "rungs": list(rungs),
             "zero_variance": bool(contrib.min() == contrib.max()),
+            # R26.1 requires monotonicity be asserted on the REAL data, not only on fixtures.
+            # |d_i| > 1 can only happen if a more permissive rung marks incorrect what a stricter
+            # rung marked correct, which G3's fixtures forbid, so a non-zero count is a finding
+            # about the scorers rather than a wider interval to absorb quietly.
+            "observed_max_abs_contribution": magnitude,
+            "n_rung_monotonicity_violations": n_violations,
             "estimator": "difference of differences, cluster bootstrap over items",
             "n_boot": n_boot, "seed": seed, "n_items_dropped_unpaired": dropped,
             "gap_alt_pp": alt.gap(shared), "gap_reference_pp": ref.gap(shared),
