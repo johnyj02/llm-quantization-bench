@@ -37,6 +37,32 @@ hypothetical one:
 | Asked "is `zero_variance_bound` applied at the right magnitude?" | Sent one question mixing wiring (code) with whether 2 is the right magnitude (science) | **Split it.** The CODE REVIEWER then volunteered a ruling on the magnitude, and R26.1 later overturned it |
 | §4's stopseq scope was ambiguous | Picked "the conservative reading" in code | **Ask.** R26.2 reversed it: my conservative choice over-corrected in the *wrong family* |
 
+## 🚨 CALL THEM. DO NOT ANNOUNCE THAT THEY NEED CALLING.
+
+The user's instruction of 2026-09-02, given after I did this **four times in one session**:
+
+> *"please dont ask or report to me that code reviewer or planner needs a pass. The whole point is
+> for you to call them automatically without telling me and not calling!"*
+
+**Calling either agent is not a decision that needs the user's approval.** They cost nothing the
+user has to authorise, they hold no job submission, and D10's confirmation gate is about **billable
+compute**, not about asking a question. So there is nothing to check in first.
+
+**BANNED PHRASES.** If you are about to write any of these, you are filing instead of asking, and
+the correct action is to make the call in the same turn:
+
+- *"this goes to the planner"* / *"I will raise this with the planner"*
+- *"the CODE REVIEWER is owed a pass"* / *"needs a review before I call it done"*
+- *"flagged for the planner"* in a comment, a commit message, or a note
+- *"next: ask the planner about X"*
+
+⚠️ Every one of those is a sentence I have written **instead of** making a call that takes one
+command. Announcing an intention reads to the user as progress while producing none, and it wastes
+their turn on a decision that was never theirs.
+
+**The only thing to report is the ANSWER**, or that a call is currently running. Report what came
+back and what you did about it, never that you are about to ask.
+
 **Three signatures that mean STOP AND ASK THE PLANNER:**
 
 - You are about to **"pick the conservative option"** on anything registered. Conservative is not
