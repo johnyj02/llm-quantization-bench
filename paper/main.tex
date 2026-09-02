@@ -363,12 +363,11 @@ by up to \hEightWorstSDTen{} points of standard deviation.
 \small
 \input{tables/h8_sd10}
 \caption{Accuracy across \hEightSDOrderings{} orderings of the same
-\hEightItems{} items, in accuracy points, at $B=\hEightSDLevel$. The standard
-deviation is the inferential quantity; the range is descriptive only. \texttt{bf16}
-is identical under every ordering. Measured at $B=\hEightSDLevel$, the largest
-batch size we swept and the most order-sensitive; the configuration we adopt is
-$B=\hEightFrozenB$ (\S\ref{sec:determinism}), so these standard deviations are
-upper bounds for the served setting.}
+\hEightItems{} items, in accuracy points, measured at the served batch size
+$B=\hEightSDLevel$ (\S\ref{sec:determinism}). The standard deviation is the
+inferential quantity; the range is descriptive only, being unstable and monotone in
+the number of orderings sampled. \texttt{bf16} is identical under every ordering at
+both rungs.}
 \label{tab:h8-sd}
 \end{table}
 
