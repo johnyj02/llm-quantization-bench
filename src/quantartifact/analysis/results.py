@@ -65,6 +65,15 @@ class Effect:
     p_value: float | None = None
     #: The test that produced `p_value`, so a reader never has to infer it.
     test: str | None = None
+    #: 🚨 The value this quantity takes under the null, in the units of `unit`. It is 0 for a
+    #: difference and **1 for a ratio**, and getting it wrong manufactures a finding: an odds
+    #: ratio is `exp(coefficient)` and therefore strictly positive, so a check written against 0
+    #: is True for every odds ratio ever constructed regardless of whether its interval contains
+    #: the null. Found by the code reviewer on 2026-09-02 and confirmed by execution: an OR of
+    #: 1.01 with a 95% interval of [0.87, 1.17] reported `excludes_zero: true` in `as_dict()`.
+    #: The null now travels with the unit, which is the same argument the class docstring already
+    #: makes for spelling `unit` out rather than assuming it.
+    null_value: float = 0.0
     #: §9's noise floor in the units of `unit`, if one applies to this quantity.
     floor: float | None = None
     noise_class: NoiseClass | None = None
@@ -94,15 +103,27 @@ class Effect:
             )
         if self.floor is not None and self.floor < 0:
             raise ValueError(f"{self.name}: floor {self.floor} is negative")
+        # A ratio cannot be centred on a null of 0, and a difference is not usually centred on
+        # 1. This catches the construction site that forgot to set `null_value` for a ratio,
+        # which is how CRITICAL 2 arose in the first place.
+        if "ratio" in self.unit.lower() and self.null_value == 0.0:
+            raise ValueError(
+                f"{self.name}: unit {self.unit!r} looks like a ratio but null_value is 0.0. "
+                f"A ratio's null is 1.0; leaving it at 0 makes `excludes_null` True for every "
+                f"such effect. Set null_value=1.0 explicitly."
+            )
 
     @property
-    def excludes_zero(self) -> bool:
-        """Whether the interval excludes zero. Not a significance flag on its own.
+    def excludes_null(self) -> bool:
+        """Whether the interval excludes `null_value`. Not a significance flag on its own.
 
         Deliberately named for what it describes rather than for a verdict, and deliberately
         not called `significant`. It is only ever reported next to `estimate` and the interval.
+
+        ⚠️ Compares against `null_value`, not against 0. See that field for why: the previous
+        version hard-coded 0 and was therefore unconditionally True for every odds ratio.
         """
-        return self.ci_low > 0.0 or self.ci_high < 0.0
+        return self.ci_low > self.null_value or self.ci_high < self.null_value
 
     @property
     def claimable(self) -> bool | None:
@@ -128,8 +149,9 @@ class Effect:
             "p_value": self.p_value,
             "test": self.test,
             "floor": self.floor,
+            "null_value": self.null_value,
             "noise_class": self.noise_class.value if self.noise_class else None,
-            "excludes_zero": self.excludes_zero,
+            "excludes_null": self.excludes_null,
             "claimable": self.claimable,
             "context": dict(self.context),
         }
@@ -146,14 +168,16 @@ class Effect:
         return text
 
 
-def holm_bonferroni(effects: list[Effect], alpha: float = 0.05,
-                    family: str | None = None) -> list[dict]:
+def holm_bonferroni(effects: list[Effect], *, family: str,
+                    alpha: float = 0.05) -> list[dict]:
     """Holm-Bonferroni step-down within one hypothesis family (§9).
 
     §9: *"Holm-Bonferroni within each hypothesis family (H1, H3, H4, H5, H6 are separate
-    families)."* The family is therefore a required part of the call in practice and is
-    recorded on every row, because pooling two families would silently over-correct and
-    splitting one would under-correct, and neither is visible in the output otherwise.
+    families)."* `family` is therefore **keyword-only and has no default**: pooling two families
+    into one call would over-correct and splitting one across two calls would under-correct, and
+    neither is visible in the output. A parameter the docstring calls required while the
+    signature defaults it to `None` is the declared-versus-enforced pattern this project has paid
+    for repeatedly, so the signature now enforces what §9 requires.
 
     Returns one row per input effect, **in the input order**, each carrying its adjusted
     threshold and whether it was rejected. Effects with no p-value are passed through with

@@ -18,6 +18,7 @@ pre-registration turns on it:
 
 from __future__ import annotations
 
+import inspect
 import math
 
 import pytest
@@ -34,10 +35,12 @@ from quantartifact.analysis import (
     holm_bonferroni,
     interaction_marginal,
     mcnemar_exact,
+    rung_mcnemar,
     stopseq_differential,
     transition_effects,
 )
 from quantartifact.analysis.decompose import DecompositionError
+from quantartifact.analysis.interaction import _item_key
 from quantartifact.analysis.stratum import ABSENT_LABEL, COMMITTED_LABELS
 from quantartifact.scoring import compliance as compliance_module
 
@@ -100,7 +103,9 @@ class TestEffectRefusesToBeABareFlag:
     def test_no_significance_attribute_exists(self):
         effect = Effect(name="x", estimate=1.0, ci_low=0.5, ci_high=1.5, unit="pp", n=10)
         assert not hasattr(effect, "significant")
-        assert effect.excludes_zero is True
+        assert not hasattr(effect, "excludes_zero"), (
+            "the 0-hardcoded property was CRITICAL 2 and must not come back")
+        assert effect.excludes_null is True
 
     def test_claimable_distinguishes_unmeasured_from_below_floor(self):
         """`None` and `False` must not collapse: they are different findings."""
@@ -473,3 +478,109 @@ class TestStopseqDifferential:
         assert effect.estimate == pytest.approx(0.0)
         assert effect.p_value is None, "no discordant pairs is no data"
         assert effect.ci_high > 0.0
+
+
+class TestReviewRegressions20260902:
+    """Regressions for the code review of 2026-09-02. Each was confirmed by execution first.
+
+    Raw findings and the outcome record: `notes/reviews/2026-09-02T062643Z.md`.
+    """
+
+    def test_item_key_includes_model_and_subtask(self):
+        """🚨 CRITICAL 1. Two models x two subtasks sharing `idx-0` are FOUR items, not one.
+
+        `item_id` is doc-scoped (`materialize._doc_id`), so three models score the identical id
+        set and all six BBH subtasks restart at `idx-0`. Keying on `(arm, item_id)` collapsed them
+        last-writer-wins, and `n_items_dropped_unpaired` read 0 because the collision happens
+        before the pairing check. Measured n was 1 where 4 items existed.
+        """
+        rows = []
+        for model in ("qwen2.5-3b", "llama-3.1-8b"):
+            for sub in ("word_sorting", "dyck_languages"):
+                rows.append(row("idx-0", "bf16", correct={"strict": True, "permissive": True},
+                                model=model, subtask=sub))
+                rows.append(row("idx-0", "gptq-4bit",
+                                correct={"strict": False, "permissive": True},
+                                model=model, subtask=sub))
+        effect = interaction_marginal(rows, task="bbh", alt_arm="gptq-4bit", n_boot=200)
+        assert effect.n == 4, "each (model, subtask, item_id) is a distinct item"
+        # Every gptq item goes strict-false to permissive-true, so its gap is +100 pp, while
+        # bf16 is correct at both rungs and its gap is 0. The interaction is therefore +100.
+        assert effect.estimate == pytest.approx(100.0)
+
+    def test_glmm_and_marginal_share_one_item_key(self):
+        """The two estimators disagreeing about identity is what allowed CRITICAL 1."""
+        r = row("idx-0", "bf16", correct=True, model="m", subtask="s")
+        assert _item_key(r) == "m|bbh|s|idx-0"
+
+    def test_odds_ratio_null_is_one_not_zero(self):
+        """🚨 CRITICAL 2. `exp()` is strictly positive, so a 0-null is always excluded."""
+        effect = Effect(name="H3_interaction_OR[x]", estimate=1.01,
+                        ci_low=0.87, ci_high=1.17, unit="odds ratio (VB posterior)",
+                        n=100, null_value=1.0)
+        assert effect.excludes_null is False
+        assert effect.as_dict()["excludes_null"] is False
+        assert effect.as_dict()["null_value"] == 1.0
+
+    def test_a_ratio_unit_with_a_zero_null_is_refused(self):
+        """The construction site that forgets `null_value` is how CRITICAL 2 arose."""
+        with pytest.raises(ValueError, match="looks like a ratio"):
+            Effect(name="x", estimate=1.0, ci_low=0.9, ci_high=1.1,
+                   unit="odds ratio (VB posterior)", n=10)
+
+    def test_holm_family_is_required(self):
+        """MODERATE 5: a docstring calling it required while the signature defaults it."""
+        effects = [Effect(name="a", estimate=1.0, ci_low=0.5, ci_high=1.5, unit="pp",
+                          n=10, p_value=0.01, test="mcnemar_exact")]
+        with pytest.raises(TypeError):
+            holm_bonferroni(effects)  # type: ignore[call-arg]
+
+    def test_gsm8k_is_refused_for_the_h3_interaction(self):
+        """MODERATE 2: §9c's exclusion, now symmetrical with decompose's."""
+        rows = [row("i1", a, correct=True, task="gsm8k", subtask=None)
+                for a in ("bf16", "gptq-4bit")]
+        with pytest.raises(Exception, match="EXCLUDED from the H3 interaction"):
+            interaction_marginal(rows, task="gsm8k", alt_arm="gptq-4bit", n_boot=100)
+        effect = interaction_marginal(rows, task="gsm8k", alt_arm="gptq-4bit",
+                                      n_boot=100, allow_excluded=True)
+        assert effect.n == 1
+
+    def test_registered_companion_is_reported_separately_and_named(self):
+        """MODERATE 1: §2 registers McNemar on strict vs permissive, a WITHIN-arm test."""
+        rows = []
+        for i in ("i1", "i2", "i3", "i4"):
+            rows.append(row(i, "bf16", correct={"strict": True, "permissive": True}))
+        for i in ("i1", "i2"):
+            rows.append(row(i, "gptq-4bit", correct={"strict": False, "permissive": True}))
+        for i in ("i3", "i4"):
+            rows.append(row(i, "gptq-4bit", correct={"strict": True, "permissive": True}))
+
+        companions = rung_mcnemar(rows, task="bbh")
+        gptq = next(e for e in companions if e.name == "rung_gap[gptq-4bit]")
+        assert gptq.estimate == pytest.approx(50.0), "2 of 4 recovered by permissive"
+        assert "registered companion" in gptq.test
+        assert gptq.noise_class is NoiseClass.PARTIALLY_CANCELLING, (
+            "a within-arm rung difference is §9f class 2, not class 3")
+
+        interaction = interaction_marginal(rows, task="bbh", alt_arm="gptq-4bit", n_boot=200)
+        assert "interaction" in interaction.test
+        assert interaction.test != gptq.test, "the two tests must be distinguishable"
+
+    def test_stopseq_differential_has_no_rung_parameter(self):
+        """MODERATE 3: it accepted `rung` and used it only as a label."""
+        assert "rung" not in inspect.signature(stopseq_differential).parameters
+
+    def test_stopseq_differential_raises_instead_of_skipping(self):
+        """MODERATE 4: a silent skip under-corrects the Holm family that remains."""
+        rows = [row("i1", "gptq-4bit", correct=True)]  # no bf16 reference at all
+        with pytest.raises(DecompositionError, match="produced no rows"):
+            stopseq_differential(rows)
+
+    def test_stratum_fraction_refuses_an_unpaired_denominator(self):
+        """MODERATE 6: R24.3 makes the fraction a first-class reported number."""
+        rows = [row("i1", a, correct=True) for a in ("bf16", "gptq-4bit", "awq-4bit")]
+        rows.append(row("i2", "bf16", correct=True))  # i2 missing two arms
+        result = next(iter(compute_stratum(rows, rungs=RUNGS).values()))
+        assert result.n_items_unpaired == 1
+        assert result.fraction is None, "a mixed denominator must not be quoted as the cell's"
+        assert result.fraction_of_paired == pytest.approx(1.0), "1 of 1 paired item"

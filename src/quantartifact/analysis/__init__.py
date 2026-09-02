@@ -31,10 +31,12 @@ from .decompose import (
     stopseq_differential,
 )
 from .interaction import (
+    EXCLUDED_FROM_H3_INTERACTION,
     HEADLINE_RUNGS,
     InteractionError,
     interaction_glmm,
     interaction_marginal,
+    rung_mcnemar,
 )
 from .results import Effect, NoiseClass, holm_bonferroni
 from .stratum import (
@@ -52,11 +54,12 @@ from .transitions import (
 )
 
 __all__ = [
-    "CONTRASTED_ARMS", "EXCLUDED_FROM_H4_PRIMARY", "HEADLINE_RUNGS",
+    "CONTRASTED_ARMS", "EXCLUDED_FROM_H3_INTERACTION", "EXCLUDED_FROM_H4_PRIMARY",
+    "HEADLINE_RUNGS",
     "ArmBounds", "BoundsError", "Decomposition", "DecompositionError",
     "DifferenceBounds", "Effect", "InteractionError", "NoiseClass",
     "StratumError", "StratumResult", "TransitionError", "TransitionTable",
     "bounds_effects", "build_transitions", "compute_bounds", "compute_stratum",
     "decompose", "holm_bonferroni", "interaction_glmm", "interaction_marginal",
-    "mcnemar_exact", "stopseq_differential", "transition_effects",
+    "mcnemar_exact", "rung_mcnemar", "stopseq_differential", "transition_effects",
 ]

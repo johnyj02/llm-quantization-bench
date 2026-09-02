@@ -70,8 +70,15 @@ class StratumResult:
     #: Item ids under the laxer alternative §9g rejected: committed in at least one
     #: invocation per arm. Reported so the cost of the stricter rule is visible.
     item_ids_any_invocation: frozenset[str]
-    #: Every item id seen for this cell, i.e. the denominator.
+    #: Every item id seen for this cell.
     n_items_total: int
+    #: 🚨 Items excluded because some contrasted arm had no record for them. Under R24.3 the
+    #: stratum FRACTION is a first-class reported number and one of the two things the
+    #: presentation rule chooses between, so a denominator that silently mixes "the arm
+    #: abstained" with "the arm was never scored on this item" would understate the fraction and
+    #: mislabel it as the cell's number. `fraction` therefore refuses to return a value when this
+    #: is non-zero, and `fraction_of_paired` gives the number that IS well defined.
+    n_items_unpaired: int
     #: Per-arm count of items that were ABSENT in at least one invocation, which is what
     #: excluded them. Names which arm is doing the shrinking.
     excluded_by_arm: dict[str, int]
@@ -85,20 +92,43 @@ class StratumResult:
 
     @property
     def fraction(self) -> float | None:
-        """Stratum size as a fraction of items. `None` when the cell has no items.
+        """Stratum size as a fraction of items, or `None` when it is not well defined.
 
-        Returns `None` rather than 0.0 for an empty cell, because a cell with no data and a
-        cell where every item was excluded are different findings.
+        `None` in two distinct situations, both of which the caller must look at rather than
+        treat as zero:
+
+        * the cell has no items at all, so there is no denominator;
+        * some items were **unpaired**, i.e. a contrasted arm had no record for them. The
+          conjunction over arms is undefined for those items, so no single denominator is
+          honest: `n_items_total` treats an unscored item as an exclusion, which understates
+          the fraction, while dropping them silently reports a fraction of a different set than
+          the one named. `fraction_of_paired` is the well-defined quantity, and it says in its
+          own name what it is a fraction of.
         """
-        if self.n_items_total == 0:
+        if self.n_items_total == 0 or self.n_items_unpaired > 0:
             return None
         return self.size / self.n_items_total
 
     @property
-    def fraction_any_invocation(self) -> float | None:
-        if self.n_items_total == 0:
+    def fraction_of_paired(self) -> float | None:
+        """Stratum size over the items every contrasted arm actually scored.
+
+        Always well defined where any paired item exists, and always the number to quote when
+        `fraction` is `None` because of unpaired items. Reported alongside `n_items_unpaired` so
+        the set it describes is visible.
+        """
+        paired = self.n_items_total - self.n_items_unpaired
+        if paired <= 0:
             return None
-        return len(self.item_ids_any_invocation) / self.n_items_total
+        return self.size / paired
+
+    @property
+    def fraction_any_invocation(self) -> float | None:
+        """The laxer §9g alternative, over the same paired denominator as `fraction_of_paired`."""
+        paired = self.n_items_total - self.n_items_unpaired
+        if paired <= 0:
+            return None
+        return len(self.item_ids_any_invocation) / paired
 
     @property
     def invocation_cost(self) -> int:
@@ -114,10 +144,12 @@ class StratumResult:
             "cell": list(self.cell),
             "size": self.size,
             "fraction": self.fraction,
+            "fraction_of_paired": self.fraction_of_paired,
             "size_any_invocation": len(self.item_ids_any_invocation),
             "fraction_any_invocation": self.fraction_any_invocation,
             "invocation_cost_items": self.invocation_cost,
             "n_items_total": self.n_items_total,
+            "n_items_unpaired": self.n_items_unpaired,
             "excluded_by_arm": dict(self.excluded_by_arm),
             "invocations_by_arm": dict(self.invocations_by_arm),
             "rungs": list(self.rungs),
@@ -192,9 +224,11 @@ def compute_stratum(
         strict_members: set[str] = set()
         lax_members: set[str] = set()
         excluded_by_arm: dict[str, int] = {arm: 0 for arm in contrasted_arms}
+        n_unpaired = 0
 
         for item_id, by_arm in items.items():
             if set(by_arm) != set(contrasted_arms):
+                n_unpaired += 1
                 # An item missing an arm entirely is excluded and counted, not an error: with
                 # nested subsamples a cell can legitimately hold items only some arms ran.
                 for arm in set(contrasted_arms) - set(by_arm):
@@ -218,6 +252,7 @@ def compute_stratum(
             item_ids=frozenset(strict_members),
             item_ids_any_invocation=frozenset(lax_members),
             n_items_total=len(items),
+            n_items_unpaired=n_unpaired,
             excluded_by_arm=excluded_by_arm,
             invocations_by_arm={a: len(v) for a, v in invocations[cell].items()},
             rungs=tuple(rungs),

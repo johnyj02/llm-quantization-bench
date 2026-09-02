@@ -53,6 +53,37 @@ from .results import Effect, NoiseClass
 #: §2's headline contrast, fixed here so no caller can quietly choose a flattering pair.
 HEADLINE_RUNGS: tuple[str, str] = ("strict", "permissive")
 
+#: §9c excludes the `gsm8k` hash-marker arm from the H3 interaction, and R24.3 describes its own
+#: H4 exclusion as *"exactly parallel"* to it. `decompose.py` enforced its side with a refusal
+#: while this side enforced nothing, so an interaction on a metric floored at 1.0% strict could be
+#: produced, enter the Holm family, and inflate `m` for the legitimate tests. Now symmetrical.
+EXCLUDED_FROM_H3_INTERACTION: frozenset[str] = frozenset({"gsm8k"})
+
+
+def _item_key(row: dict) -> str:
+    """The identity of one evaluation item, at the scope `records.JOIN_KEY` gives it.
+
+    🚨 `item_id` alone is NOT unique. `materialize._doc_id` derives it from the dataset document
+    (a natural `id`/`idx`/`example_id`, else `f"idx-{index}"`), so it is unique only within a
+    `(model, task, subtask)`. Three models score the identical `item_id` set, and all six BBH
+    subtasks restart at `idx-0`.
+
+    Keying on `(arm, item_id)` therefore collapsed three models and six subtasks into one
+    namespace, last-writer-wins, and the difference of differences was computed over an arbitrary
+    mixture determined by row order. Confirmed by execution on 2026-09-02: a fixture with two
+    models x two subtasks sharing `idx-0` reported **n=1** where four items existed, while
+    `n_items_dropped_unpaired` read **0**, because the collision happens before the pairing check
+    and so bypasses the one safeguard that would have flagged it.
+
+    Pooling ACROSS models is intended: §2 registers the model fit per task with `model` as a
+    fixed effect. The bug was never the pooling, it was that the key did not match the data.
+
+    Hoisted into one function used by both estimators, because `interaction_glmm` built this key
+    correctly twenty lines below while `_collect` did not, and two copies of an identity are two
+    chances to disagree.
+    """
+    return f"{row['model_key']}|{row['task']}|{row.get('subtask')}|{row['item_id']}"
+
 
 class InteractionError(RuntimeError):
     """Raised when the interaction is not estimable, rather than estimated on partial data."""
@@ -100,7 +131,7 @@ def _collect(rows: list[dict], task: str, rungs: tuple[str, str]) -> dict[str, P
                     f"{rung!r}. The interaction is a difference of differences, so a missing "
                     f"rung makes it undefined rather than zero."
                 )
-            sink[row["arm"]][row["item_id"]] = bool(correct[rung])
+            sink[row["arm"]][_item_key(row)] = bool(correct[rung])
     return {arm: PairedCell(arm=arm, low=low[arm], high=high[arm]) for arm in low}
 
 
@@ -113,6 +144,7 @@ def interaction_marginal(
     rungs: tuple[str, str] = HEADLINE_RUNGS,
     n_boot: int = 10_000,
     seed: int = 20260901,
+    allow_excluded: bool = False,
 ) -> Effect:
     """The interaction as a marginal effect in accuracy points, with a cluster-bootstrap CI.
 
@@ -134,6 +166,14 @@ def interaction_marginal(
     sets is a wrong number that no test would catch.
     """
     import numpy as np  # noqa: PLC0415
+
+    if task in EXCLUDED_FROM_H3_INTERACTION and not allow_excluded:
+        raise InteractionError(
+            f"task {task!r} is EXCLUDED from the H3 interaction by §9c: a metric floored at "
+            f"1.0% strict has no variance for an interaction to appear in, and `gsm8k_cot` "
+            f"carries the primary interaction. Pass allow_excluded=True only to report it as "
+            f"the demonstration arm, and keep it out of the Holm family either way."
+        )
 
     cells = _collect(rows, task, rungs)
     for arm in (reference_arm, alt_arm):
@@ -168,13 +208,22 @@ def interaction_marginal(
     boot = contrib[draws].mean(axis=1) * 100.0
     ci_low, ci_high = (float(x) for x in np.percentile(boot, [2.5, 97.5]))
 
-    # McNemar companion on the discordant items: an item is discordant when the two arms differ
-    # in whether the permissive rung changed their correctness.
+    # McNemar on the discordant items: an item is discordant when the two arms differ in whether
+    # the permissive rung changed their correctness. This is the test appropriate to an
+    # INTERACTION, since the interaction is itself an arm-level contrast.
+    #
+    # ⚠️ It is NOT the companion §2 registers. §2 registers McNemar on **strict versus
+    # permissive**, which is a within-arm test, on the grounds that the extraction axis re-scores
+    # identical generations and is therefore perfectly paired at the generation level. Both are
+    # worth having and they answer different questions, so the test is named for the comparison
+    # it ran rather than left as a bare "mcnemar_exact" that a reader would take for the
+    # registered one. `rung_mcnemar()` below returns the registered companion.
     alt_changed = {i for i in shared if alt.high[i] != alt.low[i]}
     ref_changed = {i for i in shared if ref.high[i] != ref.low[i]}
     from .transitions import mcnemar_exact  # noqa: PLC0415
-    p_value, test = mcnemar_exact(len(alt_changed - ref_changed),
-                                  len(ref_changed - alt_changed))
+    p_value, _ = mcnemar_exact(len(alt_changed - ref_changed),
+                               len(ref_changed - alt_changed))
+    test = "mcnemar_exact[interaction: arm contrast of rung-change indicator]"
 
     return Effect(
         name=f"H3_interaction_marginal[{alt_arm} vs {reference_arm}]",
@@ -230,8 +279,7 @@ def interaction_glmm(
                 "precision": row["arm"],
                 "scoring": rung,
                 "model": row["model_key"],
-                "item": f"{row['model_key']}|{row['task']}|{row.get('subtask')}|"
-                        f"{row['item_id']}",
+                "item": _item_key(row),
             })
     if not records:
         raise InteractionError(
@@ -282,6 +330,9 @@ def interaction_glmm(
             estimate=float(np.exp(mean)),
             ci_low=float(np.exp(mean - 1.96 * sd)),
             ci_high=float(np.exp(mean + 1.96 * sd)),
+            # 🚨 An odds ratio's null is 1, not 0. `exp()` is strictly positive, so an
+            # `excludes_null` written against 0 would be True for every one of these.
+            null_value=1.0,
             unit=unit, n=int(len(frame)),
             noise_class=NoiseClass.COMPOUNDING,
             context={"task": task, "term": name, "formula": fixed,
@@ -298,4 +349,79 @@ def interaction_glmm(
             f"{task}: the fit produced no interaction terms. Coefficient names were {names}, "
             f"which means the design matrix did not contain the crossed term."
         )
+    return effects
+
+
+def rung_mcnemar(
+    rows: list[dict],
+    *,
+    task: str,
+    arms: tuple[str, ...] | None = None,
+    rungs: tuple[str, str] = HEADLINE_RUNGS,
+) -> list[Effect]:
+    """§2's REGISTERED companion: exact McNemar on strict versus permissive, within each arm.
+
+    §2: *"Companion test: **McNemar on discordant pairs**, reported alongside the GLMM as an
+    assumption-light check. The extraction axis re-scores *identical generations*, so the
+    strict-vs-permissive comparison is perfectly paired at the generation level."*
+
+    This is a **within-arm** test and is therefore noise class 2 under §9f: the two rungs score
+    the same text, so invocation noise is common to both and largely cancels. That is a materially
+    better position than the interaction itself, which is class 3.
+
+    ⚠️ Distinct from the p-value attached to `interaction_marginal`'s effect, which tests the
+    arm-level contrast of the rung-change indicator. Both are reported, and each names the
+    comparison it ran, because a reader who sees one p-value beside an interaction estimate will
+    otherwise assume it is the registered one.
+
+    The estimate is the rung gap in percentage points, `permissive - strict`, per arm.
+    """
+    from statsmodels.stats.proportion import proportion_confint  # noqa: PLC0415
+
+    from .transitions import mcnemar_exact  # noqa: PLC0415
+
+    if task in EXCLUDED_FROM_H3_INTERACTION:
+        # No `allow_excluded` here: the per-arm rung gap on the hash arm is exactly the
+        # demonstration §9c retains, so this one is informative rather than misleading. It is
+        # still labelled, so it cannot be mistaken for an interaction level.
+        pass
+
+    cells = _collect(rows, task, rungs)
+    wanted = arms if arms is not None else tuple(sorted(cells))
+    effects: list[Effect] = []
+    for arm in wanted:
+        if arm not in cells:
+            raise InteractionError(f"{task}: arm {arm!r} has no rows")
+        cell = cells[arm]
+        items = sorted(cell.items)
+        if not items:
+            raise InteractionError(
+                f"{task} {arm}: no items scored at both rungs, so the paired comparison is "
+                f"undefined rather than null"
+            )
+        # b: correct only under permissive (leniency recovered it).
+        # c: correct only under strict (leniency lost it, which should be rare and is a finding).
+        b = sum(1 for i in items if cell.high[i] and not cell.low[i])
+        c = sum(1 for i in items if cell.low[i] and not cell.high[i])
+        n = len(items)
+        p_value, _ = mcnemar_exact(b, c)
+        estimate = (b - c) / n * 100.0
+        if b + c == 0:
+            low, high = proportion_confint(0, n, alpha=0.05, method="wilson")
+            ci_low, ci_high = -float(high) * 100.0, float(high) * 100.0
+        else:
+            low, high = proportion_confint(b, b + c, alpha=0.05, method="wilson")
+            scale = (b + c) / n * 100.0
+            ci_low = (2.0 * float(low) - 1.0) * scale
+            ci_high = (2.0 * float(high) - 1.0) * scale
+        effects.append(Effect(
+            name=f"rung_gap[{arm}]",
+            estimate=estimate, ci_low=ci_low, ci_high=ci_high,
+            unit="pp", n=n, p_value=p_value,
+            test="mcnemar_exact[registered companion: strict vs permissive, within arm]",
+            noise_class=NoiseClass.PARTIALLY_CANCELLING,
+            context={"task": task, "arm": arm, "rungs": list(rungs),
+                     "n_recovered_by_permissive": b, "n_lost_by_permissive": c,
+                     "registered_in": "§2 companion test"},
+        ))
     return effects

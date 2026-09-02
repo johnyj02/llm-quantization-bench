@@ -125,6 +125,13 @@ def decompose(
 
     Raises `DecompositionError` on a task excluded by R24.3 unless `allow_excluded=True`, which
     exists so the demonstration-arm reporting path can still call this deliberately.
+
+    ⚠️ **`rung` applies to two of the four components only.** `measured_strict_delta`,
+    `compliance_delta` and the competence term follow `rung`, but `truncation_delta` and
+    `stopseq_delta` are read from `row["termination"]`, which §4 defines at **rung 2** regardless
+    of what `rung` is set to. Calling this with `rung="permissive"` therefore changes three
+    numbers and leaves two identical, which is correct and is stated here so a reader does not
+    take the two unchanged values as a finding about rung-invariance.
     """
     index: dict[tuple, dict[str, dict[str, dict]]] = defaultdict(lambda: defaultdict(dict))
     for row in rows:
@@ -218,7 +225,6 @@ def decompose(
 def stopseq_differential(
     rows: list[dict],
     *,
-    rung: str = "strict",
     reference_arm: str = "bf16",
     alt_arms: tuple[str, ...] = ("gptq-8bit", "gptq-4bit", "awq-4bit", "bnb-nf4"),
 ) -> list[Effect]:
@@ -228,6 +234,20 @@ def stopseq_differential(
     estimate means the quantized arm was stop-sequence killed more often than bf16, which is
     the direction that would make this a genuine compliance mechanism rather than a static
     configuration defect.
+
+    🚨 **There is deliberately no `rung` parameter.** `TRUNC_STOPSEQ` is defined at **rung 2** by
+    registration: §4 defines it as a stop-sequence match where *"rung-2 extraction finds no
+    committed answer"*, and `classify_termination` is called with `committed` taken from the
+    permissive extraction. So the class does not vary by rung, and this function reads
+    `row["termination"]` directly.
+
+    An earlier version accepted `rung` and used it only as a context label. Calling it with
+    `rung="permissive"` therefore returned numbers **identical** to the strict call, labelled
+    differently, and two rows in a pre-registered table with the same values and different labels
+    would read as evidence that the differential is rung-invariant when it had never been computed
+    per rung. That is the charter's "parameter accepted then ignored" pattern, and here it could
+    have put a duplicated number into a registered table. Removed rather than wired up, because
+    wiring it up would invent a quantity the registration does not define.
 
     The verdict itself is deliberately not returned. §4 specifies what each branch *means*, and
     that reading belongs in the paper next to the effect size and its interval, not in a boolean
@@ -243,10 +263,23 @@ def stopseq_differential(
             continue
         index[_cell_of(row)][row["arm"]][row["item_id"]] = row
 
+    # 🚨 These raise rather than `continue`, matching `decompose()`. An earlier version skipped a
+    # missing reference arm and an empty intersection, which meant a failed cell in `main-v1`
+    # dropped silently out of §4's PRE-SPECIFIED test, shrinking the family handed to
+    # `holm_bonferroni` and therefore UNDER-correcting the tests that remain, which makes a
+    # differential easier to declare. A silent `continue` on the path into a multiplicity
+    # correction is the same shape as `score_template.py`'s vacuous BRANCH 1.
+    #
+    # An arm genuinely absent from a condition (the 3-arm sweep cells) is still skipped, because
+    # that is a design fact rather than a failure, and it is the only skip left.
     effects: list[Effect] = []
     for cell, by_arm in sorted(index.items(), key=lambda kv: str(kv[0])):
         if reference_arm not in by_arm:
-            continue
+            raise DecompositionError(
+                f"{cell}: reference arm {reference_arm!r} produced no rows, so §4's paired "
+                f"differentiality test is undefined here. Score it or exclude the cell "
+                f"explicitly; skipping it silently under-corrects the rest of the family."
+            )
         ref_items = by_arm[reference_arm]
         for alt_arm in alt_arms:
             if alt_arm not in by_arm:
@@ -254,7 +287,10 @@ def stopseq_differential(
             alt_items = by_arm[alt_arm]
             shared = sorted(set(ref_items) & set(alt_items))
             if not shared:
-                continue
+                raise DecompositionError(
+                    f"{cell} {alt_arm} vs {reference_arm}: no shared items, so the paired "
+                    f"indicator has nothing to pair"
+                )
 
             def killed(row: dict) -> bool:
                 term = row.get("termination")
@@ -284,7 +320,8 @@ def stopseq_differential(
                 estimate=estimate, ci_low=ci_low, ci_high=ci_high,
                 unit="pp", n=n, p_value=p_value, test=test,
                 noise_class=NoiseClass.COMPOUNDING,
-                context={"cell": list(cell), "rung": rung,
+                context={"cell": list(cell),
+                         "termination_defined_at_rung": "permissive (rung 2), per §4",
                          "n_killed_alt_only": b, "n_killed_reference_only": c,
                          "registered_reading":
                              "§4: differential => a genuine compliance-delta mechanism with "
