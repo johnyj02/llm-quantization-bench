@@ -108,6 +108,27 @@ class Effect:
             )
         if self.floor is not None and self.floor < 0:
             raise ValueError(f"{self.name}: floor {self.floor} is negative")
+        # 🚨 The interval must CONTAIN its own point estimate. Obvious, and it was not checked:
+        # the code reviewer showed on 2026-09-02 that `Effect(estimate=100.0, ci_low=-3.15,
+        # ci_high=3.15)` constructed happily. That is the exact shape a naive extension of
+        # `zero_variance_bound` to the all-equal-nonzero case would produce, since the bound is
+        # symmetric about zero while the estimate is not. Structural version of the check, so it
+        # catches the class rather than the one instance.
+        # ⚠️ A tolerance is required and is NOT a loosening of the check. When every discordant
+        # pair falls one way, Wilson's upper limit on the split is exactly 1.0, so the rescaled
+        # bound equals the point estimate analytically, and floating point puts it a hair below:
+        # this guard fired on real `pilot-v2` data with estimate 17.5 against ci_high
+        # 17.499999999999996. The tolerance is scaled to the magnitudes involved, and the defect
+        # it exists to catch was off by two orders of magnitude (an estimate of 100 pp inside a
+        # +/-3.15 pp bound), so it remains comfortably detectable.
+        span = max(abs(self.ci_low), abs(self.ci_high), abs(self.estimate), 1.0)
+        tolerance = 1e-9 * span
+        if not (self.ci_low - tolerance) <= self.estimate <= (self.ci_high + tolerance):
+            raise ValueError(
+                f"{self.name}: estimate {self.estimate} lies outside its own interval "
+                f"[{self.ci_low}, {self.ci_high}]. An interval that excludes its point estimate "
+                f"is not an interval for it."
+            )
         # A ratio cannot be centred on a null of 0, and a difference is not usually centred on
         # 1. This catches the construction site that forgot to set `null_value` for a ratio,
         # which is how CRITICAL 2 arose in the first place.
@@ -245,10 +266,20 @@ MAX_ABS_ITEM_CONTRIBUTION: int = 2
 
 
 def zero_variance_bound(n: int, *, max_abs_contribution: int = MAX_ABS_ITEM_CONTRIBUTION,
-                        alpha: float = 0.05) -> tuple[float, float, str]:
-    """A symmetric bound in percentage points when NO item showed any variation (R25.1).
+                        alpha: float = 0.05,
+                        centre: float = 0.0) -> tuple[float, float, str]:
+    """A bound in percentage points when the observed variance is exactly zero (R25.1, §9h).
 
-    Returns `(low, high, method)`.
+    Returns `(low, high, method)`, the interval centred on `centre`.
+
+    ⚠️ **`centre` exists because the degenerate case is not only the all-zero one.** The bootstrap
+    distribution is degenerate whenever every per-item contribution is **equal**, which includes a
+    non-zero constant: if permissive fixes every item for the alt arm and none for bf16, every
+    contribution is +1, the resample mean is always 1.0, and a percentile interval is `[100, 100]`
+    pp. Verified by execution on 2026-09-02, and the most reachable version is **n = 1**, where a
+    single paired item makes the bootstrap degenerate whatever the contribution is. §9h registers
+    the rule for *"the observed variance ... exactly zero"*, which covers all of these, so the
+    bound must be able to sit around a non-zero point estimate rather than always around zero.
 
     **Why a bound rather than a bootstrap.** When every per-item contribution is identically
     zero, a percentile bootstrap resamples zeros and returns `[0, 0]`. That is arithmetically
@@ -281,5 +312,7 @@ def zero_variance_bound(n: int, *, max_abs_contribution: int = MAX_ABS_ITEM_CONT
     _, rate_high = proportion_confint(0, n, alpha=alpha, method="wilson")
     half_width = float(rate_high) * max_abs_contribution * 100.0
     method = (f"zero-variance bound: Wilson upper on 0/{n} x max|contribution|="
-              f"{max_abs_contribution} (R25.1), NOT a bootstrap interval")
-    return -half_width, half_width, method
+              f"{max_abs_contribution} (R25.1/§9h), NOT a bootstrap interval")
+    if centre:
+        method += f", centred on the constant point estimate {centre:+.4g}"
+    return centre - half_width, centre + half_width, method

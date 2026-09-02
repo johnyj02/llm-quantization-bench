@@ -232,23 +232,50 @@ def main() -> int:
          "§9c DEMONSTRATION ONLY, NOT an H3 interaction level and NOT in the Holm family:")
 
     # ---- §4 H4 --------------------------------------------------------------------------
+    # 🚨 THE SAME SPLIT AS H3, because I reintroduced the identical permission-slip defect here
+    # eight lines below the place I had just fixed it (code review, 2026-09-02). Two instances:
+    # `allow_excluded=allow` was passed for gsm8k and the result appended to the SAME `decomps`
+    # list under one key, so a row R24.3 excludes from H4's primary table sat in it unlabelled;
+    # and `stopseq_differential` has no exclusion parameter at all, so gsm8k's tests entered
+    # `holm_bonferroni(family="H4")` and inflated `m`.
+    #
+    # The reviewer was precise about direction and it is worth keeping: `m` inflation
+    # OVER-corrects, so it is conservative and cannot manufacture a finding. It makes the
+    # differentiality test harder to declare. The substantive half is the unlabelled row in the
+    # primary decomposition table.
+    #
+    # ⚠️ OPEN QUESTION FOR THE PLANNER, currently answered by this code rather than by a ruling:
+    # R24.3 excludes the hash arm from *"H4's primary decomposition"*, and §4's TRUNC_STOPSEQ
+    # differentiality test is arguably a separate registered test rather than part of that
+    # decomposition. This treats it as inside the exclusion, which is the conservative reading.
     stratum_ids = {cell: s.item_ids for cell, s in strata.items()}
-    decomps, stopseq = [], []
+    decomps, decomps_demo = [], []
+    stopseq, stopseq_demo = [], []
     for task in tasks:
         task_rows = [r for r in rows if r["task"] == task]
-        allow = task in EXCLUDED_FROM_H4_PRIMARY
+        excluded = task in EXCLUDED_FROM_H4_PRIMARY
         sub = {c: v for c, v in stratum_ids.items() if c[1] == task}
-        decomps.extend(decompose(task_rows, sub, rung="strict",
-                                 alt_arms=ALT_ARMS, allow_excluded=allow))
-        stopseq.extend(stopseq_differential(task_rows, alt_arms=ALT_ARMS))
+        (decomps_demo if excluded else decomps).extend(
+            decompose(task_rows, sub, rung="strict",
+                      alt_arms=ALT_ARMS, allow_excluded=excluded))
+        (stopseq_demo if excluded else stopseq).extend(
+            stopseq_differential(task_rows, alt_arms=ALT_ARMS))
     report["h4_decomposition"] = [d.as_dict() for d in decomps]
+    report["h4_decomposition_demonstration_only"] = [d.as_dict() for d in decomps_demo]
     report["h4_stopseq_differential"] = [e.as_dict() for e in stopseq]
-    report["h4_holm"] = [
-        {k: v for k, v in r.items() if k != "effect"}
-        for r in holm_bonferroni(stopseq, family="H4")
-    ]
-    print(f"\n§4 H4 DECOMPOSITION: {len(decomps)} cell-arm pairs, "
-          f"{len(stopseq)} stopseq tests")
+    report["h4_stopseq_demonstration_only"] = [e.as_dict() for e in stopseq_demo]
+    report["h4_excluded_tasks"] = sorted(EXCLUDED_FROM_H4_PRIMARY & set(tasks))
+    # §9: the Holm family excludes the demonstration arm, so `m` is the count of registered
+    # primary tests and nothing else.
+    report["h4_holm"] = (
+        [{k: v for k, v in r.items() if k != "effect"}
+         for r in holm_bonferroni(stopseq, family="H4")] if stopseq else []
+    )
+    print(f"\n§4 H4 DECOMPOSITION: {len(decomps)} cell-arm pairs in the primary table, "
+          f"{len(stopseq)} stopseq tests in the Holm family")
+    if decomps_demo or stopseq_demo:
+        print(f"   plus DEMONSTRATION ONLY (R24.3, excluded from both): "
+              f"{len(decomps_demo)} pairs, {len(stopseq_demo)} stopseq tests")
 
     out_dir = REPO / args.out
     out_dir.mkdir(parents=True, exist_ok=True)

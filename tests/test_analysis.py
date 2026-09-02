@@ -671,3 +671,87 @@ class TestR25OddsRatioFitter:
     def test_gee_is_the_default_fitter(self):
         assert (inspect.signature(interaction_glmm)
                 .parameters["fitter"].default == "gee")
+
+
+class TestReviewRegressions20260902Round2:
+    """Regressions for the second code review of 2026-09-02 (notes/reviews/2026-09-02T065621Z.md).
+
+    All three MODERATEs were confirmed by execution before anything was changed.
+    """
+
+    def test_all_equal_nonzero_contributions_are_degenerate_too(self):
+        """MODERATE 2. `not contrib.any()` caught only all-zero.
+
+        Verified: an all-`+1` contribution array passes `.any()`, so the old branch let the
+        bootstrap run, and every resample mean is exactly 1.0, giving `[100.00, 100.00]` pp
+        labelled as a percentile interval. The trigger is now `min == max`.
+        """
+        rows = []
+        for i in range(40):
+            rows.append(row(f"i{i}", "bf16", correct={"strict": True, "permissive": True}))
+            rows.append(row(f"i{i}", "gptq-4bit",
+                            correct={"strict": False, "permissive": True}))
+        effect = interaction_marginal(rows, task="bbh", alt_arm="gptq-4bit", n_boot=500)
+        assert effect.estimate == pytest.approx(100.0)
+        assert effect.context["zero_variance"] is True
+        assert "zero-variance bound" in effect.interval_method
+        assert effect.ci_high > effect.ci_low, "must not be zero-width"
+        assert effect.ci_low <= 100.0 <= effect.ci_high, (
+            "the bound must be centred on the point estimate, not on zero")
+
+    def test_n_of_one_is_degenerate_regardless_of_value(self):
+        """MODERATE 2: the most reachable case, a cell with a single paired item."""
+        rows = [row("i1", "bf16", correct={"strict": False, "permissive": False}),
+                row("i1", "gptq-4bit", correct={"strict": False, "permissive": True})]
+        effect = interaction_marginal(rows, task="bbh", alt_arm="gptq-4bit", n_boot=200)
+        assert effect.n == 1
+        assert effect.context["zero_variance"] is True
+        assert effect.ci_high > effect.ci_low
+
+    def test_effect_refuses_an_interval_excluding_its_estimate(self):
+        """MODERATE 2: the structural guard. This constructed happily before."""
+        with pytest.raises(ValueError, match="outside its own interval"):
+            Effect(name="bad", estimate=100.0, ci_low=-3.15, ci_high=3.15,
+                   unit="pp", n=40)
+
+    def test_zero_variance_bound_can_be_centred(self):
+        low, high, method = zero_variance_bound(240, centre=100.0)
+        assert low < 100.0 < high
+        assert "centred on the constant point estimate" in method
+
+    def test_gee_actually_fits_and_reports_item_counts(self):
+        """MODERATE 3: the default fitter had never been executed in the suite.
+
+        Also pins the two defects found in it: `n` was a row count where
+        `interaction_marginal` reports an item count, so the odds ratio read as though it used
+        four times the data.
+        """
+        rows = []
+        for i in range(30):
+            rows.append(row(f"i{i}", "bf16",
+                            correct={"strict": i % 3 == 0, "permissive": i % 2 == 0}))
+            rows.append(row(f"i{i}", "gptq-4bit",
+                            correct={"strict": i % 5 == 0, "permissive": i % 2 == 0}))
+        effects = interaction_glmm(rows, task="bbh", fitter="gee")
+        assert effects, "the fit must produce at least one interaction term"
+        e = effects[0]
+        assert ":" in e.context["term"], "interaction terms carry a colon in patsy naming"
+        assert e.null_value == 1.0, "an odds ratio's null is 1"
+        assert e.n == 30, "n must be the ITEM count, matching interaction_marginal"
+        assert e.context["n_rows"] == 120, "the row count belongs in context"
+        assert "population-averaged" in e.unit
+        assert e.ci_low <= e.estimate <= e.ci_high
+
+    def test_vb_fitter_still_runs_and_labels_its_interval_honestly(self):
+        """R25.2(b) keeps VB for the appendix, explicitly not a confidence interval."""
+        rows = []
+        for i in range(30):
+            rows.append(row(f"i{i}", "bf16",
+                            correct={"strict": i % 3 == 0, "permissive": i % 2 == 0}))
+            rows.append(row(f"i{i}", "gptq-4bit",
+                            correct={"strict": i % 5 == 0, "permissive": i % 2 == 0}))
+        effects = interaction_glmm(rows, task="bbh", fitter="vb")
+        assert effects
+        unit = effects[0].unit
+        assert "NOT a confidence interval" in unit
+        assert "VARIATIONAL BAYES" in unit

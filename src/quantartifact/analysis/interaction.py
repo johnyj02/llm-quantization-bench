@@ -203,7 +203,13 @@ def interaction_marginal(
     assert abs(contrib.mean() * 100.0 - point) < 1e-9, "contribution decomposition disagrees"
 
     n = len(shared)
-    if not contrib.any():
+    # 🚨 `contrib.min() == contrib.max()`, NOT `not contrib.any()`. The first version caught only
+    # the ALL-ZERO case, while the bootstrap is degenerate whenever the contributions are all
+    # EQUAL: an all-`+1` array passes `.any()`, runs the bootstrap, and yields a zero-width
+    # interval at +100 pp labelled as a percentile interval. Verified by execution. §9h registers
+    # the trigger as "the observed variance ... exactly zero", which is this condition, and the
+    # most reachable instance is n = 1.
+    if contrib.min() == contrib.max():
         # 🚨 R25.1. Every per-item contribution is identically zero, so there is nothing for the
         # bootstrap to resample and it would return [0, 0]: arithmetically correct and
         # substantively misleading, because with n items and no observed variation the effect is
@@ -213,7 +219,10 @@ def interaction_marginal(
         # The planner ruled the bounded form is the STRONGER result, not a hedge: "+3.33 pp on BBH
         # against bounded within a few points on the structurally constrained task" supports H6,
         # whereas "[0, 0] against +3.33" invites the objection that the control is degenerate.
-        ci_low, ci_high, interval_method = zero_variance_bound(n)
+        # Centred on the point estimate, which is zero in the all-zero case and is not in the
+        # all-equal-non-zero one. A bound symmetric about zero around a non-zero estimate would
+        # be an interval excluding its own estimate, which `Effect` now refuses outright.
+        ci_low, ci_high, interval_method = zero_variance_bound(n, centre=point)
     else:
         rng = np.random.default_rng(seed)
         draws = rng.integers(0, n, size=(n_boot, n))
@@ -246,7 +255,7 @@ def interaction_marginal(
         noise_class=NoiseClass.COMPOUNDING,
         context={
             "task": task, "rungs": list(rungs),
-            "zero_variance": not bool(contrib.any()),
+            "zero_variance": bool(contrib.min() == contrib.max()),
             "estimator": "difference of differences, cluster bootstrap over items",
             "n_boot": n_boot, "seed": seed, "n_items_dropped_unpaired": dropped,
             "gap_alt_pp": alt.gap(shared), "gap_reference_pp": ref.gap(shared),
@@ -342,6 +351,18 @@ def interaction_glmm(
         from statsmodels.genmod.families import Binomial  # noqa: PLC0415
         fit = smf.gee(fixed, groups="item", data=frame,
                       family=Binomial(), cov_struct=Exchangeable()).fit()
+        # 🚨 GEE with an exchangeable structure ITERATES, and statsmodels returns a result object
+        # even when it has not converged, emitting only a warning. A non-converged fit's params
+        # and standard errors would go straight into the paper's reported odds ratio. This is the
+        # project's own standing rule applied here: assert the fitter's reported state rather than
+        # assume it. A small frame in testing produced `RuntimeWarning: invalid value encountered
+        # in sqrt` from `cov_robust`, so this is reachable rather than theoretical.
+        if not getattr(fit, "converged", True):
+            raise InteractionError(
+                f"{task}: GEE did not converge, so its coefficients and cluster-robust standard "
+                f"errors must not be reported. §2's odds ratio is a registered quantity; a "
+                f"non-converged fit is a missing number, not an approximate one."
+            )
         names = list(fit.params.index)
         means, sds = np.asarray(fit.params), np.asarray(fit.bse)
         unit = ("population-averaged odds ratio (GEE, exchangeable working correlation, "
@@ -362,11 +383,17 @@ def interaction_glmm(
             # 🚨 An odds ratio's null is 1, not 0. `exp()` is strictly positive, so an
             # `excludes_null` written against 0 would be True for every one of these.
             null_value=1.0,
-            unit=unit, n=int(len(frame)),
+            # 🚨 ITEM count, not row count. `interaction_marginal` reports `n=len(shared)`, an
+            # item count, and the two effects sit adjacent in the H3 table under the same
+            # `H3_interaction_*` prefix. Reporting rows here made the odds ratio read as though it
+            # used four times the data (n=120 against n=30 on the same fixture). The row count is
+            # kept in the context, where it is informative rather than comparable.
+            unit=unit, n=n_items,
             interval_method=estimator,
             noise_class=NoiseClass.COMPOUNDING,
             context={"task": task, "term": name, "formula": fixed,
                      "estimator": estimator, "fitter": fitter,
+                     "n_rows": int(len(frame)),
                      "log_odds": float(mean), "log_odds_se": float(sd),
                      "n_items": n_items, "rungs": list(rungs),
                      "registered_formula_note":
