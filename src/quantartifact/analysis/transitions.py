@@ -35,7 +35,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 
-from .results import Effect, NoiseClass
+from .results import Effect, NoiseClass, zero_variance_bound
 from .stratum import ABSENT_LABEL, COMMITTED_LABELS
 
 #: §1.2 fixes bf16 as the reference and ranges `p_alt` over the four quantized arms.
@@ -209,10 +209,13 @@ def transition_effects(tables: list[TransitionTable]) -> list[Effect]:
         p_value, test = mcnemar_exact(table.n12, table.n21)
 
         if table.n_discordant == 0:
-            # No discordant pairs: the shift is exactly zero and the only honest interval is
-            # the Wilson interval on 0 out of n, which is not zero-width.
-            low, high = proportion_confint(0, table.n, alpha=0.05, method="wilson")
-            ci_low, ci_high = -float(high) * 100.0, float(high) * 100.0
+            # No discordant pairs, so observed variance is exactly zero. Uses the SAME registered
+            # rule as the bootstrap path (R25.1) rather than a local Wilson call, because the
+            # planner required one generic estimator rule wherever this arises. A single
+            # discordant item moves this rate by 1/n rather than 2/n, since the indicator is
+            # per-arm rather than a difference of differences, so the per-item magnitude is 1.
+            ci_low, ci_high, interval_method = zero_variance_bound(
+                table.n, max_abs_contribution=1)
         else:
             # Interval on the split of the discordant pairs, mapped onto the net rate.
             low, high = proportion_confint(table.n21, table.n_discordant,
@@ -220,11 +223,14 @@ def transition_effects(tables: list[TransitionTable]) -> list[Effect]:
             scale = table.n_discordant / table.n * 100.0
             ci_low = (2.0 * float(low) - 1.0) * scale
             ci_high = (2.0 * float(high) - 1.0) * scale
+            interval_method = ("Wilson on the discordant split, rescaled to the net rate "
+                               "(conditional-on-discordants McNemar interval)")
 
         effects.append(Effect(
             name=f"compliance_shift[{table.alt_arm} vs {table.reference_arm}]",
             estimate=net_pp, ci_low=ci_low, ci_high=ci_high,
             unit="pp", n=table.n, p_value=p_value, test=test,
+            interval_method=interval_method,
             noise_class=NoiseClass.COMPOUNDING,
             context={"cell": list(table.cell), "rung": table.rung,
                      "n11": table.n11, "n12": table.n12,

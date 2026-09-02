@@ -65,6 +65,11 @@ class Effect:
     p_value: float | None = None
     #: The test that produced `p_value`, so a reader never has to infer it.
     test: str | None = None
+    #: 🚨 How the interval was constructed. Required in the reported table, not only in prose
+    #: (R25.1): a column that silently mixes bootstrap percentile intervals with zero-event
+    #: Wilson bounds is exactly what a careful reviewer flags, because the two mean different
+    #: things and only one of them is an estimate of sampling variability.
+    interval_method: str | None = None
     #: 🚨 The value this quantity takes under the null, in the units of `unit`. It is 0 for a
     #: difference and **1 for a ratio**, and getting it wrong manufactures a finding: an odds
     #: ratio is `exp(coefficient)` and therefore strictly positive, so a check written against 0
@@ -148,6 +153,7 @@ class Effect:
             "n": self.n,
             "p_value": self.p_value,
             "test": self.test,
+            "interval_method": self.interval_method,
             "floor": self.floor,
             "null_value": self.null_value,
             "noise_class": self.noise_class.value if self.noise_class else None,
@@ -224,3 +230,56 @@ def holm_bonferroni(effects: list[Effect], *, family: str,
             still_rejecting = False
             rows[index]["rejected"] = False
     return rows
+
+
+#: 🚨 R25.1. The largest absolute per-item contribution a single discordant item can make to a
+#: difference-of-differences. The contribution is
+#: `(alt_high - alt_low) - (ref_high - ref_low)`, each term 0 or 1, so it lies in [-2, +2].
+#:
+#: The planner required this be **pre-specified rather than left implicit in the code**, and the
+#: conservative value is the one registered: 2 is the contribution's true range, so a bound built
+#: on it cannot be accused of assuming away the worst case. Using 1 (a single scorer flip in one
+#: direction) would give a bound roughly half as wide and would be a choice about the data rather
+#: than about the estimand.
+MAX_ABS_ITEM_CONTRIBUTION: int = 2
+
+
+def zero_variance_bound(n: int, *, max_abs_contribution: int = MAX_ABS_ITEM_CONTRIBUTION,
+                        alpha: float = 0.05) -> tuple[float, float, str]:
+    """A symmetric bound in percentage points when NO item showed any variation (R25.1).
+
+    Returns `(low, high, method)`.
+
+    **Why a bound rather than a bootstrap.** When every per-item contribution is identically
+    zero, a percentile bootstrap resamples zeros and returns `[0, 0]`. That is arithmetically
+    correct and substantively misleading: with `n` items and no observed variation the honest
+    claim is that the effect is **bounded near zero**, not **known to be zero**. Zero observed
+    events is a standard problem with a standard answer, and a bootstrap cannot solve it because
+    there is nothing to resample.
+
+    **Construction, registered as a generic rule rather than an ARC-specific patch.** Take the
+    Wilson upper limit on 0 successes out of `n`, which bounds the *rate* of items that could
+    differ, then convert to accuracy points by multiplying by the largest contribution a single
+    differing item can make (`MAX_ABS_ITEM_CONTRIBUTION`). At n=240 the Wilson upper limit is
+    about 1.6%, giving roughly ±3.2 pp at the conservative per-item magnitude.
+
+    ⚠️ **The bounded version is the stronger result, not a hedge.** "+3.33 pp on BBH against
+    bounded within a few points on the structurally constrained task" is a real contrast that
+    supports H6, whereas "[0, 0] against +3.33" invites the objection that the control is
+    degenerate.
+
+    The same rule applies everywhere observed variance is exactly zero, which is what makes it
+    consistent with the zero-discordance path in `transitions.py`.
+    """
+    if n <= 0:
+        raise ValueError(f"zero_variance_bound needs n > 0, got {n}")
+    if max_abs_contribution <= 0:
+        raise ValueError(
+            f"max_abs_contribution must be positive, got {max_abs_contribution}")
+    from statsmodels.stats.proportion import proportion_confint  # noqa: PLC0415
+
+    _, rate_high = proportion_confint(0, n, alpha=alpha, method="wilson")
+    half_width = float(rate_high) * max_abs_contribution * 100.0
+    method = (f"zero-variance bound: Wilson upper on 0/{n} x max|contribution|="
+              f"{max_abs_contribution} (R25.1), NOT a bootstrap interval")
+    return -half_width, half_width, method

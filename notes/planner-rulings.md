@@ -1630,3 +1630,102 @@ hard threshold would fail nearly everywhere anyway.
   centrepiece under the old spine; the spine is now the apparatus findings, so **H4 is a
   supporting decomposition.** §4.0 part 3 already pre-commits that wide bounds are honest.
   Bounds plus an honestly reported stratum size is a defensible H4, **not a failure**.
+
+---
+
+## R25 — The degenerate interval, and the registered `(1|item)` that cannot be fit
+
+Raw answer: `notes/planner-answers/R25-degenerate-interval-and-glmm-fitter.txt`. Registered as
+prereg §9h and as an amendment to §2.
+
+⚠️ **Routing note, because I got it wrong first.** I described the degenerate-interval issue as
+one for the code reviewer. The user challenged that and was right: the bootstrap is implemented
+correctly, so there is no defect to find, and the question is what interval to **report**, which
+determines a number in the paper and is therefore the planner's under D13. The reviewer's job
+begins after the decision, checking the implementation is right and consistent across both code
+paths that can reach it.
+
+### R25.1 Report a Wilson zero-event BOUND, and unify every path on it
+
+On `arc_challenge_chat` all four arms gave the H3 interaction as exactly `+0.00 pp` with a
+**zero-width interval `[0.00, 0.00]`** at n=240, because its `gen_prefix` and `until` make strict
+and permissive agree on every item, so every per-item contribution is identically zero and a
+percentile bootstrap has nothing to resample.
+
+*"Zero observed events is a standard problem with a standard answer, and a bootstrap cannot solve
+it because there's nothing to resample. Your instinct is right: the honest claim is bounded near
+zero, not known to be zero."*
+
+- ❌ **Rejected: report `[0,0]` with a footnote.** *"Tables get read without footnotes."*
+- ❌ **Rejected: mark the interval undefined.** It discards real information, since a valid bound
+  does exist, and §9 requires an interval.
+- ✅ **Adopted: the Wilson upper limit on 0 of `n`, converted to accuracy points**, reported
+  symmetrically, and applied **everywhere observed variance is exactly zero** so the bootstrap
+  path matches the zero-discordance path already used for the transition tables.
+
+Two things the planner required be pinned rather than left in the code:
+
+1. **Pre-specify the per-item magnitude.** Registered as **2** for a difference of differences,
+   which is the true range of `(alt_high − alt_low) − (ref_high − ref_low)`, and **1** for a
+   per-arm indicator such as the compliance shift. The planner offered 1 or 2 and asked for one
+   choice; 2 is the conservative one.
+2. **Label the interval method in the table**, not only in prose, because *"mixing bootstrap
+   percentile intervals and zero-event Wilson bounds in one column without marking which is which
+   is exactly what a careful reviewer flags."* Every `Effect` now carries `interval_method`.
+
+🔬 **And the bounded form is the STRONGER result, not a hedge:** *"+3.33 pp on BBH versus bounded
+within ±1.6 pp on the structurally constrained task is a real contrast that supports H6. `[0,0]`
+versus +3.33 invites 'your control is degenerate.'"*
+
+⚠️ **One consequence I must report rather than quietly optimise away.** At the registered
+conservative magnitude of 2 the ARC bound is **±3.15 pp**, not the ±1.6 pp the planner's example
+assumed at magnitude 1. That is nearly as large as BBH's +3.33 pp, so the H6 contrast is **weaker
+than the ruling anticipated**. Switching to magnitude 1 would restore the contrast, and that is
+precisely why I have not done it: choosing the per-item magnitude because it flatters a comparison
+is the specification search the pre-registration exists to prevent. Flagged for confirmation.
+
+### R25.2 Marginal-primary is *better* than acceptable. Amend §2, use GEE for the odds ratio
+
+*"Your argument is right and stronger than you stated it."* Four reasons given, three of which I
+had not made:
+
+- §2 **already requires** the marginal effect in accuracy points, so it is one of the two
+  registered quantities rather than a fallback.
+- `(1|item)` yields a **conditional** odds ratio, which is not what anyone interprets in accuracy
+  points, and conditional and marginal odds ratios differ systematically. So the GLMM's OR and the
+  marginal effect answer different questions **regardless of fitter**.
+- The cluster bootstrap is assumption-lighter than any GLMM: no link function, and no Gaussian
+  random-intercept assumption, which is unverifiable here.
+- §2 already asks for McNemar as an *"assumption-light companion"*, so this is **continuous with
+  the pre-registration's own logic** rather than a departure from it.
+
+**Amendment: primary is the marginal difference-of-differences with a cluster bootstrap over
+items; secondary is the registered GLMM reported as an odds ratio with its inference method named.
+Demote, do not delete.**
+
+**(b) GEE, not variational Bayes, for the reported odds ratio.** VB's interval is
+**anti-conservative** because VB understates posterior variance, and *"presenting an optimistic
+interval where a CI is expected is the worse error."* GEE is population-averaged, which **matches
+the marginal estimand now primary**, so the two describe the same contrast on two scales with the
+same clustering; VB's conditional OR is numerically larger and a reader comparing them would find
+them inconsistent without knowing why. VB stays in the appendix, explicitly labelled *"variational
+Bayes posterior interval, not a confidence interval"*, which also lets us say the registered model
+was fitted.
+
+**(c) No R dependency.** It would change only the secondary OR, `rpy2`/`pymer4` is a new toolchain
+in week 5 of a 7-week runway, and it would put R in the artifact's pinned dependency set, *"which
+is a reproducibility liability in a paper about reproducibility."*
+
+🚨 **Required disclosure:** the paper must carry a sentence stating that a conditional ML GLMM was
+not fit and why. *"A reviewer who knows lme4 will see `(1|item)` in the pre-registration and no
+GLMM in the results."*
+
+### R25.3 Do not let the pilot's intervals anchor expectations
+
+The pilot's H3 numbers are **between-arm quantities, so noise class 3** under R22/R23, and BBH is
+only ~120 items per cell there, so the invocation floor at pilot n is materially larger than the
+~0.7 pp expected at reference n. Holm correction across the family still applies. **Treat +2.22
+and +3.33 excluding zero as provisional.**
+
+The `gsm8k` inversion to −13.33 pp *"is the floor artifact §9c predicted, which is confirmation
+that excluding the hash arm from the primary family was the right call."*

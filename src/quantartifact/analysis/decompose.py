@@ -34,7 +34,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 
-from .results import Effect, NoiseClass
+from .results import Effect, NoiseClass, zero_variance_bound
 from .stratum import ABSENT_LABEL, COMMITTED_LABELS
 
 #: R24.3. Keyed by task name as it appears on the records.
@@ -307,18 +307,23 @@ def stopseq_differential(
             p_value, test = mcnemar_exact(b, c)
 
             if b + c == 0:
-                low, high = proportion_confint(0, n, alpha=0.05, method="wilson")
-                ci_low, ci_high = -float(high) * 100.0, float(high) * 100.0
+                # Zero observed discordance: the same registered rule as everywhere else
+                # (R25.1), with per-item magnitude 1 because the indicator is per-arm.
+                ci_low, ci_high, interval_method = zero_variance_bound(
+                    n, max_abs_contribution=1)
             else:
                 low, high = proportion_confint(b, b + c, alpha=0.05, method="wilson")
                 scale = (b + c) / n * 100.0
                 ci_low = (2.0 * float(low) - 1.0) * scale
                 ci_high = (2.0 * float(high) - 1.0) * scale
+                interval_method = ("Wilson on the discordant split, rescaled to the net rate "
+                                   "(conditional-on-discordants McNemar interval)")
 
             effects.append(Effect(
                 name=f"stopseq_differential[{alt_arm} vs {reference_arm}]",
                 estimate=estimate, ci_low=ci_low, ci_high=ci_high,
                 unit="pp", n=n, p_value=p_value, test=test,
+                interval_method=interval_method,
                 noise_class=NoiseClass.COMPOUNDING,
                 context={"cell": list(cell),
                          "termination_defined_at_rung": "permissive (rung 2), per §4",

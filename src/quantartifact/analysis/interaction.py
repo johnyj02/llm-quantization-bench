@@ -48,7 +48,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 
-from .results import Effect, NoiseClass
+from .results import Effect, NoiseClass, zero_variance_bound
 
 #: §2's headline contrast, fixed here so no caller can quietly choose a flattering pair.
 HEADLINE_RUNGS: tuple[str, str] = ("strict", "permissive")
@@ -202,11 +202,24 @@ def interaction_marginal(
          for i in shared], dtype=float)
     assert abs(contrib.mean() * 100.0 - point) < 1e-9, "contribution decomposition disagrees"
 
-    rng = np.random.default_rng(seed)
     n = len(shared)
-    draws = rng.integers(0, n, size=(n_boot, n))
-    boot = contrib[draws].mean(axis=1) * 100.0
-    ci_low, ci_high = (float(x) for x in np.percentile(boot, [2.5, 97.5]))
+    if not contrib.any():
+        # 🚨 R25.1. Every per-item contribution is identically zero, so there is nothing for the
+        # bootstrap to resample and it would return [0, 0]: arithmetically correct and
+        # substantively misleading, because with n items and no observed variation the effect is
+        # BOUNDED near zero rather than known to be zero. Measured on `arc_challenge_chat`, where
+        # strict and permissive agree on every item, so all four arms reported [0.00, 0.00].
+        #
+        # The planner ruled the bounded form is the STRONGER result, not a hedge: "+3.33 pp on BBH
+        # against bounded within a few points on the structurally constrained task" supports H6,
+        # whereas "[0, 0] against +3.33" invites the objection that the control is degenerate.
+        ci_low, ci_high, interval_method = zero_variance_bound(n)
+    else:
+        rng = np.random.default_rng(seed)
+        draws = rng.integers(0, n, size=(n_boot, n))
+        boot = contrib[draws].mean(axis=1) * 100.0
+        ci_low, ci_high = (float(x) for x in np.percentile(boot, [2.5, 97.5]))
+        interval_method = f"cluster bootstrap over items, {n_boot} percentile draws"
 
     # McNemar on the discordant items: an item is discordant when the two arms differ in whether
     # the permissive rung changed their correctness. This is the test appropriate to an
@@ -229,9 +242,11 @@ def interaction_marginal(
         name=f"H3_interaction_marginal[{alt_arm} vs {reference_arm}]",
         estimate=point, ci_low=ci_low, ci_high=ci_high,
         unit="pp", n=n, p_value=p_value, test=test,
+        interval_method=interval_method,
         noise_class=NoiseClass.COMPOUNDING,
         context={
             "task": task, "rungs": list(rungs),
+            "zero_variance": not bool(contrib.any()),
             "estimator": "difference of differences, cluster bootstrap over items",
             "n_boot": n_boot, "seed": seed, "n_items_dropped_unpaired": dropped,
             "gap_alt_pp": alt.gap(shared), "gap_reference_pp": ref.gap(shared),
@@ -245,9 +260,21 @@ def interaction_glmm(
     *,
     task: str,
     rungs: tuple[str, str] = HEADLINE_RUNGS,
-    fitter: str = "vb",
+    fitter: str = "gee",
 ) -> list[Effect]:
     """Fit §2's registered formula and return the interaction terms as odds ratios.
+
+    🚨 **`fitter` defaults to `"gee"` per R25.2(b)**, and the choice is not arbitrary. GEE is
+    population-averaged, which **matches the marginal estimand R25.2(a) made primary**, so the
+    odds ratio and the accuracy-point effect describe the same contrast on two scales and their
+    cluster-robust standard errors respect the same clustering as the bootstrap. VB's interval is
+    anti-conservative (variational Bayes understates posterior variance), and presenting an
+    optimistic interval where a reader expects a confidence interval is the worse error; VB also
+    yields a **conditional** odds ratio, which is numerically larger, so a reader comparing it
+    against the marginal effect would find them inconsistent without knowing why.
+
+    VB is retained for the appendix as a robustness fit that demonstrates the registered model
+    was actually fitted, explicitly labelled as a posterior interval rather than a CI.
 
     `fitter` selects the approximation, and the choice is recorded on every returned effect:
 
@@ -306,7 +333,8 @@ def interaction_glmm(
             fixed, {"item": "0 + C(item)"}, frame).fit_vb(verbose=False)
         names = list(fit.model.exog_names)
         means, sds = np.asarray(fit.fe_mean), np.asarray(fit.fe_sd)
-        unit = "odds ratio (VB posterior mean, 95% posterior interval)"
+        unit = ("odds ratio (VARIATIONAL BAYES posterior mean, 95% POSTERIOR interval, "
+                "NOT a confidence interval; VB understates posterior variance)")
         estimator = "BinomialBayesMixedGLM.fit_vb, random intercept (1|item)"
     elif fitter == "gee":
         import statsmodels.formula.api as smf  # noqa: PLC0415
@@ -316,7 +344,8 @@ def interaction_glmm(
                       family=Binomial(), cov_struct=Exchangeable()).fit()
         names = list(fit.params.index)
         means, sds = np.asarray(fit.params), np.asarray(fit.bse)
-        unit = "odds ratio (GEE population-averaged, 95% cluster-robust CI)"
+        unit = ("population-averaged odds ratio (GEE, exchangeable working correlation, "
+                "95% cluster-robust CI by item)")
         estimator = "GEE exchangeable, cluster-robust by item"
     else:
         raise ValueError(f"unknown fitter {fitter!r}; use 'vb' or 'gee'")
@@ -334,15 +363,20 @@ def interaction_glmm(
             # `excludes_null` written against 0 would be True for every one of these.
             null_value=1.0,
             unit=unit, n=int(len(frame)),
+            interval_method=estimator,
             noise_class=NoiseClass.COMPOUNDING,
             context={"task": task, "term": name, "formula": fixed,
                      "estimator": estimator, "fitter": fitter,
                      "log_odds": float(mean), "log_odds_se": float(sd),
                      "n_items": n_items, "rungs": list(rungs),
                      "registered_formula_note":
-                         "§2 registers (1|item) mixed effects; statsmodels has no "
-                         "frequentist logistic GLMM, so this is an approximation and the "
-                         "choice is recorded. Raised with the planner."},
+                         "§2's (1|item) denotes a conditional ML GLMM, which was NOT fit: "
+                         "statsmodels has no frequentist logistic mixed model and an R "
+                         "dependency was rejected (R25.2c) as a reproducibility liability in a "
+                         "paper about reproducibility. §2 is amended to name the estimator "
+                         "actually used (R25.2a): the marginal difference-of-differences is "
+                         "primary and this OR is secondary. This note is the required "
+                         "disclosure, and the paper must carry a sentence of it."},
         ))
     if not effects:
         raise InteractionError(
@@ -407,18 +441,21 @@ def rung_mcnemar(
         p_value, _ = mcnemar_exact(b, c)
         estimate = (b - c) / n * 100.0
         if b + c == 0:
-            low, high = proportion_confint(0, n, alpha=0.05, method="wilson")
-            ci_low, ci_high = -float(high) * 100.0, float(high) * 100.0
+            ci_low, ci_high, interval_method = zero_variance_bound(
+                n, max_abs_contribution=1)
         else:
             low, high = proportion_confint(b, b + c, alpha=0.05, method="wilson")
             scale = (b + c) / n * 100.0
             ci_low = (2.0 * float(low) - 1.0) * scale
             ci_high = (2.0 * float(high) - 1.0) * scale
+            interval_method = ("Wilson on the discordant split, rescaled to the net rate "
+                               "(conditional-on-discordants McNemar interval)")
         effects.append(Effect(
             name=f"rung_gap[{arm}]",
             estimate=estimate, ci_low=ci_low, ci_high=ci_high,
             unit="pp", n=n, p_value=p_value,
             test="mcnemar_exact[registered companion: strict vs permissive, within arm]",
+            interval_method=interval_method,
             noise_class=NoiseClass.PARTIALLY_CANCELLING,
             context={"task": task, "arm": arm, "rungs": list(rungs),
                      "n_recovered_by_permissive": b, "n_lost_by_permissive": c,

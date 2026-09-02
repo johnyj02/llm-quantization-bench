@@ -1,0 +1,43 @@
+Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.
+## Q1 — (ii), and unify both code paths on it.
+
+Zero observed events is a standard problem with a standard answer, and a bootstrap cannot solve it because there's nothing to resample. Your instinct is right: the honest claim is *bounded near zero*, not *known to be zero*.
+
+Reject (i) — tables get read without footnotes, and `[0.00, 0.00]` is a number a reader will take at face value. Reject (iii) — marking it undefined discards real information, because a valid bound does exist and §9 requires an interval.
+
+**Two things to pin down when you register it:**
+
+1. **Pre-specify the per-item magnitude in the bound's construction.** Wilson-upper on 0/240 gives a rate ≈1.6%; converting that to accuracy points requires an assumed |d_i| for a discordant item. Register |d_i| ≤ 1 (a single scorer flip in one direction) → ±1.6 pp, or |d_i| ≤ 2 for the conservative version. Pick one; don't leave it implicit in the code.
+2. **Label the method in the table**, not just in prose. Mixing bootstrap percentile intervals and zero-event Wilson bounds in one column without marking which is which is exactly what a careful reviewer flags.
+
+Yes — same rule everywhere observed variance is exactly zero, which makes it consistent with what `transitions.py` already does. Register it as a **generic estimator rule**, not an ARC-specific patch, since the prereg is still editable.
+
+**And note the bounded version is the stronger result, not a hedge.** "+3.33 pp on BBH versus bounded within ±1.6 pp on the structurally constrained task" is a real contrast that supports H6. `[0,0]` versus +3.33 invites "your control is degenerate."
+
+## Q2 — Marginal-primary is better than acceptable. Amend §2 now, and use GEE for the OR.
+
+**(a) Amend §2 to name the estimator, and keep the reasoning on the record.** Your argument is right and stronger than you stated it:
+
+- §2 **already requires** the marginal effect in accuracy points. It isn't a fallback; it's one of the two things registered.
+- `(1|item)` yields a **conditional** OR, which is not the quantity anyone interprets in accuracy points — conditional and marginal ORs differ systematically. So the GLMM's OR and the marginal effect answer different questions regardless of which fitter you use.
+- The cluster bootstrap is **assumption-lighter** than any GLMM: no link function, and no Gaussian random-intercept assumption, which is unverifiable here.
+- §2 already asks for McNemar as an "assumption-light companion." The cluster bootstrap is the same instinct, so this amendment is continuous with the prereg's own logic rather than a departure from it.
+
+Amendment: primary = marginal difference-of-differences with cluster bootstrap over items; secondary = the registered GLMM reported as an OR with its inference method named. Demote, don't delete.
+
+**(b) GEE for the reported OR.** Two reasons it beats VB here:
+
+- VB's interval is anti-conservative (it understates posterior variance), and presenting an optimistic interval where a CI is expected is the worse error.
+- GEE is population-averaged, which **matches the marginal estimand you've made primary** — so the OR and the accuracy-point effect describe the same contrast on two scales, and cluster-robust SEs by item respect the same clustering as the bootstrap. VB's conditional OR would be numerically larger and a reader comparing the two would find them inconsistent without knowing why.
+
+Label it: *population-averaged odds ratio, GEE with exchangeable working correlation, cluster-robust standard errors by item.* Keep VB in the appendix as a robustness fit, explicitly labelled **variational Bayes posterior interval, not a confidence interval**, with the note that VB understates posterior variance. That also lets you say the registered model was fit.
+
+**(c) No R dependency.** It wouldn't change the headline, only the secondary OR; rpy2/pymer4 is a new toolchain at week 5 of a 7-week runway; and it would put R in the artifact's pinned-dependency set, which is a reproducibility liability in a paper about reproducibility.
+
+**One required disclosure:** a sentence saying a conditional ML GLMM was not fit, and why. A reviewer who knows lme4 will see `(1|item)` in the pre-registration and no GLMM in the results — pre-empt it rather than be asked. Cheap, and it reads as care.
+
+## One caution on the numbers themselves
+
+Don't let pilot-v2's intervals anchor expectations. Those are between-arm quantities, so class 3 under R22, and BBH is ~120 items per cell there — the invocation floor at pilot n is materially larger than the ~0.7 pp expected at reference n, and Holm correction across the family still applies. Treat +2.22 and +3.33 excluding zero as provisional.
+
+The gsm8k inversion to −13.33 is the floor artifact §9c predicted, which is confirmation that excluding the hash arm from the primary family was the right call.

@@ -33,6 +33,7 @@ from quantartifact.analysis import (
     compute_stratum,
     decompose,
     holm_bonferroni,
+    interaction_glmm,
     interaction_marginal,
     mcnemar_exact,
     rung_mcnemar,
@@ -41,6 +42,10 @@ from quantartifact.analysis import (
 )
 from quantartifact.analysis.decompose import DecompositionError
 from quantartifact.analysis.interaction import _item_key
+from quantartifact.analysis.results import (
+    MAX_ABS_ITEM_CONTRIBUTION,
+    zero_variance_bound,
+)
 from quantartifact.analysis.stratum import ABSENT_LABEL, COMMITTED_LABELS
 from quantartifact.scoring import compliance as compliance_module
 
@@ -584,3 +589,85 @@ class TestReviewRegressions20260902:
         assert result.n_items_unpaired == 1
         assert result.fraction is None, "a mixed denominator must not be quoted as the cell's"
         assert result.fraction_of_paired == pytest.approx(1.0), "1 of 1 paired item"
+
+
+class TestR25ZeroVarianceInterval:
+    """R25.1: an interval where the observed variance is exactly zero.
+
+    Found by running the layer on real `pilot-v2` data: on `arc_challenge_chat` strict and
+    permissive agree on every item, so every per-item contribution is 0, the bootstrap has
+    nothing to resample and returned `[0.00, 0.00]` for all four arms at n=240. Arithmetically
+    correct and substantively misleading, since the honest claim is bounded near zero rather than
+    known to be zero.
+    """
+
+    def test_registered_per_item_magnitude_is_the_conservative_one(self):
+        """§9h registers 2, the true range of a difference-of-differences contribution."""
+        assert MAX_ABS_ITEM_CONTRIBUTION == 2
+
+    def test_bound_is_symmetric_and_nonzero(self):
+        """Wilson upper on 0/240 is about 1.6%, times magnitude 2, so about +/-3.2 pp."""
+        low, high, method = zero_variance_bound(240)
+        assert low == pytest.approx(-high)
+        assert 2.5 < high < 4.0
+        assert "NOT a bootstrap" in method
+
+    def test_bound_narrows_as_n_grows(self):
+        _, small, _ = zero_variance_bound(50)
+        _, large, _ = zero_variance_bound(5000)
+        assert large < small, "a bound on more items must be tighter"
+
+    def test_bound_rejects_nonpositive_n(self):
+        with pytest.raises(ValueError, match="needs n > 0"):
+            zero_variance_bound(0)
+
+    def test_degenerate_interaction_uses_the_bound_not_a_zero_width_interval(self):
+        """The ARC case, reproduced: both rungs agree on every item in both arms."""
+        rows = []
+        for i in range(40):
+            for arm in ("bf16", "gptq-4bit"):
+                rows.append(row(f"i{i}", arm,
+                                correct={"strict": True, "permissive": True}))
+        effect = interaction_marginal(rows, task="bbh", alt_arm="gptq-4bit", n_boot=500)
+        assert effect.estimate == pytest.approx(0.0)
+        assert effect.ci_high > 0.0, "a zero-width interval overstates certainty"
+        assert effect.ci_low == pytest.approx(-effect.ci_high)
+        assert effect.context["zero_variance"] is True
+        assert "zero-variance bound" in effect.interval_method
+        assert effect.excludes_null is False
+
+    def test_nondegenerate_interaction_still_uses_the_bootstrap(self):
+        rows = []
+        for i in range(40):
+            rows.append(row(f"i{i}", "bf16", correct={"strict": True, "permissive": True}))
+            rows.append(row(f"i{i}", "gptq-4bit",
+                            correct={"strict": i % 2 == 0, "permissive": True}))
+        effect = interaction_marginal(rows, task="bbh", alt_arm="gptq-4bit", n_boot=500)
+        assert effect.context["zero_variance"] is False
+        assert "cluster bootstrap" in effect.interval_method
+
+    def test_every_effect_names_its_interval_method(self):
+        """R25.1: the method belongs in the table, not only in prose."""
+        rows = [row(i, a, correct=True) for i in ("i1", "i2") for a in ("bf16", "gptq-4bit")]
+        for effect in transition_effects(build_transitions(rows, rungs=("strict",))):
+            assert effect.interval_method, f"{effect.name} has no interval_method"
+        for effect in stopseq_differential(rows):
+            assert effect.interval_method, f"{effect.name} has no interval_method"
+        for effect in rung_mcnemar(rows, task="bbh"):
+            assert effect.interval_method, f"{effect.name} has no interval_method"
+
+    def test_per_arm_indicators_use_magnitude_one(self):
+        """A compliance shift moves by 1/n per item, not 2/n, so its bound is half as wide."""
+        rows = [row(f"i{i}", a, correct=True) for i in range(40)
+                for a in ("bf16", "gptq-4bit")]
+        shift = transition_effects(build_transitions(rows, rungs=("strict",)))[0]
+        _, dod_high, _ = zero_variance_bound(40)
+        assert shift.ci_high == pytest.approx(dod_high / 2.0)
+
+
+class TestR25OddsRatioFitter:
+    """R25.2(b): GEE is the default for the reported odds ratio, not variational Bayes."""
+
+    def test_gee_is_the_default_fitter(self):
+        assert (inspect.signature(interaction_glmm)
+                .parameters["fitter"].default == "gee")

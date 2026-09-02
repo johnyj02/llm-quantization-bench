@@ -189,6 +189,41 @@ correct ~ precision * scoring + model + (1 | item)
   estimate. Item is the only random effect.
 - The `precision × scoring` interaction coefficient **is** the artifact estimate. Reported
   as an odds ratio **and** as a marginal effect in accuracy points with a 95% CI.
+- 🚨 **AMENDED 2026-09-02 (R25.2a): the ESTIMATOR of each is now named, because `(1 | item)`
+  as written denotes a conditional maximum-likelihood GLMM and that model was NOT fit.**
+
+  | quantity | estimator | status |
+  |---|---|---|
+  | marginal effect, accuracy points | difference of differences with a **cluster bootstrap over items** | **PRIMARY** |
+  | odds ratio | **GEE**, exchangeable working correlation, cluster-robust SEs by item, population-averaged | secondary |
+  | odds ratio, appendix only | `BinomialBayesMixedGLM` variational Bayes, random intercept for item | robustness; demonstrates the registered model was fitted |
+
+  **Why the marginal is primary, and why this is continuous with §2 rather than a departure from
+  it.** §2 *already* requires the marginal effect in accuracy points, so it is one of the two
+  registered quantities and not a fallback. A conditional `(1 | item)` model yields a
+  **conditional** odds ratio, which is not the quantity anyone interprets in accuracy points, and
+  conditional and marginal odds ratios differ systematically. The cluster bootstrap is
+  assumption-lighter than any GLMM here: no link function and no Gaussian random-intercept
+  assumption, the latter being unverifiable on this data. And §2 already asks for McNemar as an
+  *"assumption-light companion"*, so preferring an assumption-light interval follows the same
+  logic §2 states for itself.
+
+  **Why GEE rather than variational Bayes for the reported odds ratio.** VB's interval is
+  **anti-conservative**, since variational Bayes understates posterior variance, and presenting an
+  optimistic interval where a reader expects a confidence interval is the worse error. GEE is
+  population-averaged, which **matches the marginal estimand**, so the odds ratio and the
+  accuracy-point effect describe the same contrast on two scales with the same clustering. VB's
+  conditional odds ratio is numerically larger and a reader comparing the two would find them
+  inconsistent without being told why.
+
+  **No R dependency.** Fitting the registered model exactly would need `lme4`/`glmmTMB` through
+  `rpy2` or `pymer4`. Rejected: it changes only the secondary odds ratio, it is a new toolchain
+  in week 5 of a 7-week runway, and it would put R into the artifact's pinned dependency set,
+  which is a reproducibility liability in a paper about reproducibility.
+
+  🚨 **REQUIRED DISCLOSURE.** The paper must carry a sentence stating that a conditional ML GLMM
+  was not fit and why. A reviewer who knows `lme4` will see `(1 | item)` in this document and no
+  GLMM in the results, so the omission is pre-empted rather than waited for.
 - **Headline contrast is rung 1 (`strict`) vs rung 2 (`permissive`)** — deterministic,
   auditable, and independent of the judge. Rungs 3–4 are robustness.
 - Companion test: **McNemar on discordant pairs**, reported alongside the GLMM as an
@@ -948,6 +983,46 @@ its `order_sweep_levels` was `[64]`, a single-level run at the value this amendm
 abandoned, and it is the table the H8 section leads with. It was therefore **re-run at
 B=32** (job 37), and the B=64 measurement is retained but **not pooled** with it (§9a).
 **The template probe is likewise re-run at B=32** (job 36).
+
+### 9h. Intervals when the observed variance is exactly zero (generic estimator rule)
+
+Registered **2026-09-02**, planner ruling R25.1. ⚠️ **A generic rule, deliberately not an
+ARC-specific patch**, registered while the pre-registration is still editable.
+
+**What happens.** On `arc_challenge_chat` the strict and permissive extractions agree on every
+item, because its `gen_prefix` is *"The best answer is"* and its `until` contains `"."`, so the
+per-item contribution to the H3 interaction is identically zero for every item. A percentile
+bootstrap then resamples zeros and returns `[0.00, 0.00]`. Measured on `pilot-v2`: all four arms
+reported exactly `+0.00 pp [0.00, 0.00]` at n=240.
+
+**Why that is not acceptable to report.** It is arithmetically correct and substantively
+misleading. With `n` items and no observed variation the honest claim is that the effect is
+**bounded near zero**, not **known to be zero**, and §9 requires an interval for everything while
+forbidding a bare significance flag. A `[0, 0]` interval satisfies the letter of that while
+asserting a precision the data does not support, and tables are read without their footnotes.
+
+**The registered rule.** Where the observed variance of the per-item contribution is exactly
+zero, the interval is the **Wilson upper limit on 0 successes out of `n`**, converted to accuracy
+points by multiplying by the largest magnitude a single differing item can contribute, and
+reported symmetrically about zero.
+
+- **The per-item magnitude is pre-specified, not left implicit in the code.** For a difference of
+  differences the contribution is `(alt_high − alt_low) − (ref_high − ref_low)`, each term 0 or 1,
+  so its true range is `[−2, +2]` and **the registered magnitude is 2**, the conservative choice.
+  For a per-arm indicator such as the compliance shift or the `TRUNC_STOPSEQ` differential the
+  magnitude is **1**. At n=240 the Wilson upper limit is about 1.6%, giving about ±3.2 pp at
+  magnitude 2.
+- **The interval method is reported in the table itself, not only in prose.** A column that mixes
+  bootstrap percentile intervals with zero-event bounds without marking which is which is exactly
+  what a careful reviewer flags, so every reported effect carries its `interval_method`.
+- **The same rule applies everywhere observed variance is exactly zero**, which makes the
+  bootstrap path consistent with the zero-discordance path already used for the transition tables
+  and the stop-sequence differential.
+
+⚠️ **The bounded form is the STRONGER result, not a hedge.** *"+3.33 pp on BBH against bounded
+within a few points on the structurally constrained task"* is a real contrast and it supports
+**H6**, which predicts the interaction vanishes where extraction is structurally constrained.
+Reporting `[0, 0]` against `+3.33` instead invites the objection that the control is degenerate.
 
 ### 9a. Ordering as an accuracy statistic — CONFIRMATORY EXTENSION, explicitly not pre-data
 
