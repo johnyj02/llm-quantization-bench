@@ -12902,7 +12902,7 @@
     "status": "H4's registered tests are not yet implemented as hypothesis tests"
   },
   "limitations": [
-    "compliance is one generation-level label applied to every rung; \u00a71.1 quantifies over rungs. Flagged for the planner.",
+    "compliance is ONE generation-level label applied identically across rungs. This is required by \u00a74.0's identification argument, not a limitation: a stratum whose membership varied with the scorer would make part of H3's scoring contrast a selection contrast (\u00a71.1 as amended, planner ruling R26.3).",
     "pilot-v2 predates schema 1.3.0: no until/template_level/invocation_id, so classify_termination uses the tasks.yaml fallback for until."
   ],
   "math_verify_available": true,

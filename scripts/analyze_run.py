@@ -21,17 +21,27 @@ rows the analysis layer takes, and emits every registered quantity:
 * §4  H4's four components and the `TRUNC_STOPSEQ` differentiality test
 * §9  Holm-Bonferroni within each family
 
-⚠️ **TWO HONEST LIMITATIONS, stated because a number that looks finished is worse than a
-missing one.**
+**ONE DESIGN PROPERTY worth stating, and ONE HONEST LIMITATION**, because a number that looks
+finished is worse than a missing one.
 
-1. **Compliance is generation-level here, while §1.1 quantifies over rungs.**
-   `scoring.compliance.label_compliance` returns ONE label per generation, derived from the
-   strict and permissive extractions together, so `RECOVERABLE` already means "permissive found
-   what strict missed". §1.1 writes the stratum as a conjunction over `s in rungs 1-4`. On this
-   data that conjunction is degenerate: the same label is used for every rung. That is recorded
-   in the output as `compliance_is_generation_level: true` and **flagged for the planner**, since
-   deciding what per-rung compliance means is a science question rather than an implementation
-   detail.
+1. **Compliance is ONE generation-level label, applied identically across rungs, and this is
+   REQUIRED rather than a compromise.** `scoring.compliance.label_compliance` returns one label
+   per generation, derived from the strict and permissive extractions together, so `RECOVERABLE`
+   already means "permissive found what strict missed".
+
+   §1.1 was **amended** (planner ruling R26.3) to quantify over precision levels and invocations
+   only: its earlier *"for all scorers `s` in rungs 1–4"* was a drafting error. The reason is an
+   identification argument, not a convenience. **If compliance depended on the scoring rung,
+   stratum membership would depend on the scoring axis, which is one of the two factors in H3's
+   interaction, so part of the scoring contrast would become a selection contrast.** Recorded in
+   the output as `compliance_is_generation_level: true`.
+
+   🚨 **The disclosure R26.3 requires the paper to carry**, reproduced here because this is where
+   the stratum is computed: rung 2 appears both in `RECOVERABLE`'s definition and as an arm of the
+   H3 contrast. That is **not** circular. Rung 2 is used definitionally, once, identically across
+   arms, to establish commitment; the stratum restricts only H4's competence-across-precision
+   contrast, which is not a scoring contrast; and §4.0 establishes that H3 is fit on **all** items
+   and so is unaffected by the stratum.
 2. **`pilot-v2` predates schema 1.3.0**, so its records carry no `until`, `template_level` or
    `invocation_id`, and no `model_key` (it is derived from `cell_id`). `classify_termination`
    therefore takes its documented `tasks.yaml` fallback for `until`. Fine for a pilot, and the
@@ -251,8 +261,22 @@ def main() -> int:
         "n_rung_monotonicity_violations_anchored": n_violations_2a,
         "rung_monotonicity_violations_anchored": violations_2a[:50],
         "limitations": [
-            "compliance is one generation-level label applied to every rung; §1.1 quantifies "
-            "over rungs. Flagged for the planner.",
+            # 🚨 NOT a limitation, and it was stale in two ways. R26.3 RULED on this: §1.1's
+            # "for all scorers s in rungs 1-4" quantifier was a drafting error, §1.1 was
+            # amended, and scorer-independent compliance is REQUIRED by the design rather
+            # than an artifact of how the scorer happens to be built. If compliance depended
+            # on the rung, stratum membership would depend on the scoring axis, which is one
+            # of the two factors in H3's interaction, and part of the scoring contrast would
+            # become a selection contrast. So this belongs in the record as a resolved design
+            # property, not in a limitations list that reaches the paper.
+            #
+            # It also carried the phrasing CLAUDE.md's standing header names as filing rather
+            # than asking: a note reading "flagged for the planner" is not a flag, and this
+            # one outlived the ruling that answered it.
+            "compliance is ONE generation-level label applied identically across rungs. This "
+            "is required by §4.0's identification argument, not a limitation: a stratum whose "
+            "membership varied with the scorer would make part of H3's scoring contrast a "
+            "selection contrast (§1.1 as amended, planner ruling R26.3).",
             f"{args.run_id} predates schema 1.3.0: no until/template_level/invocation_id, so "
             "classify_termination uses the tasks.yaml fallback for until.",
         ],

@@ -38,9 +38,14 @@ Rather than pick one silently, this module computes the interaction **two ways**
    which fitter produced it in the returned context so a reader is never misled about the
    inference.
 
-⚠️ **Whether the registered `(1 | item)` is satisfied by a variational-Bayes fit is a science
-question, not mine.** It is flagged for the planner. It does not block the marginal estimate,
-the McNemar companion, or anything else in this package.
+✅ **RESOLVED by planner ruling R25.2, and §2 was amended to match.** The registered
+`(1 | item)` is not fit by the tooling available, and rather than leave that open §2 now names the
+estimators actually used: the **marginal difference-of-differences is PRIMARY**, a **GEE
+population-averaged odds ratio is the secondary** (R25.2b made GEE the default rather than
+variational Bayes), and a VB fit is appendix-only if reported at all. R25.2 called
+marginal-primary *better* than acceptable rather than a fallback, because the registered quantity
+is a marginal effect in accuracy points and a conditional GLMM would answer a subtly different
+question. `interaction_glmm`'s returned `context` carries the required disclosure.
 """
 
 from __future__ import annotations
@@ -329,7 +334,12 @@ def interaction_glmm(
 
     Neither is the maximum-likelihood conditional GLMM `(1 | item)` normally denotes. Reporting
     both, labelled, is the honest response to a registered specification the available tooling
-    cannot fit exactly. Whether the registration is satisfied is a planner question.
+    cannot fit exactly.
+
+    ✅ **Whether the registration is satisfied is SETTLED, not open (R25.2).** §2 was amended to
+    name these estimators: the marginal estimate is primary, this GEE odds ratio is the secondary,
+    and VB is appendix-only. This function is therefore reporting a **registered** secondary rather
+    than an approximation to an unmet specification.
     """
     import numpy as np  # noqa: PLC0415
     import pandas as pd  # noqa: PLC0415

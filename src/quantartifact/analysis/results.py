@@ -350,13 +350,26 @@ def zero_variance_bound(n: int, *, max_abs_contribution: int = MAX_ABS_ITEM_CONT
     **Construction, registered as a generic rule rather than an ARC-specific patch.** Take the
     Wilson upper limit on 0 successes out of `n`, which bounds the *rate* of items that could
     differ, then convert to accuracy points by multiplying by the largest contribution a single
-    differing item can make (`MAX_ABS_ITEM_CONTRIBUTION`). At n=240 the Wilson upper limit is
-    about 1.6%, giving roughly ±3.2 pp at the conservative per-item magnitude.
+    differing item can make. At n=240 the Wilson upper limit is about 1.6%, giving roughly
+    **±1.58 pp** at the registered magnitude of 1.
 
-    ⚠️ **The bounded version is the stronger result, not a hedge.** "+3.33 pp on BBH against
-    bounded within a few points on the structurally constrained task" is a real contrast that
-    supports H6, whereas "[0, 0] against +3.33" invites the objection that the control is
-    degenerate.
+    ⚠️ **The magnitude is NOT a "conservative" choice, and it is NOT a study constant.** R26.1
+    ruled that 1 is the magnitude *implied* by the registered monotonicity property rather than a
+    cautious pick, and rejected 2 outright because it describes a range the property forbids.
+    R27.3 then made the magnitude a property of a **rung pair**, taken as the maximum |d_i|
+    actually observed for that pair, after monotonicity turned out to be violated on real data at
+    a measured rate. `MAX_ABS_ITEM_CONTRIBUTION` is only the fallback; callers pass the observed
+    value from `observed_max_contribution()`.
+
+    🚨 **Do NOT read this bound against a bootstrap interval.** An earlier version of this
+    docstring argued that "+3.33 pp on BBH against bounded within a few points on the
+    structurally constrained task" was a contrast supporting H6. **R26.1 withdrew exactly that
+    framing as the planner's own error:** a worst-case bound and a bootstrap percentile interval
+    are different objects, and comparing them to each other is not meaningful. Each is compared to
+    a fixed threshold instead, which R31.3 confirmed is legitimate precisely because it avoids
+    reading one interval against the other. H6 therefore uses R26.1's **two-claim** form, zero on
+    the constrained task and non-zero on the unconstrained one, and `interval_method` records
+    which kind of interval each Effect carries so the distinction survives into the artifact.
 
     The same rule applies everywhere observed variance is exactly zero, which is what makes it
     consistent with the zero-discordance path in `transitions.py`.
