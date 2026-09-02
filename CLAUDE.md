@@ -54,6 +54,26 @@ scope/schedule in `EXECUTOR-TASKS.md`; decisions in `notes/decisions.md`. This f
     is the text non-empty and a plausible length, and does `n_gen_tokens` sit far below
     `max_gen_toks` on a chain-of-thought task, which usually means a stop sequence fired early.
 
+    ⚠️ **"My script cannot read that format" is NOT an exemption.** I claimed one for the
+    `determinism` stage on 2026-09-01, on the grounds that it stores `raw_*.json` probe passes
+    rather than generation JSONL, and the user caught it. The stage produces 22,000 model outputs
+    and the obligation applies; `peek_generations.py` not reading the format is a limitation of
+    the script. Read those files directly:
+    ```bash
+    aws s3 cp s3://…/checkpoints/determinism/raw_<cell>.json .   # then sample passes[0]["outputs"]
+    ```
+    🚨 **But note the probe stores TEXT ONLY.** Its per-pass keys are `ordering_seed`, `outputs`
+    and `seconds`: **no `finish_reason` and no `n_gen_tokens`.** So on that stage the check cannot
+    distinguish "the model stopped" from "hit the cap" from "a stop sequence fired", and the best
+    available proxy is the fraction of outputs not ending in terminal punctuation (measured 21.4%
+    on gptq-4bit at B=32, consistent with the 256-token cap but not evidence of it).
+
+    That omission also sits against this project's own architectural rule: `README.md` §1 and task
+    `A4` both state those two fields are unreconstructable afterwards and that H1 is impossible
+    without them. It is defensible for the probe, whose purpose is comparing text across
+    orderings, but it means the probe's data cannot be reused for anything else. Do not repeat the
+    pattern in a new stage.
+
 5. **Route questions to the planner**, not the user: `./ask-planner "..."` (D13). Batch them;
    each call re-sends its whole context. `FORK=1` for throwaway questions.
 6. **🚨 CONSULT THE CODE REVIEWER AFTER CODE CHANGES.** `./ask-reviewer "..."` — before the
