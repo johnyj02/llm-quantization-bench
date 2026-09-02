@@ -413,6 +413,75 @@ def extract_permissive(
     return Extraction(value=None, rung="permissive", rule=None)
 
 
+def _extract_after_first_commitment_phrase(text: str) -> str | None:
+    """Span after the FIRST commitment phrase. Rung 2a's anchor.
+
+    The mirror image of `_extract_after_commitment_phrase`, which takes the LAST. Taking the
+    first is what makes rung 2a monotone with respect to rung 1: it cannot skip past a committed
+    answer to a later candidate.
+    """
+    lowered = text.lower()
+    best_position = len(text) + 1
+    best_end = -1
+    for phrase in _COMMITMENT_PHRASES:
+        position = lowered.find(phrase)
+        if position >= 0 and position < best_position:
+            best_position, best_end = position, position + len(phrase)
+    if best_end < 0:
+        return None
+    tail = text[best_end:].strip()
+    if not tail:
+        return None
+    tail = re.split(r"[\n\r]|(?<=[0-9A-Za-z\)\}])\.(?:\s|$)", tail, maxsplit=1)[0]
+    return tail.strip() or None
+
+
+def extract_permissive_anchored(
+    generation: str, task: str, subtask: str | None = None
+) -> Extraction:
+    """Rung 2a. Commitment-ANCHORED permissive: the FIRST committed answer, not the last candidate.
+
+    🚨 Registered 2026-09-02 (planner ruling R27.1) as an **additive robustness rung**, not as a
+    replacement for rung 2. That distinction is the whole point:
+
+    **Rung 2's last-candidate rule IS lm-eval's `flexible-extract` with `group_select: -1`.** It is
+    published practice, not a defect of ours, and the paper's headline contrast is
+    strict-published-practice against flexible-published-practice. Amending rung 2 to fix the
+    behaviour below would replace the thing being measured with an extractor of our own invention.
+
+    **What rung 2 does that this does not.** Measured on `pilot-v2`, rung 2 *destroys* correct
+    answers in six cases where the generation continues past its committed answer, because
+    last-candidate then selects a later, wrong span that rung 1's marker-anchored rule never sees:
+
+    | strict | permissive (rung 2) | cause |
+    |---|---|---|
+    | `] ]` ✓ | `] ] ]` ✗ | the model's own closing line is wrong |
+    | `14` ✓ | `Jean can fill 14 bags of lollipops` ✗ | prose after `#### 14` |
+    | `False` ✓ | `True` ✗ | a concluding sentence contradicting the marker |
+    | `1430` ✓ | `in dollar format with two decimal points…` ✗ | a trailing `Note:` |
+
+    So **flexible extraction is not a monotone relaxation of strict; it is a different selection
+    rule with two-sided error.** Rung 2a is the anchored counterfactual that isolates that: it takes
+    the first commitment and the hash marker, and it drops the positional last-number and
+    last-option-letter fallbacks, which are the rules that can reach past a commitment.
+
+    Additive means the pilot's numbers stay valid and nothing is re-run.
+    """
+    rules: list[tuple[str, Callable[[str], str | None]]] = [
+        ("boxed", _extract_boxed),
+        ("hash_marker", lambda t: _apply_harness_regex(r"####\s*(.+)", t, 0)),
+        ("first_commitment_phrase", _extract_after_first_commitment_phrase),
+    ]
+    for rule_name, rule in rules:
+        raw = rule(generation)
+        if raw is None:
+            continue
+        value = normalise_answer(raw)
+        if value:
+            return Extraction(value=value, rung="permissive_anchored", rule=rule_name)
+    return Extraction(value=None, rung="permissive_anchored", rule=None)
+
+
 # ---------------------------------------------------------------------------
 # Normalisation -- applied to a rung-2 candidate, in the pre-registered order.
 # ---------------------------------------------------------------------------
@@ -630,6 +699,10 @@ def _as_number(text: str) -> float | None:
 #   1b -> 2  strictness effect (pattern rigidity)
 # Monotonicity is asserted along this order.
 RUNGS: tuple[str, ...] = ("strict", "strict_last", "permissive", "math_verify")
+
+#: Rung 2a, registered by R27.1 as an additive robustness rung. Kept out of `RUNGS` so it cannot
+#: silently enter a pre-registered family that was specified over the four rungs above.
+RUNG_ANCHORED = "permissive_anchored"
 
 
 def score_generation(

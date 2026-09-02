@@ -578,3 +578,74 @@ def study_wide_magnitude(rows: list[dict], *,
                 "repeat_idx": r.get("repeat_idx", 0),
             })
     return (2 if violations else 1), len(violations), violations
+
+
+def rung_gap_decomposition(
+    rows: list[dict],
+    *,
+    task: str,
+    arms: tuple[str, ...] | None = None,
+    rungs: tuple[str, str] = HEADLINE_RUNGS,
+) -> list[Effect]:
+    """Split the rung gap into RECOVERED and DESTROYED, per arm. Registered by R27.1.
+
+    🚨 **The gap is a net of two opposing effects, and reporting only the net is imprecise.**
+    Per item, at a rung pair `(low, high)`:
+
+    * **recovered** — low is wrong and high is right. Leniency rescued the item.
+    * **destroyed** — low is right and high is **wrong**. Leniency lost an answer the stricter rule
+      had captured.
+
+    `net = recovered - destroyed`, which is the quantity `rung_mcnemar` reports. Saying "leniency
+    recovers X pp" silently nets destruction against recovery, so the two directions are reported
+    separately here. It costs nothing (CPU over stored generations) and **nobody reports the
+    destruction rate of flexible extraction.**
+
+    **Why this exists at all.** Rung 2's last-candidate rule is lm-eval's `flexible-extract` with
+    `group_select: -1`, i.e. published practice. Measured on `pilot-v2` it destroys correct answers
+    on generations that continue past their committed answer, because last-candidate then reaches a
+    later wrong span that rung 1's marker-anchored rule never sees. So flexible extraction is **not
+    a monotone relaxation of strict; it is a different selection rule with two-sided error.** That
+    is the sharpest support the paper has for framing the contribution as *calibrating* extraction
+    rather than loosening it: Ren et al. established that leniency over-credits, and this measures
+    that it also destroys.
+
+    ⚠️ **`destroyed` is noise class 2** under §9f, like the gap itself: both rungs score the same
+    generation, so invocation noise is common to them and largely cancels.
+    """
+    from statsmodels.stats.proportion import proportion_confint  # noqa: PLC0415
+
+    cells = _collect(rows, task, rungs)
+    wanted = arms if arms is not None else tuple(sorted(cells))
+    effects: list[Effect] = []
+    for arm in wanted:
+        if arm not in cells:
+            raise InteractionError(f"{task}: arm {arm!r} has no rows")
+        cell = cells[arm]
+        items = sorted(cell.items)
+        if not items:
+            raise InteractionError(
+                f"{task} {arm}: no items scored at both rungs, so the decomposition is undefined")
+        n = len(items)
+        recovered = sum(1 for i in items if cell.high[i] and not cell.low[i])
+        destroyed = sum(1 for i in items if cell.low[i] and not cell.high[i])
+
+        for label, count in (("recovered", recovered), ("destroyed", destroyed)):
+            low, high = proportion_confint(count, n, alpha=0.05, method="wilson")
+            effects.append(Effect(
+                name=f"rung_{label}[{arm}]",
+                estimate=count / n * 100.0,
+                ci_low=float(low) * 100.0, ci_high=float(high) * 100.0,
+                unit="pp", n=n,
+                interval_method="Wilson interval on a single proportion",
+                noise_class=NoiseClass.PARTIALLY_CANCELLING,
+                context={"task": task, "arm": arm, "rungs": list(rungs),
+                         "direction": label, "count": count,
+                         "n_recovered": recovered, "n_destroyed": destroyed,
+                         "net_pp": (recovered - destroyed) / n * 100.0,
+                         "registered_in": "R27.1",
+                         "note": ("recovered = low wrong -> high right; destroyed = low RIGHT -> "
+                                  "high wrong. Reporting only the net hides the destruction "
+                                  "rate, which nobody reports for flexible extraction.")},
+            ))
+    return effects

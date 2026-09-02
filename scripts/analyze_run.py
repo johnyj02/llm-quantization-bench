@@ -59,6 +59,7 @@ from quantartifact.analysis import (  # noqa: E402
     decompose,
     holm_bonferroni,
     interaction_marginal,
+    rung_gap_decomposition,
     rung_mcnemar,
     stopseq_differential,
     study_wide_magnitude,
@@ -245,6 +246,7 @@ def main() -> int:
     h3: list = []
     h3_demonstration: list = []
     companions: list = []
+    gap_parts: list = []
     for task in tasks:
         excluded = task in EXCLUDED_FROM_H3_INTERACTION
         task_rows = [r for r in rows if r["task"] == task]
@@ -257,10 +259,13 @@ def main() -> int:
                 task_rows, task=task, alt_arm=alt, allow_excluded=excluded,
                 max_abs_contribution=magnitude))
         companions.extend(rung_mcnemar(task_rows, task=task))
+        # R27.1: the gap is a net of two opposing effects, so both directions are reported.
+        gap_parts.extend(rung_gap_decomposition(task_rows, task=task))
     report["h3_interaction"] = [e.as_dict() for e in h3]
     report["h3_interaction_demonstration_only"] = [e.as_dict() for e in h3_demonstration]
     report["h3_excluded_tasks"] = sorted(EXCLUDED_FROM_H3_INTERACTION & set(tasks))
     report["h3_rung_companion"] = [e.as_dict() for e in companions]
+    report["rung_gap_decomposition"] = [e.as_dict() for e in gap_parts]
     # §9: Holm-Bonferroni within the H3 family only, and the demonstration arm is not in it.
     report["h3_holm"] = holm_block(
         h3, family="H3",
@@ -277,6 +282,16 @@ def main() -> int:
     show(h3, "§2 H3 INTERACTION (marginal, permissive minus strict, pp) - IN the Holm family:")
     show(h3_demonstration,
          "§9c DEMONSTRATION ONLY, NOT an H3 interaction level and NOT in the Holm family:")
+
+    # R27.1's headline: leniency does not only recover, it also DESTROYS.
+    destroyed = [e for e in gap_parts if e.context["direction"] == "destroyed"]
+    if destroyed:
+        worst = max(destroyed, key=lambda e: e.estimate)
+        total_destroyed = sum(e.context["count"] for e in destroyed)
+        print(f"\nR27.1 RUNG GAP, both directions. Total DESTROYED by rung 2: "
+              f"{total_destroyed} items")
+        print(f"  worst arm: {worst.name} {worst.estimate:.2f} pp "
+              f"[{worst.ci_low:.2f}, {worst.ci_high:.2f}]")
 
     # ---- §4 H4 --------------------------------------------------------------------------
     # 🚨 THE SAME SPLIT AS H3, because I reintroduced the identical permission-slip defect here

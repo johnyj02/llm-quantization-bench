@@ -744,6 +744,99 @@ change to a rung **bumps the version**; outputs are never overwritten.
 
 ---
 
+## 5a. Rung 2a, and the rung gap decomposed into RECOVERED and DESTROYED
+
+Registered **2026-09-02**, planner ruling R27.1. ⚠️ A **pre-specified extension informed by pilot
+data already seen**, with the exploratory numbers stated inline. Not pre-data.
+
+### What was found
+
+Rung monotonicity fails on real generations. Measured on `pilot-v2`, six generations have rung 1
+**correct** and rung 2 **incorrect**:
+
+| model / task | rung 1 | rung 2 | cause |
+|---|---|---|---|
+| llama dyck_languages idx-0 | `] ]` ✓ | `] ] ]` ✗ | the model's own closing line is wrong |
+| phi gsm8k idx-55 | `14` ✓ | `Jean can fill 14 bags of lollipops` ✗ | prose after `#### 14` |
+| phi boolean_expressions idx-16 | `False` ✓ | `True` ✗ | a concluding sentence contradicting the marker |
+| phi gsm8k idx-61 | `1430` ✓ | `in dollar format with two decimal points…` ✗ | a trailing `Note:` |
+
+🚨 **CORRECTED 2026-09-02, before this section bound anything.** A first pass described all six
+as one mechanism, "the generation continues past its committed answer". Reading the **real**
+generations rather than the traced summaries shows **three** mechanisms, and one of them runs the
+opposite way, so the destruction claim rests on four of the six cases and not all six.
+
+| class | cases | mechanism | leniency destroying? |
+|---|---|---|---|
+| **A** | phi gsm8k idx-55, idx-61 | `#### N` then trailing prose; rung 2's last-candidate rule reaches into it | **yes** |
+| **B** | phi boolean_expressions idx-16, phi logical_deduction idx-12 | the model states **several** commitments and self-corrects to a wrong one; rung 1 takes the **first** (harness `take_first`), rung 2 takes the **last** | **yes** |
+| **C** | llama dyck_languages idx-0 (gptq-4bit, bnb-nf4) | the model says `] ] ]`, which is **wrong**; rung 1 extracts `] ]` **only because BBH's regex drops the final character** | **NO, the reverse** |
+
+**Class C is rung 1 being accidentally correct via a known harness defect**, already pinned as a
+test and recorded under G3, and rung 2 is the rung reporting faithfully what the model said. It is
+counted as a monotonicity violation because it is one, but it must not be counted as destruction.
+
+⇒ **Flexible extraction is not a monotone relaxation of strict extraction. It is a different
+selection rule with TWO-SIDED error.** Classes A and B are the leniency-side error. Class C is a
+**strict-side** error in the opposite direction, and reporting both is what makes the claim about
+*calibration* rather than about one rung being better.
+
+### Rung 2 is NOT amended, and that is the decisive point
+
+🚨 **Rung 2's last-candidate rule IS lm-eval's `flexible-extract` with `group_select: -1`.** It is
+**published practice**, not a defect of ours, and §2.2's headline contrast is
+strict-published-practice against flexible-published-practice. Amending rung 2 would replace the
+thing being measured with an extractor of our own invention.
+
+**Rung 2a is added instead, as an ADDITIVE robustness rung:** commitment-**anchored** permissive,
+which takes the **first** committed answer and the hash marker, and drops the positional
+last-number and last-option-letter fallbacks, since those are the rules that can reach past a
+commitment. Additive means the pilot's numbers stay valid and nothing is re-run.
+
+⚠️ **Rung 2a reduces destruction but does not eliminate it.** On the four traced cases it recovers
+two (both hash-marker cases) and cannot help the `dyck_languages` one, where the model's **only**
+commitment phrase is the wrong one so there is no earlier anchor. Reported as measured.
+
+### The registered decomposition
+
+The rung gap is a **net of two opposing effects**, and reporting only the net is imprecise. Per
+item, at a rung pair `(low, high)`:
+
+- **recovered** — low wrong, high right. Leniency rescued the item.
+- **destroyed** — low **right**, high wrong. Leniency lost an answer the stricter rule captured.
+
+Both directions are reported separately, per arm, with Wilson intervals. `net = recovered −
+destroyed` is what the §2 companion reports. **Nobody reports the destruction rate of flexible
+extraction**, and saying "leniency recovers X pp" silently nets destruction against recovery.
+
+**Exploratory values on `pilot-v2`, stated inline:** 914 recovered against 6 destroyed over 5,100
+generations, so recovery dominates by roughly 150 to 1 and destruction is 0.12% overall.
+
+### 🚨 Pre-registered directional prediction, so it is confirmatory rather than post-hoc
+
+**Prediction: the DESTRUCTION rate is differentially HIGHER on quantized arms than on `bf16`.**
+
+The mechanism implies it: destruction requires a generation that continues past its committed
+answer, and over-generation is a quantized-arm behaviour. Registered with the direction stated
+**before** the reference run, at which n it is a real test either way.
+
+⚠️ **The pilot is suggestive and under-powered, and is labelled as such.** Destroyed counts are
+`bf16` **0**, `gptq-8bit` **0**, `gptq-4bit` 2, `awq-4bit` 3, `bnb-nf4` 1, over 900 items per arm.
+The direction matches and `bf16` at exactly zero is notable, but n=6 supports no magnitude claim.
+
+⚠️ **Note what this would mean if it holds.** It is a compliance-adjacent measurement artifact
+running **opposite** to the paper's main hypothesis: it would mean flexible extraction penalises
+quantized arms specifically, which *understates* rather than overstates their measured degradation.
+That direction is reported with the same prominence as the rest, per §0's standing rule that both
+directions can be true at once.
+
+### Framing this supports
+
+The sharpest support the paper has for framing the contribution as **calibrating** extraction rather
+than loosening it. Ren et al. (arXiv:2608.02442) established that leniency **over-credits**, with
+8.2–44.1% of correct-graded answers shortcut-hacked. This measures that leniency also **destroys**
+correct answers the stricter rule captured. A paper arguing only "be more lenient" walks into both.
+
 ## 6. Judge — gate thresholds and pre-specified fallback
 
 - **Primary judge:** `IAAR-Shanghai/xVerify-9B-I`. Licensed CC-BY-NC-ND-4.0: run and
@@ -1029,29 +1122,32 @@ zero, the interval is the **Wilson upper limit on 0 successes out of `n`**, conv
 points by multiplying by the largest magnitude a single differing item can contribute, and
 reported symmetrically about zero.
 
-- 🚨 **The per-item magnitude is DERIVED, not chosen. AMENDED 2026-09-02 (R26.1): it is the
-  maximum `|d_i|` OBSERVED anywhere in the study, which under rung monotonicity is 1.**
+- 🚨 **The per-item magnitude is MEASURED, and it is a property of a RUNG PAIR rather than a
+  study constant. AMENDED 2026-09-02 (R27.3), superseding R26.1's derivation.**
 
-  The registered magnitude was briefly 2, on the reasoning that
-  `d_i = (alt_perm − alt_strict) − (ref_perm − ref_strict)` has each term in {0, 1} and so ranges
-  over `[−2, +2]`. **That range is forbidden by a property already pre-registered and gate-tested.**
-  Under the rung monotonicity G3 gates on (anything rung *n* marks correct, rung *n+1* also marks
-  correct), permissive ⊇ strict, so each parenthesised gap lies in {0, +1} and never −1, hence
-  `d_i ∈ {−1, 0, +1}` and `|d_i| ≤ 1`.
+  R26.1 derived the magnitude as 1 from rung monotonicity: under it, permissive ⊇ strict, each gap
+  in `(alt_perm − alt_strict) − (ref_perm − ref_strict)` lies in {0, +1}, so `|d_i| ≤ 1`.
+  **That premise is empirically FALSE on our generations, and the derivation is void.** The
+  planner's own words: *"the premise it rested on is empirically false, and measuring rather than
+  assuming is what caught it."*
 
-  So 1 is not the convenient choice, it is the implied one. Registering the **observed** maximum
-  rather than an assumed bound makes the number a measurement under a pre-specified rule in either
-  direction: if monotonicity is violated in the real data then `|d_i|` can reach 2, the observed
-  maximum reflects it, and the bound widens accordingly.
+  **Measured on `pilot-v2`: rung monotonicity is violated on 6 of 5,100 generations**, so the
+  observed maximum `|d_i|` for the rung 1 vs rung 2 pair is **2**. Mechanism, traced on every case:
+  the generation **continues past its committed answer**, and rung 2's last-candidate rule then
+  selects a later, wrong span that rung 1's marker-anchored rule never sees. Full account in §5a.
 
-  ⚠️ **Monotonicity must therefore be asserted on the REAL data, not only on the G3 fixtures**, and
-  any violation reported as a finding about the scorers rather than absorbed silently into a wider
-  interval. Every reported effect carries `observed_max_abs_contribution` and
-  `n_rung_monotonicity_violations`.
+  | rung pair | magnitude | basis |
+  |---|---|---|
+  | rung 1 vs **rung 2** | **2** | observed; monotonicity violated at a measured rate |
+  | rung 1 vs **rung 2a** (§5a) | observed maximum for that pair | anchoring removes the rules that can reach past a commitment |
 
-  For a per-arm indicator such as the compliance shift or the `TRUNC_STOPSEQ` differential the
-  magnitude is **1** by construction, since a single item moves the rate by `1/n`. At n=240 the
-  Wilson upper limit is about 1.58%, giving about ±1.6 pp.
+  - **The rule is registered; the VALUE is frozen at the first `main-v1` measurement.** Re-deriving
+    it after every re-analysis would invite drift.
+  - ⚠️ **The bound scales LINEARLY in the magnitude**, so a reader who disagrees with the value can
+    rescale it directly. That is stated in the paper, which removes any need to trust the choice.
+  - Monotonicity violations are reported as a **count and a rate**, per arm, never absorbed
+    silently into a wider interval.
+
 - **The interval method is reported in the table itself, not only in prose.** A column that mixes
   bootstrap percentile intervals with zero-event bounds without marking which is which is exactly
   what a careful reviewer flags, so every reported effect carries its `interval_method`.

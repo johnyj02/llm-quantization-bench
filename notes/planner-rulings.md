@@ -1813,3 +1813,96 @@ an arm of the H3 contrast. Not circular, and the paper says why in one sentence:
 **definitionally, once, identically across arms** to establish commitment; the stratum restricts
 only H4's **competence-across-precision** contrast, which is not a scoring contrast; and §4.0
 already establishes **H3 is fit on all items** and so is unaffected by the stratum.
+
+---
+
+## R27 — Monotonicity is violated on real data. Keep rung 2, add rung 2a, decompose the gap
+
+Raw answer: `notes/planner-answers/R27-monotonicity-violated-on-real-data.txt`. Registered as
+prereg §5a and an amendment to §9h.
+
+The planner's opening: *"My R26.1 derivation is void — the premise it rested on is empirically
+false, and measuring rather than assuming is what caught it. Conceded."*
+
+### R27.1 🚨 The fact I had missed: rung 2 IS lm-eval's `flexible-extract`
+
+**Rung 2's last-candidate rule is `flexible-extract` with `group_select: -1`.** It is **published
+practice**, not a defect of ours, and §2.2's headline contrast is strict-published-practice against
+flexible-published-practice. *"'Fixing' it would replace published practice with an extractor of
+our own invention."* So both of my repair options were rejected: they destroy the thing being
+measured.
+
+**Ruling: keep rung 2 exactly as registered, and ADD rung 2a** as a new pre-registered robustness
+rung. Commitment-anchored permissive: the **first** committed answer rather than the last candidate,
+dropping the positional fallbacks that can reach past a commitment. **Additive, not substitutive**,
+so the pilot's numbers stay valid and nothing re-runs.
+
+**The content I had not extracted: the gap is a NET of two opposing effects.** Decomposed per item:
+
+- **recovered** — strict wrong, permissive right.
+- **destroyed** — strict **right**, permissive wrong.
+
+Both reported separately, per arm. *"Nobody reports the destruction rate of flexible extraction"*,
+and "leniency recovers X pp" silently nets destruction against recovery. Measured on `pilot-v2`:
+**914 recovered against 6 destroyed** over 5,100 generations.
+
+**Framing:** *"the sharpest support the paper has for §7's mandate to frame the contribution as
+calibrating extraction rather than loosening it."* Ren et al. established leniency **over-credits**;
+this measures that it also **destroys**. Flexible extraction is not a monotone relaxation, it is a
+different selection rule with **two-sided error**. Novel and citable.
+
+**Registered directional prediction, so it is confirmatory:** the **destruction rate is
+differentially higher on quantized arms**, because destruction needs a generation that continues
+past its committed answer and over-generation is a quantized-arm behaviour. ⚠️ Note this would be a
+compliance-adjacent artifact running **opposite** to the paper's main hypothesis.
+
+Pilot, under-powered and labelled as such: `bf16` **0**, `gptq-8bit` **0**, `gptq-4bit` 2,
+`awq-4bit` 3, `bnb-nf4` 1, over 900 items each. Direction matches; n=6 supports no magnitude.
+
+### 🚨 R27.1 corrected by me AFTER the ruling: there are THREE mechanisms, not one
+
+I reported all six violations as one mechanism. Reading the **real** generations rather than my
+traced tails shows three, and one runs the other way:
+
+| class | cases | mechanism | destruction? |
+|---|---|---|---|
+| A | phi gsm8k ×2 | `#### N` then trailing prose | yes |
+| B | phi boolean idx-16, logical_deduction idx-12 | several commitments, model self-corrects to a wrong one; rung 1 takes first, rung 2 takes last | yes |
+| **C** | llama dyck ×2 | model says `] ] ]` (**wrong**); rung 1 extracts `] ]` **only because BBH's regex drops the final character** | **NO, the reverse** |
+
+**Class C is rung 1 accidentally correct via a defect already pinned under G3**, and rung 2 is the
+honest rung. So the destruction claim rests on **four** of six cases. §5a carries the correction and
+`tests/test_extract.py` separates the two fixture sets, since lumping them would misstate the
+finding. Rung 2a recovers classes A and B and cannot help C, which is correct: there is nothing to
+recover there.
+
+### R27.2 G3's fixture criterion STANDS and PASSES. Fix the fixtures, not the gate
+
+*"Fixtures are monotone, the triage clause fired, and the triage is complete. The gate worked as
+designed — don't record it as failed."* A5 separates the two: fixture monotonicity is a **gate**;
+the real-data violation rate is a **measured and reported quantity**, not a gate.
+
+🚨 **The actual process fix: add trailing-continuation fixtures.** *"The defect passed because the
+fixture set contained no generation that continues past its committed answer — the fixtures were
+unrepresentative of the failure mode. Otherwise this class recurs."* Added, one per traced shape,
+deliberately **excluded** from `MONOTONICITY_FIXTURES` since they violate it by construction.
+
+G3 stays `partial` for the ARC log-likelihood cross-validation, unchanged.
+
+### R27.3 §9h amended, and the magnitude is PER RUNG PAIR
+
+Delete the derivation; state that monotonicity is violated at a measured rate, name the mechanism,
+and give the magnitude as the observed maximum, currently **2** for the rung 1 vs rung 2 pair.
+
+**The magnitude is a property of a rung pair, not a study constant.** Rung 1 vs rung 2 uses 2; rung
+1 vs rung 2a uses that pair's observed maximum. *"More precise than one global value."*
+
+- **Register the rule, freeze the VALUE at the first `main-v1` measurement**, since re-deriving after
+  every re-analysis invites drift.
+- **The bound scales linearly in the magnitude**, stated in the paper so a reader can rescale it and
+  need not trust the choice.
+
+**Consequence for H6, stated plainly:** ARC's bound is ±3.15 pp at pilot n and about ±2.2 pp at
+reference n=500, so H6 uses R26.1's two-claim form (zero on the constrained task, non-zero on the
+unconstrained one), and the **rung-2a bound at magnitude 1 becomes the tighter robustness
+presentation**. Report both so the reader sees the conclusion does not turn on the choice.

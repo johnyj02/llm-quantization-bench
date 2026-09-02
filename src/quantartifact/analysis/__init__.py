@@ -36,6 +36,7 @@ from .interaction import (
     InteractionError,
     interaction_glmm,
     interaction_marginal,
+    rung_gap_decomposition,
     rung_mcnemar,
     study_wide_magnitude,
 )
@@ -62,6 +63,6 @@ __all__ = [
     "StratumError", "StratumResult", "TransitionError", "TransitionTable",
     "bounds_effects", "build_transitions", "compute_bounds", "compute_stratum",
     "decompose", "holm_bonferroni", "interaction_glmm", "interaction_marginal",
-    "mcnemar_exact", "rung_mcnemar", "stopseq_differential", "study_wide_magnitude",
+    "mcnemar_exact", "rung_gap_decomposition", "rung_mcnemar", "stopseq_differential", "study_wide_magnitude",
     "transition_effects",
 ]

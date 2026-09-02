@@ -21,9 +21,11 @@ import pytest
 
 import quantartifact.scoring.extract as extract_module
 from quantartifact.scoring.extract import (
+    RUNG_ANCHORED,
     RUNGS,
     answers_match,
     extract_permissive,
+    extract_permissive_anchored,
     extract_strict,
     extract_strict_last,
     normalise_answer,
@@ -495,3 +497,164 @@ def test_math_verify_never_loses_a_rung2_correct(monkeypatch):
     results = score_generation("The answer is 18.", "18", "gsm8k_cot")
     assert results["permissive"]["correct"] is True
     assert results["math_verify"]["correct"] is True
+
+
+# ---------------------------------------------------------------------------
+# R27.2: trailing-continuation fixtures. THE PROCESS FIX.
+# ---------------------------------------------------------------------------
+#
+# 🚨 Rung monotonicity failed on real generations while passing on fixtures, and the reason is
+# that the fixture set contained NO generation that continues past its committed answer. The
+# fixtures were unrepresentative of the failure mode, so the ladder's two-sided error was
+# invisible to the tests. The planner's process fix: add cases for each shape traced on
+# `pilot-v2`, "otherwise this class recurs".
+#
+# ⚠️ These are DELIBERATELY EXCLUDED from `MONOTONICITY_FIXTURES`. They violate monotonicity by
+# construction, which is the point: the gate asserts monotonicity on generations that should have
+# it, while these pin the KNOWN behaviour on generations that should not, so it cannot drift
+# silently in either direction.
+#
+# Each tuple is (label, generation, gold, task, subtask, rung2_destroys, rung2a_recovers).
+TRAILING_CONTINUATION_FIXTURES = [
+    # CLASS A: leniency reaches into trailing prose after a committed marker. Genuine destruction.
+    (
+        "A: hash marker then prose restatement",
+        "She has 28 sweets, so 28 / 2 = <<28/2=14>>14.\n#### 14\n\n"
+        "Final Answer: Jean can fill 14 bags of lollipops.\n#### 14",
+        "14", "gsm8k", None, True, True,
+    ),
+    (
+        "A: hash marker then a formatting note",
+        "1300+130=<<1300+130=1430>>1430.\n#### 1430\n\n"
+        "Note: The answer is in dollar format with two decimal points, "
+        "even if it represents a whole number.",
+        "1430", "gsm8k", None, True, True,
+    ),
+    # CLASS B: several commitments, model self-corrects to a WRONG one. Strict takes the first
+    # (harness `take_first`), rung 2 takes the last. Genuine destruction, and rung 2a recovers it
+    # because anchoring on the FIRST commitment is exactly the counterfactual.
+    (
+        "B: two commitments, self-corrected to the wrong one",
+        "not not False and not not not False. So the answer is False.\n\n"
+        "Alternatively, let me re-evaluate. not not False = True, "
+        "not not not False = True, so the answer is True. "
+        "It seems there was an error in my initial reasoning.",
+        "False", "bbh", "boolean_expressions", True, True,
+    ),
+    (
+        "B: four commitments, last one a non-answer",
+        "Amy finished third, so the answer is (A).\n\n"
+        "The orange book is second, so the answer is (A).\n\n"
+        "The red book is fourth, so the answer is (C).\n\n"
+        "Therefore the answer is not (A), (B), or (E).",
+        "(A)", "bbh", "logical_deduction_five_objects", True, True,
+    ),
+]
+
+# 🚨 CLASS C IS SEPARATE AND RUNS THE OTHER WAY. Recorded because lumping it in with the above
+# would misstate the finding.
+#
+# On `llama dyck_languages idx-0` the model's stated answer is `] ] ]` (three brackets) and the
+# gold is `] ]` (two). So the model is WRONG. Rung 1 nevertheless scores it correct, because BBH's
+# harness regex `(?<=the answer is )(.*)(?=.)` DROPS THE FINAL CHARACTER -- a defect already pinned
+# as a test in this file and recorded in `notes/gates.md` under G3. Rung 2 reports `] ] ]`, which is
+# faithful to what the model said.
+#
+# So this is NOT leniency destroying a correct answer. It is **strict being accidentally correct
+# via a known harness defect**, and rung 2 is the rung telling the truth. Two of the six measured
+# "monotonicity violations" are this shape, which is why the destruction claim rests on four cases
+# rather than six.
+STRICT_ACCIDENTALLY_CORRECT_FIXTURES = [
+    (
+        "C: strict lucky via the drops-final-char defect",
+        'The final stack is "[[".\nWe will need to pop out "[", "[", "[", '
+        'one by one in that order.\nSo, we need "]", "]", "]". So the answer is ] ] ]',
+        "] ]", "bbh", "dyck_languages",
+    ),
+]
+
+
+
+@pytest.mark.parametrize(
+    ("label", "generation", "gold", "task", "subtask", "destroys", "anchored_recovers"),
+    TRAILING_CONTINUATION_FIXTURES,
+    ids=[f[0] for f in TRAILING_CONTINUATION_FIXTURES],
+)
+def test_trailing_continuation_behaviour_is_pinned(
+    label, generation, gold, task, subtask, destroys, anchored_recovers
+):
+    """Pin rung 2's DESTRUCTION and rung 2a's partial recovery on each traced shape.
+
+    Rung 2 is lm-eval's `flexible-extract` with `group_select: -1`, i.e. published practice, so
+    its destruction here is the measured property being reported (prereg §5a), not a bug to fix.
+    Rung 2a is the anchored counterfactual.
+    """
+    strict = extract_strict(generation, task, subtask)
+    permissive = extract_permissive(generation, task, subtask)
+    anchored = extract_permissive_anchored(generation, task, subtask)
+
+    strict_right = strict.value is not None and answers_match(
+        strict.value, gold, task, subtask)
+    permissive_right = permissive.value is not None and answers_match(
+        permissive.value, gold, task, subtask)
+    anchored_right = anchored.value is not None and answers_match(
+        anchored.value, gold, task, subtask)
+
+    assert strict_right, (
+        f"{label}: the fixture is only meaningful if rung 1 gets it RIGHT, since destruction is "
+        f"defined as rung 1 right and rung 2 wrong. strict extracted {strict.value!r}"
+    )
+    if destroys:
+        assert not permissive_right, (
+            f"{label}: rung 2 was expected to DESTROY this answer and did not. If the extractor "
+            f"changed, prereg §5a's measured destruction rate changed with it."
+        )
+    assert anchored_right is anchored_recovers, (
+        f"{label}: rung 2a recovery expected {anchored_recovers}, got {anchored_right} "
+        f"(extracted {anchored.value!r}). Rung 2a reduces destruction but does not eliminate it, "
+        f"and the dyck case is why: the model's only commitment phrase is the wrong one."
+    )
+
+
+def test_trailing_continuation_fixtures_are_excluded_from_the_monotonicity_gate():
+    """The gate must keep asserting monotonicity on fixtures that should have it.
+
+    If these leaked into `MONOTONICITY_FIXTURES` the gate would start failing for a reason that
+    is a reported finding rather than a defect, and the signal would be lost.
+    """
+    monotone_generations = {f[0] for f in MONOTONICITY_FIXTURES}
+    for fixture in TRAILING_CONTINUATION_FIXTURES:
+        assert fixture[1] not in monotone_generations
+
+
+def test_rung_2a_is_not_in_the_registered_rung_tuple():
+    """R27.1: rung 2a is ADDITIVE, so it must not enter a family specified over RUNGS."""
+    assert RUNG_ANCHORED not in RUNGS
+
+
+@pytest.mark.parametrize(
+    ("label", "generation", "gold", "task", "subtask"),
+    STRICT_ACCIDENTALLY_CORRECT_FIXTURES,
+    ids=[f[0] for f in STRICT_ACCIDENTALLY_CORRECT_FIXTURES],
+)
+def test_strict_can_be_accidentally_correct_via_the_dropped_final_char(
+    label, generation, gold, task, subtask
+):
+    """Class C. Rung 1 scores a WRONG model answer as correct, and rung 2 is the honest one.
+
+    BBH's harness regex drops the final character, so a model that says `] ] ]` (three) has `] ]`
+    (two) extracted, which happens to match the gold. Two of the six measured monotonicity
+    violations are this shape, so they must NOT be counted as leniency destroying a correct answer:
+    the destruction claim rests on classes A and B only.
+    """
+    strict = extract_strict(generation, task, subtask)
+    permissive = extract_permissive(generation, task, subtask)
+
+    assert strict.value is not None and answers_match(strict.value, gold, task, subtask), (
+        f"{label}: rung 1 is expected to score this CORRECT, by accident")
+    assert permissive.value is not None, f"{label}: rung 2 should extract something"
+    assert not answers_match(permissive.value, gold, task, subtask), (
+        f"{label}: rung 2 is expected to report what the model actually said, which is wrong")
+    assert permissive.value.count("]") > strict.value.count("]"), (
+        f"{label}: the tell is that rung 2 has MORE of the repeated token than rung 1, because "
+        f"rung 1 lost one to the dropped final character")
