@@ -30,11 +30,11 @@ that can drift will drift — that already happened once with the ledger.
 TASKS wins on execution, PLAN wins on science. TASKS §0.2 lists eleven intentional
 overrides; a conflict *not* listed there is a planning bug — stop and report it.
 
-### Asking the planner, and asking the reviewer
+### Asking the planner, and asking the CODE REVIEWER
 
 Two long-lived advisor sessions, neither of which writes code. **The planner rules on SCIENCE;
-the reviewer rules on CODE.** Scientific questions go to the planner rather than to the user
-(D13); code questions go to the reviewer.
+the CODE REVIEWER rules on CODE.** Scientific questions go to the planner rather than to the user
+(D13); code questions go to the CODE REVIEWER.
 
 ```bash
 ./ask-planner  "question"                   # resumes its session — it remembers everything
@@ -46,7 +46,7 @@ FORK=1 ./ask-planner "throwaway question"   # reads its context without writing 
 Both resume a **fixed session id**, which is most of their value: they remember what was already
 ruled on, so they do not re-litigate settled decisions or re-report known quirks.
 
-**The reviewer is read-only by construction** — `Edit`, `Write` and `NotebookEdit` are denied at
+**The CODE REVIEWER is read-only by construction** — `Edit`, `Write` and `NotebookEdit` are denied at
 the CLI, so it cannot modify the repo even if the prompt asks. It keeps `Read`/`Grep`/`Bash`
 because running the tests beats reasoning about them, and it is told to label what it *verified*
 separately from what it *suspects*.
@@ -55,16 +55,16 @@ Its role lives in `notes/reviewer-charter.md`, loaded as an appended system prom
 call — so the charter is versioned in git and editable without re-seeding, while the session
 carries the findings history. **The charter is what makes it useful:** it names this project's
 actual bug family (ten instances of a value that determines an outcome not being part of that
-outcome's identity or enforcement path) and tells the reviewer to hunt that first, rather than
+outcome's identity or enforcement path) and tells the CODE REVIEWER to hunt that first, rather than
 reviewing research code as though it were a product.
 
-🚨 **The reviewer must be consulted after code changes** — `CLAUDE.md` §0 rule 6, before the
+🚨 **The CODE REVIEWER must be consulted after code changes** — `CLAUDE.md` §0 rule 6, before the
 change feeds a billable job and before it is called done. Its first run found a wrong-number bug
 that every existing test passed over; green tests and clean lint are necessary and have
 repeatedly not been sufficient. Record the outcome in `notes/reviews/`, including anything
 declined **and why**.
 
-⚠️ The reviewer can run `bash`. The charter forbids billable commands per D10, but that is an
+⚠️ The CODE REVIEWER can run `bash`. The charter forbids billable commands per D10, but that is an
 instruction, not a lock — do not hand it a prompt that asks it to submit a job.
 
 Both run Opus 5 (1M context) at `--effort max`. Planner session `54ba15b1-…`, reviewer session

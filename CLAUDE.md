@@ -16,10 +16,20 @@ scope/schedule in `EXECUTOR-TASKS.md`; decisions in `notes/decisions.md`. This f
 | **ANY SCIENCE QUESTION**: a hypothesis, an estimator, a scope change, a registered design, a threshold, a claim in the paper | **THE PLANNER** (D13, rule 5) | `./ask-planner "..."` |
 | **ANY CODE CHANGE**, before it feeds a billable job AND before you call it done | **THE CODE REVIEWER** (rule 6) | `./ask-reviewer "..."` |
 
+🚨 **ALWAYS CALL IT THE "CODE REVIEWER", NEVER JUST "THE REVIEWER".**
+
+The user's instruction of 2026-09-02, and it exists to prevent a specific mistake rather than for
+tidiness. Shortened to "the reviewer" the two agents blur together, and they had already blurred:
+a conceptual question about a registered estimator was routed to the CODE REVIEWER instead of the
+planner, and the CODE REVIEWER then volunteered a ruling on a science decision that was not its to
+make. Say "CODE REVIEWER" for code and "planner" for science, every time, in chat and in files.
+⚠️ An **ARR reviewer** is a different thing entirely: a person, and the Oct 14 registration
+obligation. Do not conflate the two.
+
 🚨 **ASKING IS NOT ENOUGH. WAIT FOR THE ANSWER BEFORE CALLING THE WORK DONE.**
 
 Recorded because it happened on 2026-09-01: the analysis layer (`A19`) was written, committed,
-and reported to the user as built, and *then* the reviewer was consulted. The call was genuinely
+and reported to the user as built, and *then* the CODE REVIEWER was consulted. The call was genuinely
 made and was still in flight when the work was presented as finished. **That is close to not
 asking at all**, because the user was shown completed work they had no reason to doubt. The
 previous two reviews found a CRITICAL bug each, including one that would have put a fabricated
@@ -109,7 +119,7 @@ highly. Full detail in rule 5 (planner) and rule 6 (reviewer) below.
    ```bash
    ./ask-reviewer "review <what changed>. $(git diff HEAD~1)"
    ```
-   The planner rules on **science**; the reviewer rules on **code**. Neither writes code.
+   The planner rules on **science**; the CODE REVIEWER rules on **code**. Neither writes code.
    Tell it what the change is *for*, not just what it is, and point it at the authority
    document the change is supposed to satisfy — it checks against the registered design, not
    against your description of it.
@@ -121,17 +131,17 @@ highly. Full detail in rule 5 (planner) and rule 6 (reviewer) below.
    sufficient.
 
    Three obligations that come with it:
-   - **Verify before acting.** The reviewer labels what it *ran* separately from what it
+   - **Verify before acting.** The CODE REVIEWER labels what it *ran* separately from what it
      *read*; a reading-only claim gets checked before it changes code.
    - **Record the outcome** next to the raw answer in `notes/reviews/`, including findings
      **declined and why**. A finding dismissed without a recorded reason is one it re-raises
      every time its memory refreshes.
    - **Findings come classified CRITICAL, MODERATE or MINOR** (`notes/reviewer-charter.md`).
      Act on CRITICAL and MODERATE. 🚨 **MINOR items are NOT acted on**, by the user's
-     instruction of 2026-09-01; the reviewer still lists them in one line each so they are on
+     instruction of 2026-09-01; the CODE REVIEWER still lists them in one line each so they are on
      record, and that list is the whole of what happens to them.
 
-     ⚠️ The one risk in ignoring minors, and the charter tells the reviewer to guard it: some
+     ⚠️ The one risk in ignoring minors, and the charter tells the CODE REVIEWER to guard it: some
      correctness bugs look like hygiene. A swallowed exception, a type hint that lies, and a
      parameter accepted then ignored have all appeared here as apparent tidiness issues. The
      reviewer is instructed to **promote** such an item to MODERATE or CRITICAL rather than
