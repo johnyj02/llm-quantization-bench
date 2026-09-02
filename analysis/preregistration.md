@@ -943,8 +943,11 @@ frozen value exceeded our own pre-registered threshold, and that we moved.
 **What is and is not re-run:** `pilot-v2` is **not** re-run — R11/O11 established that the
 annotation pool need not be byte-identical to `main-v1`, since judge validation is a claim about
 the population of generations rather than about specific strings; it is recorded as having run at
-B=64. The 10-ordering H8 run spans {8, 32, 64} by design and stands. **The template probe is
-re-run at B=32.**
+B=64. ⚠️ **The 10-ordering H8 run did NOT span {8, 32, 64}**, contrary to what R24.1 asserted:
+its `order_sweep_levels` was `[64]`, a single-level run at the value this amendment
+abandoned, and it is the table the H8 section leads with. It was therefore **re-run at
+B=32** (job 37), and the B=64 measurement is retained but **not pooled** with it (§9a).
+**The template probe is likewise re-run at B=32** (job 36).
 
 ### 9a. Ordering as an accuracy statistic — CONFIRMATORY EXTENSION, explicitly not pre-data
 
