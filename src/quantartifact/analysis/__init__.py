@@ -37,6 +37,7 @@ from .interaction import (
     interaction_glmm,
     interaction_marginal,
     rung_mcnemar,
+    study_wide_magnitude,
 )
 from .results import Effect, NoiseClass, holm_bonferroni
 from .stratum import (
@@ -61,5 +62,6 @@ __all__ = [
     "StratumError", "StratumResult", "TransitionError", "TransitionTable",
     "bounds_effects", "build_transitions", "compute_bounds", "compute_stratum",
     "decompose", "holm_bonferroni", "interaction_glmm", "interaction_marginal",
-    "mcnemar_exact", "rung_mcnemar", "stopseq_differential", "transition_effects",
+    "mcnemar_exact", "rung_mcnemar", "stopseq_differential", "study_wide_magnitude",
+    "transition_effects",
 ]

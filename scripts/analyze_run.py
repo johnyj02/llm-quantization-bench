@@ -61,6 +61,7 @@ from quantartifact.analysis import (  # noqa: E402
     interaction_marginal,
     rung_mcnemar,
     stopseq_differential,
+    study_wide_magnitude,
     transition_effects,
 )
 from quantartifact.scoring import compliance as compliance_module  # noqa: E402
@@ -118,6 +119,38 @@ def to_analysis_row(record: dict) -> dict:
     }
 
 
+def holm_block(effects: list, *, family: str, absent_reason: str) -> dict:
+    """A Holm-Bonferroni result that carries its own STATUS, never a bare list.
+
+    🚨 WHY THIS EXISTS, and it is the third appearance of one shape.
+
+    `holm_bonferroni` raises on an empty family, and the raise carries the reason: *"returning an
+    empty list would let an upstream skip read as a completed correction."* The first version of
+    this script wrote `[...] if effects else []`, which performs exactly the pre-check the guard
+    exists to catch, so the guard became unreachable and the skip flowed straight through. The
+    review before this one found the same shape with `allow_excluded=`, and before that
+    `score_template.py` declared BRANCH 1 from an empty verdict list.
+
+    **A guard is not a guard if the caller may pre-check its condition.**
+
+    The second half is that a bare `[]` collapses three different meanings into one serialised
+    value: no registered tests implemented in this family yet, the family resolved to nothing so
+    the correction was skipped, and the correction ran and rejected nothing. This project already
+    refuses that collapse in three places, each with a comment saying why: `Effect.claimable`
+    returns `None` rather than `False`, `StratumResult.fraction` returns `None` rather than `0.0`,
+    and `mcnemar_exact` returns `None` rather than `1.0`. Same argument, same fix.
+
+    So the block always carries `family`, `m`, `status` and `rows`, and `status` distinguishes the
+    cases. `holm_bonferroni` is called if and only if there is something to correct, and when there
+    is not, the reason is recorded rather than implied by an empty list.
+    """
+    if effects:
+        rows = [{k: v for k, v in r.items() if k != "effect"}
+                for r in holm_bonferroni(effects, family=family)]
+        return {"family": family, "m": rows[0]["m"], "status": "corrected", "rows": rows}
+    return {"family": family, "m": 0, "status": absent_reason, "rows": []}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the pre-registered analysis")
     parser.add_argument("--run-id", default="pilot-v2")
@@ -138,12 +171,22 @@ def main() -> int:
         if not rows:
             raise SystemExit(f"no rows for task {args.task!r}")
 
+    # 🚨 §9h's magnitude is STUDY-WIDE, so it is computed once over every row before any cell is
+    # estimated, and passed down. R26.1 also requires monotonicity be asserted on the real data
+    # rather than only on the G3 fixtures, and that is the same computation.
+    magnitude, n_violations, violations = study_wide_magnitude(rows)
+
     tasks = sorted({r["task"] for r in rows})
     print(f"run_id       : {args.run_id}")
     print(f"records      : {len(records):,}  rows after filter: {len(rows):,}")
     print(f"rungs        : {list(RUNGS)}"
           f"{'' if MATH_VERIFY else '   (math_verify UNAVAILABLE)'}")
     print(f"tasks        : {tasks}")
+    print(f"§9h magnitude: {magnitude}  (rung monotonicity violations on real data: "
+          f"{n_violations})")
+    if n_violations:
+        print("   🚨 MONOTONICITY VIOLATED on real data. This is a finding about the scorers, "
+              "not a wider interval to absorb quietly. G3's fixtures forbid it.")
 
     report: dict = {
         "run_id": args.run_id,
@@ -151,6 +194,10 @@ def main() -> int:
         "rungs": list(RUNGS),
         "math_verify_available": MATH_VERIFY,
         "compliance_is_generation_level": True,
+        # §9h / R26.1: the study-wide magnitude, and monotonicity asserted on the real data.
+        "study_wide_max_abs_contribution": magnitude,
+        "n_rung_monotonicity_violations": n_violations,
+        "rung_monotonicity_violations": violations[:50],
         "limitations": [
             "compliance is one generation-level label applied to every rung; §1.1 quantifies "
             "over rungs. Flagged for the planner.",
@@ -206,18 +253,18 @@ def main() -> int:
         for alt in ALT_ARMS:
             if alt not in arms_here or "bf16" not in arms_here:
                 continue
-            sink.append(interaction_marginal(task_rows, task=task, alt_arm=alt,
-                                             allow_excluded=excluded))
+            sink.append(interaction_marginal(
+                task_rows, task=task, alt_arm=alt, allow_excluded=excluded,
+                max_abs_contribution=magnitude))
         companions.extend(rung_mcnemar(task_rows, task=task))
     report["h3_interaction"] = [e.as_dict() for e in h3]
     report["h3_interaction_demonstration_only"] = [e.as_dict() for e in h3_demonstration]
     report["h3_excluded_tasks"] = sorted(EXCLUDED_FROM_H3_INTERACTION & set(tasks))
     report["h3_rung_companion"] = [e.as_dict() for e in companions]
     # §9: Holm-Bonferroni within the H3 family only, and the demonstration arm is not in it.
-    report["h3_holm"] = (
-        [{k: v for k, v in r.items() if k != "effect"}
-         for r in holm_bonferroni(h3, family="H3")] if h3 else []
-    )
+    report["h3_holm"] = holm_block(
+        h3, family="H3",
+        absent_reason="no H3 interaction resolved: a task had no bf16 or no alt arm")
     def show(effects: list, heading: str) -> None:
         if not effects:
             return
@@ -278,14 +325,12 @@ def main() -> int:
     report["h4_excluded_tasks"] = sorted(EXCLUDED_FROM_H4_PRIMARY & set(tasks))
     # §4's stopseq test, in H1's family per R26.2, over all tasks.
     report["h1_stopseq_differential"] = [e.as_dict() for e in stopseq]
-    report["h1_holm"] = (
-        [{k: v for k, v in r.items() if k != "effect"}
-         for r in holm_bonferroni(stopseq, family="H1")] if stopseq else []
-    )
-    # H4's own family is the decomposition's registered tests, which are not yet implemented as
-    # hypothesis tests, so the key is present and empty rather than absent: an absent key reads as
-    # "not computed" and an empty one reads as "nothing in this family yet", and those differ.
-    report["h4_holm"] = []
+    report["h1_holm"] = holm_block(
+        stopseq, family="H1",
+        absent_reason="no stopseq test resolved: no cell had both bf16 and an alt arm")
+    report["h4_holm"] = holm_block(
+        [], family="H4",
+        absent_reason="H4's registered tests are not yet implemented as hypothesis tests")
     print(f"\n§4 H4 DECOMPOSITION: {len(decomps)} cell-arm pairs in the primary table")
     if decomps_demo:
         print(f"   plus DEMONSTRATION ONLY (R24.3): {len(decomps_demo)} pairs")

@@ -274,10 +274,18 @@ def holm_bonferroni(effects: list[Effect], *, family: str,
 MAX_ABS_ITEM_CONTRIBUTION: int = 1
 
 
-def observed_max_contribution(contributions) -> tuple[int, int]:
-    """The registered magnitude: `max |d_i|` observed, plus the count of monotonicity violations.
+def observed_max_contribution(contributions) -> tuple[int, str, int]:
+    """The registered magnitude, its PROVENANCE, and the count of monotonicity violations.
 
-    Returns `(magnitude, n_violations)`.
+    Returns `(magnitude, source, n_violations)` where `source` is `"observed"` or
+    `"monotonicity_floor"`.
+
+    🚨 **The provenance is returned because the magnitude is not always observed, and the one case
+    where the bound is actually USED is the case where it is not.** In the all-zero (ARC) case
+    `max |d_i|` is 0, the floor substitutes 1, and a field named `observed_max_abs_contribution`
+    would then assert that the data supports a magnitude the data is silent on. R26.1's framing is
+    that the magnitude is *observed rather than assumed*, so the artifact must distinguish the two
+    or the audit trail claims something false. Found by the CODE REVIEWER, 2026-09-02.
 
     R26.1 registers the per-item magnitude as **the maximum absolute contribution observed
     anywhere in the study**, rather than as an assumed bound. Under the rung monotonicity G3 gates
@@ -303,8 +311,17 @@ def observed_max_contribution(contributions) -> tuple[int, int]:
             "make the magnitude vacuous and the bound arbitrarily tight."
         )
     n_violations = int((values > 1).sum())
-    magnitude = int(max(1, int(values.max())))
-    return magnitude, n_violations
+    # ⚠️ `ceil`, not `int()`. `int()` truncates, so a float 1.9999999 arising from any future
+    # non-integer contribution would report 1 and UNDERSTATE the magnitude, which is the one
+    # direction of error that matters for a bound. The CODE REVIEWER asked about this directly.
+    import math  # noqa: PLC0415
+    observed = int(math.ceil(float(values.max())))
+    if observed >= 1:
+        return observed, "observed", n_violations
+    # Zero events. The floor is the correct statistical behaviour, since a magnitude cannot be
+    # estimated from no observations and `zero_variance_bound` would reject 0, but it is DERIVED
+    # from rung monotonicity rather than measured, and the caller must be able to tell.
+    return MAX_ABS_ITEM_CONTRIBUTION, "monotonicity_floor", n_violations
 
 
 def zero_variance_bound(n: int, *, max_abs_contribution: int = MAX_ABS_ITEM_CONTRIBUTION,

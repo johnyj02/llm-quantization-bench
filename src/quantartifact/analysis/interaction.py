@@ -150,6 +150,7 @@ def interaction_marginal(
     n_boot: int = 10_000,
     seed: int = 20260901,
     allow_excluded: bool = False,
+    max_abs_contribution: int | None = None,
 ) -> Effect:
     """The interaction as a marginal effect in accuracy points, with a cluster-bootstrap CI.
 
@@ -227,10 +228,21 @@ def interaction_marginal(
         # Centred on the point estimate, which is zero in the all-zero case and is not in the
         # all-equal-non-zero one. A bound symmetric about zero around a non-zero estimate would
         # be an interval excluding its own estimate, which `Effect` now refuses outright.
-        # R26.1: the magnitude is the maximum |d_i| OBSERVED, which under G3's rung monotonicity
-        # is 1. In the all-equal case every |d_i| is the same value, so this reads it off the data
-        # rather than assuming it.
-        magnitude, n_violations = observed_max_contribution(contrib)
+        # 🚨 §9h registers the magnitude as the maximum |d_i| observed **ANYWHERE IN THE STUDY**,
+        # not in this cell. The distinction is invisible while no monotonicity violation exists,
+        # because both give 1, and it is the whole point in the contingency the rule was written
+        # for: if one BBH subtask shows |d_i| = 2, the registered magnitude becomes 2 for EVERY
+        # cell including ARC, yet a per-cell computation on ARC's all-zero contributions can never
+        # see it. The cells that most need widening are exactly the degenerate ones that cannot
+        # observe the violation themselves, so the propagation mechanism would fail to propagate.
+        # The caller therefore passes the study-wide value; the local value is the fallback for a
+        # single-cell call. Found by the CODE REVIEWER, 2026-09-02.
+        if max_abs_contribution is None:
+            magnitude, magnitude_source, n_violations = observed_max_contribution(contrib)
+        else:
+            magnitude = max_abs_contribution
+            _, _, n_violations = observed_max_contribution(contrib)
+            magnitude_source = "study_wide"
         ci_low, ci_high, interval_method = zero_variance_bound(
             n, max_abs_contribution=magnitude, centre=point)
     else:
@@ -239,7 +251,9 @@ def interaction_marginal(
         boot = contrib[draws].mean(axis=1) * 100.0
         ci_low, ci_high = (float(x) for x in np.percentile(boot, [2.5, 97.5]))
         interval_method = f"cluster bootstrap over items, {n_boot} percentile draws"
-        magnitude, n_violations = observed_max_contribution(contrib)
+        magnitude, magnitude_source, n_violations = observed_max_contribution(contrib)
+        if max_abs_contribution is not None:
+            magnitude, magnitude_source = max_abs_contribution, "study_wide"
 
     # McNemar on the discordant items: an item is discordant when the two arms differ in whether
     # the permissive rung changed their correctness. This is the test appropriate to an
@@ -271,7 +285,8 @@ def interaction_marginal(
             # |d_i| > 1 can only happen if a more permissive rung marks incorrect what a stricter
             # rung marked correct, which G3's fixtures forbid, so a non-zero count is a finding
             # about the scorers rather than a wider interval to absorb quietly.
-            "observed_max_abs_contribution": magnitude,
+            "max_abs_contribution": magnitude,
+            "max_abs_contribution_source": magnitude_source,
             "n_rung_monotonicity_violations": n_violations,
             "estimator": "difference of differences, cluster bootstrap over items",
             "n_boot": n_boot, "seed": seed, "n_items_dropped_unpaired": dropped,
@@ -392,6 +407,23 @@ def interaction_glmm(
     for name, mean, sd in zip(names, means, sds, strict=False):
         if ":" not in name:
             continue  # interaction terms only; main effects are reported separately
+        # 🚨 A CONVERGED fit can still have a singular cluster-robust covariance. Measured on a
+        # 30-item fixture: `fit.converged` was True while `bse` held NaN for
+        # `precision[T.gptq-4bit]`, because a negative diagonal in `cov_robust` makes
+        # `sqrt` produce NaN. That NaN landed on a MAIN effect and was silently discarded by the
+        # `":" in name` filter, so the test asserting the fit works passed purely because of which
+        # coefficient happened to get it. Had it landed here, `Effect` would have raised with
+        # "estimate is not a number", naming the wrong cause and sending a reader after a
+        # construction bug instead of a singular covariance. Checked explicitly so the diagnosis
+        # is in the message. Found by the CODE REVIEWER, 2026-09-02.
+        if not np.isfinite([mean, sd]).all():
+            raise InteractionError(
+                f"{task}: {fitter.upper()} produced a non-finite coefficient for interaction term "
+                f"{name!r} (log-odds={mean}, se={sd}) despite reporting convergence. This is a "
+                f"SINGULAR cluster-robust covariance, not a construction error: too few clusters "
+                f"relative to parameters, or perfect separation within a cell. The odds ratio "
+                f"cannot be reported for this term."
+            )
         effects.append(Effect(
             name=f"H3_interaction_OR[{name}]",
             estimate=float(np.exp(mean)),
@@ -506,3 +538,43 @@ def rung_mcnemar(
                      "registered_in": "§2 companion test"},
         ))
     return effects
+
+
+def study_wide_magnitude(rows: list[dict], *,
+                         rungs: tuple[str, str] = HEADLINE_RUNGS) -> tuple[int, int, list[dict]]:
+    """§9h's study-wide per-item magnitude, by asserting rung monotonicity on the REAL data.
+
+    Returns `(magnitude, n_violations, violations)`.
+
+    §9h registers the magnitude as the maximum `|d_i|` observed **anywhere in the study**, and
+    R26.1 additionally requires that rung monotonicity be *"asserted empirically on the real data,
+    not just fixtures"*. Those are one computation, because monotonicity is what bounds `|d_i|`:
+
+    * A **violation** is a single row where the stricter rung marks an item correct and the more
+      permissive rung marks it incorrect. G3's fixtures forbid it.
+    * With no violations, every gap `(perm - strict)` lies in {0, +1}, so every
+      `d_i = (alt gap) - (ref gap)` lies in {-1, 0, +1} and the magnitude is **1**.
+    * With any violation a gap can be -1, so `|d_i|` can reach **2** and the magnitude widens
+      study-wide, including for degenerate cells that could never observe the violation themselves.
+
+    That last point is the reason this is computed once over all rows rather than per cell. A
+    per-cell computation on ARC's all-zero contributions can never see a violation living in a BBH
+    subtask, so the mechanism registered to propagate a violation would fail to propagate it in
+    exactly the contingency it was written for.
+
+    The violations are returned rather than only counted, because a non-zero count is a **finding
+    about the scorers** that must be reported rather than absorbed into a wider interval.
+    """
+    strict_rung, permissive_rung = rungs
+    violations: list[dict] = []
+    for r in rows:
+        correct = r["correct"]
+        if strict_rung not in correct or permissive_rung not in correct:
+            continue
+        if correct[strict_rung] and not correct[permissive_rung]:
+            violations.append({
+                "item_key": _item_key(r), "arm": r["arm"],
+                "task": r["task"], "subtask": r.get("subtask"),
+                "repeat_idx": r.get("repeat_idx", 0),
+            })
+    return (2 if violations else 1), len(violations), violations

@@ -38,6 +38,7 @@ from quantartifact.analysis import (
     mcnemar_exact,
     rung_mcnemar,
     stopseq_differential,
+    study_wide_magnitude,
     transition_effects,
 )
 from quantartifact.analysis.decompose import DecompositionError
@@ -769,7 +770,7 @@ class TestR26DerivedMagnitude:
     """R26.1: the per-item magnitude is the maximum |d_i| OBSERVED, not an assumed bound."""
 
     def test_monotone_contributions_give_magnitude_one(self):
-        assert observed_max_contribution([0, 1, 0, -1, 1]) == (1, 0)
+        assert observed_max_contribution([0, 1, 0, -1, 1]) == (1, "observed", 0)
 
     def test_a_violation_widens_the_magnitude_and_is_counted(self):
         """|d_i| > 1 can only arise if monotonicity fails, which G3's fixtures forbid.
@@ -777,13 +778,19 @@ class TestR26DerivedMagnitude:
         It must be reported as a finding about the scorers rather than absorbed into a wider
         interval without comment, so the count travels with the magnitude.
         """
-        magnitude, violations = observed_max_contribution([0, 1, 2, -1])
+        magnitude, source, violations = observed_max_contribution([0, 1, 2, -1])
         assert magnitude == 2
+        assert source == "observed"
         assert violations == 1
 
-    def test_all_zero_contributions_still_give_magnitude_at_least_one(self):
-        """The ARC case. A magnitude of 0 would collapse the bound to zero width."""
-        assert observed_max_contribution([0, 0, 0]) == (1, 0)
+    def test_all_zero_contributions_report_the_floor_as_derived_not_observed(self):
+        """The ARC case, and the provenance matters.
+
+        A magnitude of 0 would collapse the bound to zero width, so the floor is correct. But the
+        value 1 is DERIVED from monotonicity rather than observed, and a field claiming otherwise
+        would assert the data supports something the data is silent on.
+        """
+        assert observed_max_contribution([0, 0, 0]) == (1, "monotonicity_floor", 0)
 
     def test_empty_contributions_raise(self):
         with pytest.raises(ValueError, match="at least one contribution"):
@@ -796,7 +803,8 @@ class TestR26DerivedMagnitude:
             rows.append(row(f"i{i}", "gptq-4bit",
                             correct={"strict": True, "permissive": True}))
         effect = interaction_marginal(rows, task="bbh", alt_arm="gptq-4bit", n_boot=200)
-        assert effect.context["observed_max_abs_contribution"] == 1
+        assert effect.context["max_abs_contribution"] == 1
+        assert effect.context["max_abs_contribution_source"] == "monotonicity_floor"
         assert effect.context["n_rung_monotonicity_violations"] == 0
 
     def test_arc_style_bound_matches_the_planner_estimate(self):
@@ -808,3 +816,72 @@ class TestR26DerivedMagnitude:
                                 correct={"strict": True, "permissive": True}))
         effect = interaction_marginal(rows, task="bbh", alt_arm="gptq-4bit", n_boot=200)
         assert effect.ci_high == pytest.approx(1.58, abs=0.05)
+
+
+class TestReviewRegressions20260902Round3:
+    """Regressions for the third code review of 2026-09-02 (2026-09-02T071736Z.md)."""
+
+    def test_magnitude_provenance_distinguishes_observed_from_derived(self):
+        """MODERATE 2: the one case where the bound is USED is the case where 1 is not observed."""
+        assert observed_max_contribution([0, 0])[1] == "monotonicity_floor"
+        assert observed_max_contribution([0, 1])[1] == "observed"
+
+    def test_magnitude_uses_ceil_not_truncation(self):
+        """MODERATE 2: int() would truncate 1.9999 to 1 and UNDERSTATE the bound."""
+        magnitude, _, _ = observed_max_contribution([0.0, 1.9999999])
+        assert magnitude == 2
+
+    def test_study_wide_magnitude_is_one_when_monotonicity_holds(self):
+        rows = [row("i1", "bf16", correct={"strict": False, "permissive": True}),
+                row("i1", "gptq-4bit", correct={"strict": True, "permissive": True})]
+        magnitude, n, violations = study_wide_magnitude(rows)
+        assert (magnitude, n, violations) == (1, 0, [])
+
+    def test_study_wide_magnitude_widens_on_a_violation_and_names_it(self):
+        """MODERATE 1: a violation anywhere must widen the bound EVERYWHERE.
+
+        A per-cell computation on a degenerate cell can never observe a violation living in another
+        cell, which is precisely the contingency the rule was written for.
+        """
+        rows = [row("i1", "bf16", correct={"strict": True, "permissive": False},
+                    task="bbh", subtask="dyck_languages")]
+        magnitude, n, violations = study_wide_magnitude(rows)
+        assert magnitude == 2
+        assert n == 1
+        assert violations[0]["arm"] == "bf16"
+        assert violations[0]["subtask"] == "dyck_languages"
+
+    def test_caller_supplied_magnitude_overrides_the_local_one(self):
+        """MODERATE 1: §9h's magnitude is study-wide, so the caller's value must win."""
+        rows = [row(f"i{i}", a, correct={"strict": True, "permissive": True})
+                for i in range(40) for a in ("bf16", "gptq-4bit")]
+        local = interaction_marginal(rows, task="bbh", alt_arm="gptq-4bit", n_boot=200)
+        wide = interaction_marginal(rows, task="bbh", alt_arm="gptq-4bit", n_boot=200,
+                                    max_abs_contribution=2)
+        assert local.context["max_abs_contribution"] == 1
+        assert wide.context["max_abs_contribution"] == 2
+        assert wide.context["max_abs_contribution_source"] == "study_wide"
+        assert wide.ci_high == pytest.approx(2.0 * local.ci_high)
+
+    def test_non_finite_gee_coefficient_raises_with_the_right_diagnosis(self):
+        """MODERATE 4: a CONVERGED fit can still have a singular cluster-robust covariance.
+
+        Measured: on a 30-item fixture `fit.converged` was True while `bse` held NaN for
+        `precision[T.gptq-4bit]`. That NaN landed on a MAIN effect and was silently dropped by the
+        `":" in name` filter, so the test asserting the fit works passed by luck of placement. Had
+        it landed on the interaction term, `Effect` would have raised "estimate is not a number",
+        naming the wrong cause.
+        """
+        rows = []
+        for i in range(6):
+            rows.append(row(f"i{i}", "bf16", correct={"strict": True, "permissive": True}))
+            rows.append(row(f"i{i}", "gptq-4bit",
+                            correct={"strict": False, "permissive": False}))
+        try:
+            effects = interaction_glmm(rows, task="bbh", fitter="gee")
+        except Exception as exc:  # noqa: BLE001 - the message is the assertion
+            assert "SINGULAR" in str(exc) or "non-finite" in str(exc) or "converge" in str(exc)
+        else:
+            for e in effects:
+                assert math.isfinite(e.estimate)
+                assert math.isfinite(e.ci_low) and math.isfinite(e.ci_high)

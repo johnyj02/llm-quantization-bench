@@ -6436,776 +6436,781 @@
     }
   ],
   "compliance_is_generation_level": true,
-  "h1_holm": [
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": 0.004545454545454546,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": 0.125,
-      "rejected": false
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": 0.0029411764705882353,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": 0.0001220703125,
-      "rejected": true
-    },
-    {
-      "adjusted_alpha": 0.0035714285714285718,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": 0.00341796875,
-      "rejected": true
-    },
-    {
-      "adjusted_alpha": 0.008333333333333333,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": 0.6072387695312499,
-      "rejected": false
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": 0.002777777777777778,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": 6.103515625e-05,
-      "rejected": true
-    },
-    {
-      "adjusted_alpha": 0.003125,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": 0.0009765625,
-      "rejected": true
-    },
-    {
-      "adjusted_alpha": 0.005,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": 0.125,
-      "rejected": false
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": 0.00625,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": 0.25,
-      "rejected": false
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": 0.0033333333333333335,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": 0.0009765625,
-      "rejected": true
-    },
-    {
-      "adjusted_alpha": 0.005555555555555556,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": 0.125,
-      "rejected": false
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": 0.01,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": 0.625,
-      "rejected": false
-    },
-    {
-      "adjusted_alpha": 0.004166666666666667,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": 0.0625,
-      "rejected": false
-    },
-    {
-      "adjusted_alpha": 0.0038461538461538464,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": 0.0390625,
-      "rejected": false
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": 0.0071428571428571435,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": 0.5,
-      "rejected": false
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": 0.0125,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": 1.0,
-      "rejected": false
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": 0.016666666666666666,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": 1.0,
-      "rejected": false
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": 0.025,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": 1.0,
-      "rejected": false
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": 0.05,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": 1.0,
-      "rejected": false
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H1",
-      "m": 18,
-      "name": "stopseq_differential[bnb-nf4 vs bf16]",
-      "p_value": null,
-      "rejected": null
-    }
-  ],
+  "h1_holm": {
+    "family": "H1",
+    "m": 18,
+    "rows": [
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": 0.004545454545454546,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": 0.125,
+        "rejected": false
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": 0.0029411764705882353,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": 0.0001220703125,
+        "rejected": true
+      },
+      {
+        "adjusted_alpha": 0.0035714285714285718,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": 0.00341796875,
+        "rejected": true
+      },
+      {
+        "adjusted_alpha": 0.008333333333333333,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": 0.6072387695312499,
+        "rejected": false
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": 0.002777777777777778,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": 6.103515625e-05,
+        "rejected": true
+      },
+      {
+        "adjusted_alpha": 0.003125,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": 0.0009765625,
+        "rejected": true
+      },
+      {
+        "adjusted_alpha": 0.005,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": 0.125,
+        "rejected": false
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": 0.00625,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": 0.25,
+        "rejected": false
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": 0.0033333333333333335,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": 0.0009765625,
+        "rejected": true
+      },
+      {
+        "adjusted_alpha": 0.005555555555555556,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": 0.125,
+        "rejected": false
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": 0.01,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": 0.625,
+        "rejected": false
+      },
+      {
+        "adjusted_alpha": 0.004166666666666667,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": 0.0625,
+        "rejected": false
+      },
+      {
+        "adjusted_alpha": 0.0038461538461538464,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": 0.0390625,
+        "rejected": false
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": 0.0071428571428571435,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": 0.5,
+        "rejected": false
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": 0.0125,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": 1.0,
+        "rejected": false
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": 0.016666666666666666,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": 1.0,
+        "rejected": false
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": 0.025,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": 1.0,
+        "rejected": false
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": 0.05,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": 1.0,
+        "rejected": false
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H1",
+        "m": 18,
+        "name": "stopseq_differential[bnb-nf4 vs bf16]",
+        "p_value": null,
+        "rejected": null
+      }
+    ],
+    "status": "corrected"
+  },
   "h1_stopseq_differential": [
     {
       "ci_high": 4.581812953552713,
@@ -9995,87 +10000,93 @@
   "h3_excluded_tasks": [
     "gsm8k"
   ],
-  "h3_holm": [
-    {
-      "adjusted_alpha": null,
-      "family": "H3",
-      "m": 4,
-      "name": "H3_interaction_marginal[gptq-8bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H3",
-      "m": 4,
-      "name": "H3_interaction_marginal[gptq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H3",
-      "m": 4,
-      "name": "H3_interaction_marginal[awq-4bit vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": null,
-      "family": "H3",
-      "m": 4,
-      "name": "H3_interaction_marginal[bnb-nf4 vs bf16]",
-      "p_value": null,
-      "rejected": null
-    },
-    {
-      "adjusted_alpha": 0.016666666666666666,
-      "family": "H3",
-      "m": 4,
-      "name": "H3_interaction_marginal[gptq-8bit vs bf16]",
-      "p_value": 0.021484375,
-      "rejected": false
-    },
-    {
-      "adjusted_alpha": 0.0125,
-      "family": "H3",
-      "m": 4,
-      "name": "H3_interaction_marginal[gptq-4bit vs bf16]",
-      "p_value": 0.0025768280029296875,
-      "rejected": true
-    },
-    {
-      "adjusted_alpha": 0.025,
-      "family": "H3",
-      "m": 4,
-      "name": "H3_interaction_marginal[awq-4bit vs bf16]",
-      "p_value": 0.063568115234375,
-      "rejected": false
-    },
-    {
-      "adjusted_alpha": 0.05,
-      "family": "H3",
-      "m": 4,
-      "name": "H3_interaction_marginal[bnb-nf4 vs bf16]",
-      "p_value": 1.0,
-      "rejected": false
-    }
-  ],
+  "h3_holm": {
+    "family": "H3",
+    "m": 4,
+    "rows": [
+      {
+        "adjusted_alpha": null,
+        "family": "H3",
+        "m": 4,
+        "name": "H3_interaction_marginal[gptq-8bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H3",
+        "m": 4,
+        "name": "H3_interaction_marginal[gptq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H3",
+        "m": 4,
+        "name": "H3_interaction_marginal[awq-4bit vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": null,
+        "family": "H3",
+        "m": 4,
+        "name": "H3_interaction_marginal[bnb-nf4 vs bf16]",
+        "p_value": null,
+        "rejected": null
+      },
+      {
+        "adjusted_alpha": 0.016666666666666666,
+        "family": "H3",
+        "m": 4,
+        "name": "H3_interaction_marginal[gptq-8bit vs bf16]",
+        "p_value": 0.021484375,
+        "rejected": false
+      },
+      {
+        "adjusted_alpha": 0.0125,
+        "family": "H3",
+        "m": 4,
+        "name": "H3_interaction_marginal[gptq-4bit vs bf16]",
+        "p_value": 0.0025768280029296875,
+        "rejected": true
+      },
+      {
+        "adjusted_alpha": 0.025,
+        "family": "H3",
+        "m": 4,
+        "name": "H3_interaction_marginal[awq-4bit vs bf16]",
+        "p_value": 0.063568115234375,
+        "rejected": false
+      },
+      {
+        "adjusted_alpha": 0.05,
+        "family": "H3",
+        "m": 4,
+        "name": "H3_interaction_marginal[bnb-nf4 vs bf16]",
+        "p_value": 1.0,
+        "rejected": false
+      }
+    ],
+    "status": "corrected"
+  },
   "h3_interaction": [
     {
-      "ci_high": 1.5753919941558823,
-      "ci_low": -1.5753919941558823,
+      "ci_high": 3.1507839883117645,
+      "ci_low": -3.1507839883117645,
       "claimable": null,
       "context": {
         "estimator": "difference of differences, cluster bootstrap over items",
         "gap_alt_pp": 0.0,
         "gap_reference_pp": 0.0,
+        "max_abs_contribution": 2,
+        "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
         "n_changed_alt": 0,
         "n_changed_reference": 0,
         "n_items_dropped_unpaired": 0,
         "n_rung_monotonicity_violations": 0,
-        "observed_max_abs_contribution": 1,
         "rungs": [
           "strict",
           "permissive"
@@ -10087,7 +10098,7 @@
       "estimate": 0.0,
       "excludes_null": false,
       "floor": null,
-      "interval_method": "zero-variance bound: Wilson upper on 0/240 x max|contribution|=1 (R25.1/\u00a79h), NOT a bootstrap interval",
+      "interval_method": "zero-variance bound: Wilson upper on 0/240 x max|contribution|=2 (R25.1/\u00a79h), NOT a bootstrap interval",
       "n": 240,
       "name": "H3_interaction_marginal[gptq-8bit vs bf16]",
       "noise_class": "compounding",
@@ -10097,19 +10108,20 @@
       "unit": "pp"
     },
     {
-      "ci_high": 1.5753919941558823,
-      "ci_low": -1.5753919941558823,
+      "ci_high": 3.1507839883117645,
+      "ci_low": -3.1507839883117645,
       "claimable": null,
       "context": {
         "estimator": "difference of differences, cluster bootstrap over items",
         "gap_alt_pp": 0.0,
         "gap_reference_pp": 0.0,
+        "max_abs_contribution": 2,
+        "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
         "n_changed_alt": 0,
         "n_changed_reference": 0,
         "n_items_dropped_unpaired": 0,
         "n_rung_monotonicity_violations": 0,
-        "observed_max_abs_contribution": 1,
         "rungs": [
           "strict",
           "permissive"
@@ -10121,7 +10133,7 @@
       "estimate": 0.0,
       "excludes_null": false,
       "floor": null,
-      "interval_method": "zero-variance bound: Wilson upper on 0/240 x max|contribution|=1 (R25.1/\u00a79h), NOT a bootstrap interval",
+      "interval_method": "zero-variance bound: Wilson upper on 0/240 x max|contribution|=2 (R25.1/\u00a79h), NOT a bootstrap interval",
       "n": 240,
       "name": "H3_interaction_marginal[gptq-4bit vs bf16]",
       "noise_class": "compounding",
@@ -10131,19 +10143,20 @@
       "unit": "pp"
     },
     {
-      "ci_high": 1.5753919941558823,
-      "ci_low": -1.5753919941558823,
+      "ci_high": 3.1507839883117645,
+      "ci_low": -3.1507839883117645,
       "claimable": null,
       "context": {
         "estimator": "difference of differences, cluster bootstrap over items",
         "gap_alt_pp": 0.0,
         "gap_reference_pp": 0.0,
+        "max_abs_contribution": 2,
+        "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
         "n_changed_alt": 0,
         "n_changed_reference": 0,
         "n_items_dropped_unpaired": 0,
         "n_rung_monotonicity_violations": 0,
-        "observed_max_abs_contribution": 1,
         "rungs": [
           "strict",
           "permissive"
@@ -10155,7 +10168,7 @@
       "estimate": 0.0,
       "excludes_null": false,
       "floor": null,
-      "interval_method": "zero-variance bound: Wilson upper on 0/240 x max|contribution|=1 (R25.1/\u00a79h), NOT a bootstrap interval",
+      "interval_method": "zero-variance bound: Wilson upper on 0/240 x max|contribution|=2 (R25.1/\u00a79h), NOT a bootstrap interval",
       "n": 240,
       "name": "H3_interaction_marginal[awq-4bit vs bf16]",
       "noise_class": "compounding",
@@ -10165,19 +10178,20 @@
       "unit": "pp"
     },
     {
-      "ci_high": 1.5753919941558823,
-      "ci_low": -1.5753919941558823,
+      "ci_high": 3.1507839883117645,
+      "ci_low": -3.1507839883117645,
       "claimable": null,
       "context": {
         "estimator": "difference of differences, cluster bootstrap over items",
         "gap_alt_pp": 0.0,
         "gap_reference_pp": 0.0,
+        "max_abs_contribution": 2,
+        "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
         "n_changed_alt": 0,
         "n_changed_reference": 0,
         "n_items_dropped_unpaired": 0,
         "n_rung_monotonicity_violations": 0,
-        "observed_max_abs_contribution": 1,
         "rungs": [
           "strict",
           "permissive"
@@ -10189,7 +10203,7 @@
       "estimate": 0.0,
       "excludes_null": false,
       "floor": null,
-      "interval_method": "zero-variance bound: Wilson upper on 0/240 x max|contribution|=1 (R25.1/\u00a79h), NOT a bootstrap interval",
+      "interval_method": "zero-variance bound: Wilson upper on 0/240 x max|contribution|=2 (R25.1/\u00a79h), NOT a bootstrap interval",
       "n": 240,
       "name": "H3_interaction_marginal[bnb-nf4 vs bf16]",
       "noise_class": "compounding",
@@ -10206,12 +10220,13 @@
         "estimator": "difference of differences, cluster bootstrap over items",
         "gap_alt_pp": 4.166666666666669,
         "gap_reference_pp": 1.944444444444443,
+        "max_abs_contribution": 2,
+        "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
         "n_changed_alt": 15,
         "n_changed_reference": 7,
         "n_items_dropped_unpaired": 0,
         "n_rung_monotonicity_violations": 0,
-        "observed_max_abs_contribution": 1,
         "rungs": [
           "strict",
           "permissive"
@@ -10240,12 +10255,13 @@
         "estimator": "difference of differences, cluster bootstrap over items",
         "gap_alt_pp": 5.277777777777781,
         "gap_reference_pp": 1.944444444444443,
+        "max_abs_contribution": 2,
+        "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
         "n_changed_alt": 21,
         "n_changed_reference": 7,
         "n_items_dropped_unpaired": 0,
         "n_rung_monotonicity_violations": 1,
-        "observed_max_abs_contribution": 2,
         "rungs": [
           "strict",
           "permissive"
@@ -10274,12 +10290,13 @@
         "estimator": "difference of differences, cluster bootstrap over items",
         "gap_alt_pp": 3.3333333333333326,
         "gap_reference_pp": 1.944444444444443,
+        "max_abs_contribution": 2,
+        "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
         "n_changed_alt": 16,
         "n_changed_reference": 7,
         "n_items_dropped_unpaired": 0,
         "n_rung_monotonicity_violations": 0,
-        "observed_max_abs_contribution": 1,
         "rungs": [
           "strict",
           "permissive"
@@ -10308,12 +10325,13 @@
         "estimator": "difference of differences, cluster bootstrap over items",
         "gap_alt_pp": 1.6666666666666663,
         "gap_reference_pp": 1.944444444444443,
+        "max_abs_contribution": 2,
+        "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
         "n_changed_alt": 8,
         "n_changed_reference": 7,
         "n_items_dropped_unpaired": 0,
         "n_rung_monotonicity_violations": 1,
-        "observed_max_abs_contribution": 2,
         "rungs": [
           "strict",
           "permissive"
@@ -10344,12 +10362,13 @@
         "estimator": "difference of differences, cluster bootstrap over items",
         "gap_alt_pp": 53.333333333333336,
         "gap_reference_pp": 51.66666666666667,
+        "max_abs_contribution": 2,
+        "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
         "n_changed_alt": 160,
         "n_changed_reference": 155,
         "n_items_dropped_unpaired": 0,
         "n_rung_monotonicity_violations": 0,
-        "observed_max_abs_contribution": 1,
         "rungs": [
           "strict",
           "permissive"
@@ -10378,12 +10397,13 @@
         "estimator": "difference of differences, cluster bootstrap over items",
         "gap_alt_pp": 38.333333333333336,
         "gap_reference_pp": 51.66666666666667,
+        "max_abs_contribution": 2,
+        "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
         "n_changed_alt": 117,
         "n_changed_reference": 155,
         "n_items_dropped_unpaired": 0,
         "n_rung_monotonicity_violations": 1,
-        "observed_max_abs_contribution": 2,
         "rungs": [
           "strict",
           "permissive"
@@ -10412,12 +10432,13 @@
         "estimator": "difference of differences, cluster bootstrap over items",
         "gap_alt_pp": 44.99999999999999,
         "gap_reference_pp": 51.66666666666667,
+        "max_abs_contribution": 2,
+        "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
         "n_changed_alt": 137,
         "n_changed_reference": 155,
         "n_items_dropped_unpaired": 0,
         "n_rung_monotonicity_violations": 0,
-        "observed_max_abs_contribution": 1,
         "rungs": [
           "strict",
           "permissive"
@@ -10446,12 +10467,13 @@
         "estimator": "difference of differences, cluster bootstrap over items",
         "gap_alt_pp": 48.33333333333334,
         "gap_reference_pp": 51.66666666666667,
+        "max_abs_contribution": 2,
+        "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
         "n_changed_alt": 145,
         "n_changed_reference": 155,
         "n_items_dropped_unpaired": 0,
         "n_rung_monotonicity_violations": 0,
-        "observed_max_abs_contribution": 1,
         "rungs": [
           "strict",
           "permissive"
@@ -12873,14 +12895,64 @@
   "h4_excluded_tasks": [
     "gsm8k"
   ],
-  "h4_holm": [],
+  "h4_holm": {
+    "family": "H4",
+    "m": 0,
+    "rows": [],
+    "status": "H4's registered tests are not yet implemented as hypothesis tests"
+  },
   "limitations": [
     "compliance is one generation-level label applied to every rung; \u00a71.1 quantifies over rungs. Flagged for the planner.",
     "pilot-v2 predates schema 1.3.0: no until/template_level/invocation_id, so classify_termination uses the tasks.yaml fallback for until."
   ],
   "math_verify_available": true,
   "n_rows": 5100,
+  "n_rung_monotonicity_violations": 6,
   "run_id": "pilot-v2",
+  "rung_monotonicity_violations": [
+    {
+      "arm": "bnb-nf4",
+      "item_key": "llama-3.1-8b|bbh|dyck_languages|idx-0",
+      "repeat_idx": 0,
+      "subtask": "dyck_languages",
+      "task": "bbh"
+    },
+    {
+      "arm": "gptq-4bit",
+      "item_key": "llama-3.1-8b|bbh|dyck_languages|idx-0",
+      "repeat_idx": 0,
+      "subtask": "dyck_languages",
+      "task": "bbh"
+    },
+    {
+      "arm": "awq-4bit",
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-16",
+      "repeat_idx": 0,
+      "subtask": "boolean_expressions",
+      "task": "bbh"
+    },
+    {
+      "arm": "awq-4bit",
+      "item_key": "phi-3.5-mini|bbh|logical_deduction_five_objects|idx-12",
+      "repeat_idx": 0,
+      "subtask": "logical_deduction_five_objects",
+      "task": "bbh"
+    },
+    {
+      "arm": "awq-4bit",
+      "item_key": "phi-3.5-mini|gsm8k|None|idx-55",
+      "repeat_idx": 0,
+      "subtask": null,
+      "task": "gsm8k"
+    },
+    {
+      "arm": "gptq-4bit",
+      "item_key": "phi-3.5-mini|gsm8k|None|idx-61",
+      "repeat_idx": 0,
+      "subtask": null,
+      "task": "gsm8k"
+    }
+  ],
   "rungs": [
     "strict",
     "strict_last",
@@ -13681,6 +13753,7 @@
       "size_any_invocation": 1
     }
   ],
+  "study_wide_max_abs_contribution": 2,
   "transition_effects": [
     {
       "ci_high": 4.581812953552713,
