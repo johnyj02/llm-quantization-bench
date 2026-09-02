@@ -413,19 +413,44 @@ def extract_permissive(
     return Extraction(value=None, rung="permissive", rule=None)
 
 
+#: 🚨 Rung 2a's anchor phrases, DELIBERATELY NOT `_COMMITMENT_PHRASES`.
+#:
+#: The difference is the bare `"answer:"` header form. Under rung 2's **latest**-match rule a
+#: leading header is harmless, because any later phrase supersedes it. Under rung 2a's
+#: **earliest**-match rule it is the first thing found, and a chat model's
+#: `"Answer: <reasoning> ... the answer is N"` then anchors on the header: the tail becomes the
+#: reasoning, the sentence split truncates it, and rung 2a returns a mid-sentence fragment.
+#:
+#: Measured on `"Answer: Let me compute. 3+4=7. So the answer is 7"`: rung 2 returns `"7"` and
+#: rung 2a returned `"Let me compute"`. Found by the CODE REVIEWER, 2026-09-02, and confirmed by
+#: execution. It was latent because `gsm8k` has the `hash_marker` rule ahead of the phrase rule,
+#: which rescued the only fixture that contained a header, so `bbh` and `arc_challenge_chat` ran
+#: the phrase rule unprotected with no fixture covering it.
+_ANCHOR_PHRASES: tuple[str, ...] = (
+    "the answer is",
+    "so the answer is",
+    "final answer is",
+    "the best answer is",
+)
+
+
 def _extract_after_first_commitment_phrase(text: str) -> str | None:
-    """Span after the FIRST commitment phrase. Rung 2a's anchor.
+    """Span after the FIRST commitment phrase, using rung 2a's own anchor set.
 
     The mirror image of `_extract_after_commitment_phrase`, which takes the LAST. Taking the
     first is what makes rung 2a monotone with respect to rung 1: it cannot skip past a committed
-    answer to a later candidate.
+    answer to a later candidate. See `_ANCHOR_PHRASES` for why the phrase set differs.
     """
     lowered = text.lower()
     best_position = len(text) + 1
     best_end = -1
-    for phrase in _COMMITMENT_PHRASES:
+    for phrase in _ANCHOR_PHRASES:
         position = lowered.find(phrase)
-        if position >= 0 and position < best_position:
+        # ⚠️ On a TIE of position, prefer the LONGER phrase, so "so the answer is" wins over the
+        # "the answer is" nested inside it and the tail does not begin mid-phrase.
+        if position >= 0 and (position < best_position
+                              or (position == best_position
+                                  and position + len(phrase) > best_end)):
             best_position, best_end = position, position + len(phrase)
     if best_end < 0:
         return None
@@ -436,49 +461,109 @@ def _extract_after_first_commitment_phrase(text: str) -> str | None:
     return tail.strip() or None
 
 
+def _first_commitment_span(text: str) -> tuple[int, int] | None:
+    """`(start, end_of_phrase)` of the FIRST anchor phrase, or `None` if there is none."""
+    lowered = text.lower()
+    best_position = len(text) + 1
+    best_end = -1
+    for phrase in _ANCHOR_PHRASES:
+        position = lowered.find(phrase)
+        # On a TIE of position prefer the LONGER phrase, so "so the answer is" wins over the
+        # "the answer is" nested inside it and the tail does not begin mid-phrase.
+        if position >= 0 and (position < best_position
+                             or (position == best_position
+                                 and position + len(phrase) > best_end)):
+            best_position, best_end = position, position + len(phrase)
+    return None if best_end < 0 else (best_position, best_end)
+
+
 def extract_permissive_anchored(
     generation: str, task: str, subtask: str | None = None
 ) -> Extraction:
-    """Rung 2a. Commitment-ANCHORED permissive: the FIRST committed answer, not the last candidate.
+    """Rung 2a. Commitment-ANCHORED permissive: never reaches PAST a commitment.
 
-    🚨 Registered 2026-09-02 (planner ruling R27.1) as an **additive robustness rung**, not as a
-    replacement for rung 2. That distinction is the whole point:
+    Registered 2026-09-02 (R27.1), rule list corrected 2026-09-02 (R29) before anything froze.
 
-    **Rung 2's last-candidate rule IS lm-eval's `flexible-extract` with `group_select: -1`.** It is
-    published practice, not a defect of ours, and the paper's headline contrast is
-    strict-published-practice against flexible-published-practice. Amending rung 2 to fix the
-    behaviour below would replace the thing being measured with an extractor of our own invention.
+    🚨 **Why rung 2 is not amended instead.** Rung 2's last-candidate rule **is** lm-eval's
+    `flexible-extract` with `group_select: -1`. It is **published practice**, and §2.2's headline
+    contrast is strict-published-practice against flexible-published-practice, so amending it would
+    replace the thing being measured with an extractor of our own invention. Rung 2a is additive.
 
-    **What rung 2 does that this does not.** Measured on `pilot-v2`, rung 2 *destroys* correct
-    answers in six cases where the generation continues past its committed answer, because
-    last-candidate then selects a later, wrong span that rung 1's marker-anchored rule never sees:
+    **What rung 2 does that this does not.** Measured on `pilot-v2`, rung 2 destroys a correct
+    answer on four generations that continue past their committed answer, because last-candidate
+    then reaches a later wrong span rung 1 never sees: `] ]` becoming `] ] ]`, `14` becoming
+    `Jean can fill 14 bags of lollipops`, `False` becoming `True` from a self-correction, `(A)`
+    becoming `not (A), (B), or (E)`.
 
-    | strict | permissive (rung 2) | cause |
-    |---|---|---|
-    | `] ]` ✓ | `] ] ]` ✗ | the model's own closing line is wrong |
-    | `14` ✓ | `Jean can fill 14 bags of lollipops` ✗ | prose after `#### 14` |
-    | `False` ✓ | `True` ✗ | a concluding sentence contradicting the marker |
-    | `1430` ✓ | `in dollar format with two decimal points…` ✗ | a trailing `Note:` |
+    ⚠️ **The first version of this rung DROPPED the positional fallbacks and that was an
+    implementation error, not a design choice.** §5a's stated purpose is to refuse to reach *past* a
+    commitment; dropping the only rule able to read a commitment-free generation does something else
+    entirely. Measured consequence: **13 non-extractions on `arc_challenge_chat`**, where neither a
+    commitment phrase nor a `####` marker appears and `last_option_letter` was the only rule doing
+    any work, on generations such as *"The best piece of equipment ... is C"*. So rung 2a had a
+    LARGER violation count than rung 2 (14 against 6) while claiming to reduce destruction.
 
-    So **flexible extraction is not a monotone relaxation of strict; it is a different selection
-    rule with two-sided error.** Rung 2a is the anchored counterfactual that isolates that: it takes
-    the first commitment and the hash marker, and it drops the positional last-number and
-    last-option-letter fallbacks, which are the rules that can reach past a commitment.
+    **The corrected rule, with every edge case enumerated because the code has decided four such
+    questions already:**
 
-    Additive means the pilot's numbers stay valid and nothing is re-run.
+    | case | behaviour |
+    |---|---|
+    | several commitments | use the **first** |
+    | a commitment yielding no parseable answer | positional fallback applies to the **pre-commitment span only**, never the whole string, since otherwise the rule reaches past a commitment again |
+    | **no commitment anywhere** | positional fallback applies to the **whole** generation. This is the ARC case and the reason for the correction |
+    | commitment at position 0 | the pre-commitment span is empty, so extraction falls to the commitment's own span |
+
+    🔬 **A finding worth keeping from the failed variant** (R29): on `arc_challenge_chat` positional
+    fallback is the **only** rule doing any work. That narrows what H6's control is a control *for*:
+    ARC-chat is structurally constrained in its **answer space** (four letters), not in its
+    **extraction surface**. §1.3 justified it assuming the latter. It does not weaken H6's test, but
+    it is stated because a reviewer reading the filter list will notice.
     """
-    rules: list[tuple[str, Callable[[str], str | None]]] = [
-        ("boxed", _extract_boxed),
-        ("hash_marker", lambda t: _apply_harness_regex(r"####\s*(.+)", t, 0)),
-        ("first_commitment_phrase", _extract_after_first_commitment_phrase),
-    ]
-    for rule_name, rule in rules:
-        raw = rule(generation)
+    span = _first_commitment_span(generation)
+
+    # 1. The strongest marker first, and this ordering is load-bearing. For `gsm8k`, rung 1's
+    #    pattern is applied with `group_select=0`, the FIRST `####`, and so is this one, which makes
+    #    rung 2a's selection COINCIDE with rung 1's on the hash-marker task. That is the
+    #    monotonicity property rung 2a exists to have.
+    raw = _apply_harness_regex(r"####\s*(.+)", generation, 0)
+    if raw is not None:
+        value = normalise_answer(raw)
+        if value:
+            return Extraction(value=value, rung="permissive_anchored", rule="hash_marker")
+
+    raw = _extract_boxed(generation)
+    if raw is not None:
+        value = normalise_answer(raw)
+        if value:
+            return Extraction(value=value, rung="permissive_anchored", rule="boxed")
+
+    # 2. The first commitment's own span.
+    if span is not None:
+        tail = generation[span[1]:].strip()
+        if tail:
+            tail = re.split(r"[\n\r]|(?<=[0-9A-Za-z\)\}])\.(?:\s|$)", tail, maxsplit=1)[0]
+            value = normalise_answer(tail.strip())
+            if value:
+                return Extraction(value=value, rung="permissive_anchored",
+                                  rule="first_commitment_phrase")
+
+    # 3. Positional fallback, ANCHORED: restricted to the pre-commitment span when a commitment
+    #    exists, applied to the whole generation when none does.
+    key = _task_key(task, subtask)
+    scope = generation if span is None else generation[:span[0]]
+    positional: list[tuple[str, Callable[[str], str | None]]] = []
+    if key in MULTIPLE_CHOICE_TASKS:
+        positional.append(("last_option_letter_anchored", _extract_last_option_letter))
+    if key in NUMERIC_TASKS:
+        positional.append(("last_number_anchored", _extract_last_number))
+    for rule_name, rule in positional:
+        raw = rule(scope)
         if raw is None:
             continue
         value = normalise_answer(raw)
         if value:
             return Extraction(value=value, rung="permissive_anchored", rule=rule_name)
+
     return Extraction(value=None, rung="permissive_anchored", rule=None)
 
 

@@ -1906,3 +1906,80 @@ and give the magnitude as the observed maximum, currently **2** for the rung 1 v
 reference n=500, so H6 uses R26.1's two-claim form (zero on the constrained task, non-zero on the
 unconstrained one), and the **rung-2a bound at magnitude 1 becomes the tighter robustness
 presentation**. Report both so the reader sees the conclusion does not turn on the choice.
+
+---
+
+## R28 — My noise-class labelling was right. The CODE REVIEWER inverted the implication
+
+Raw: `notes/planner-answers/R28-noise-class-of-gap-components.txt`. Registered as a §9f amendment.
+
+The CODE REVIEWER argued §5a's `recovered`/`destroyed` are class 1, since *"it is not a difference,
+so nothing cancels; there is nothing to cancel."*
+
+❌ **Rejected, and the flaw is worth keeping:** *"Absence of cancellation is not absence of noise. It
+means the noise **doesn't** cancel, which makes the quantity worse off, not exempt."* Destruction is
+a **rate over a cell's generations**, and generations change across invocations, so the set of items
+where (strict right ∧ permissive wrong) changes too.
+
+### 🚨 But §9f's own wording was the real defect, and it would have bitten again
+
+Class 1 conflated two different things, and the examples list was all of one kind:
+
+* **a per-item LABEL, given one fixed stored generation, is deterministic** — genuinely class 1, and
+  a statement about **scorer** reproducibility;
+* **a cell-level aggregate RATE over those labels inherits invocation noise** from the generations.
+  Not class 1.
+
+⚠️ Every example the row listed (compliance labels, the trace scan, the found/committed split,
+per-item rung agreement) is a label. **As labels class 1; as cell rates not** — which would have
+recurred for the compliance rates and the trace-scan rate, both reported as cell-level quantities.
+
+- `recovered`/`destroyed` stay **class 2 as an interim label**, and their floor is **measured from
+  the K=2 cells** rather than inherited.
+- 🔬 Because the gap is their *difference*, the measured gap movement of **1.67 pp is a LOWER bound
+  on the components, not an upper one**.
+- §5a's differential prediction (destruction higher on quantized arms) contrasts two arms, so it is
+  **class 3**, confirmed.
+
+**Process note from the planner:** *"this is the second time the CODE REVIEWER has volunteered a
+ruling on a registered estimator and been wrong. Its reasoning was careful and its instinct that
+something was mislabelled was correct, but the fix was in the taxonomy's wording, not in the
+assignment."* Declined and recorded in the review outcome, as required.
+
+---
+
+## R29 — Rung 2a's dropped fallbacks were an implementation error. Anchor them instead
+
+Raw: `notes/planner-answers/R29-rung-2a-error-profile.txt`. Registered in §5a.
+
+**Ruling: option (ii).** *"Dropping the positional fallbacks was an implementation error in the
+registration, not a design choice. §5a's stated purpose is 'refuse to reach past a commitment', and
+dropping the only rule that can read a commitment-free generation does something else entirely."*
+Nothing has frozen, so re-registration is free and re-scoring is CPU-only.
+
+- ❌ **Not (i)**, report it honestly as-is: *"honest reporting of a rung that doesn't do what it was
+  built for is a worse deliverable than a rung that does, when the correction costs nothing."*
+- ❌ **Not (iii)**, restrict rung 2a away from ARC, and this is the decisive argument: **ARC is H6's
+  negative control**, so declaring 2a inapplicable there leaves *"does the conclusion survive a
+  better extractor?"* unanswered *"on the one task whose job is to be the clean case."* My
+  observation that ARC is where 2a has nothing to add *"is true for the interaction and false for
+  robustness coverage."*
+
+**Four edge cases enumerated, because the code has decided four such questions already:** several
+commitments use the first; a commitment yielding no parseable answer falls back to the
+**pre-commitment span only**; no commitment anywhere falls back to the **whole** generation (the ARC
+case); a commitment at position 0 leaves an empty pre-commitment span so extraction falls to the
+commitment's own span.
+
+🚨 **"Do not predict the new magnitude."** *"It should drop to 1, but I predicted exactly that from
+an assumed property in R26.1 and was wrong, so measure it and report whatever it is."*
+
+**Measured: destruction 6 → 1, violations 14 → 1, and the magnitude STAYED AT 2.** The single
+remaining violation is the class-C `dyck` case, so rung 2a eliminates all four genuine destruction
+cases and the magnitude is now driven entirely by a **strict-side** harness defect. Reported as
+measured; the bound stays wide.
+
+🔬 **Kept from the failed variant:** on `arc_challenge_chat` positional fallback is the only rule
+doing any work, which narrows what H6's control is a control *for*. ARC-chat is constrained in its
+**answer space**, not its **extraction surface**, whereas §1.3 justified it assuming the latter.
+H6's test is unaffected and the narrower justification is stated.

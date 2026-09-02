@@ -94,6 +94,15 @@ def to_analysis_row(record: dict) -> dict:
 
     scored = extract.score_generation(generation, gold, task, subtask,
                                       rungs=RUNGS, math_verify_available=MATH_VERIFY)
+    # 🚨 Rung 2a (prereg §5a) is COMPUTED here. It was registered, given a row in §9h's magnitude
+    # table, and referenced by nothing outside its own tests, which is precisely the failure this
+    # script's docstring names: "a statistic nobody has computed is indistinguishable from one that
+    # does not work." Kept out of `RUNGS` so it cannot enter a family specified over the four
+    # registered rungs; that tuple governs family membership, not whether the number exists.
+    anchored = extract.extract_permissive_anchored(generation, task, subtask)
+    anchored_correct = bool(
+        anchored.value is not None
+        and extract.answers_match(anchored.value, gold, task, subtask))
     strict = extract.extract_strict(generation, task, subtask)
     permissive = extract.extract_permissive(generation, task, subtask)
     labels = compliance_module.label_compliance(
@@ -115,9 +124,21 @@ def to_analysis_row(record: dict) -> dict:
         # See limitation 1 in the module docstring: one generation-level label, applied to every
         # rung, because that is what the scorer produces.
         "compliance": dict.fromkeys(RUNGS, labels.compliance),
-        "correct": {r: bool(scored[r]["correct"]) for r in RUNGS},
+        "correct": {**{r: bool(scored[r]["correct"]) for r in RUNGS},
+                    extract.RUNG_ANCHORED: anchored_correct},
         "termination": labels.termination,
     }
+
+
+#: 🚨 A CLOSED set. `status` is the field a reader trusts to say what happened, so it cannot be
+#: caller-supplied free text: the point of the field is that it cannot lie.
+HOLM_STATUS: frozenset[str] = frozenset({
+    "corrected",
+    "no testable effects: none carried a p-value",
+    "no H3 interaction resolved: a task had no bf16 or no alt arm",
+    "no stopseq test resolved: no cell had both bf16 and an alt arm",
+    "H4's registered tests are not yet implemented as hypothesis tests",
+})
 
 
 def holm_block(effects: list, *, family: str, absent_reason: str) -> dict:
@@ -145,11 +166,34 @@ def holm_block(effects: list, *, family: str, absent_reason: str) -> dict:
     cases. `holm_bonferroni` is called if and only if there is something to correct, and when there
     is not, the reason is recorded rather than implied by an empty list.
     """
-    if effects:
-        rows = [{k: v for k, v in r.items() if k != "effect"}
-                for r in holm_bonferroni(effects, family=family)]
-        return {"family": family, "m": rows[0]["m"], "status": "corrected", "rows": rows}
-    return {"family": family, "m": 0, "status": absent_reason, "rows": []}
+    if absent_reason not in HOLM_STATUS:
+        raise ValueError(
+            f"absent_reason {absent_reason!r} is not one of {sorted(HOLM_STATUS)}. `status` is "
+            f"the field a reader trusts to say what happened, so it is a closed set: free text "
+            f"lets a caller write 'corrected' over a family that was never corrected."
+        )
+    if not effects:
+        return {"family": family, "m": 0, "status": absent_reason, "rows": []}
+
+    rows = [{k: v for k, v in r.items() if k != "effect"}
+            for r in holm_bonferroni(effects, family=family)]
+    # 🚨 STATUS IS DERIVED FROM `m`, NOT FROM EMPTINESS, and this is where the vacuous-truth shape
+    # survived its own fix. `holm_bonferroni` sets `m` to the count of effects that carry a
+    # P-VALUE, not the count of effects. So a family that is non-empty but entirely UNTESTABLE
+    # took the `if effects` branch and reported `status: "corrected"` with `m: 0`.
+    #
+    # Reachable through a documented flag: `--task arc_challenge_chat`. Every ARC H3 effect has
+    # `p_value: null`, because `mcnemar_exact` returns None when there are no discordant pairs and
+    # ARC has none by construction, which is the same degeneracy R25.1 was raised about. The report
+    # then asserted a Holm correction over a family in which nothing was testable.
+    #
+    # Fourth appearance of one shape, and the sharpest: the fix for the third appearance carried it
+    # across the branch.
+    m = rows[0]["m"]
+    return {
+        "family": family, "m": m, "rows": rows,
+        "status": "corrected" if m else "no testable effects: none carried a p-value",
+    }
 
 
 def main() -> int:
@@ -176,6 +220,9 @@ def main() -> int:
     # estimated, and passed down. R26.1 also requires monotonicity be asserted on the real data
     # rather than only on the G3 fixtures, and that is the same computation.
     magnitude, n_violations, violations = study_wide_magnitude(rows)
+    # §9h: the magnitude is per RUNG PAIR, so rung 2a gets its own measurement.
+    magnitude_2a, n_violations_2a, violations_2a = study_wide_magnitude(
+        rows, rungs=("strict", extract.RUNG_ANCHORED))
 
     tasks = sorted({r["task"] for r in rows})
     print(f"run_id       : {args.run_id}")
@@ -185,6 +232,7 @@ def main() -> int:
     print(f"tasks        : {tasks}")
     print(f"§9h magnitude: {magnitude}  (rung monotonicity violations on real data: "
           f"{n_violations})")
+    print(f"§9h rung 2a  : magnitude {magnitude_2a}  (violations: {n_violations_2a})")
     if n_violations:
         print("   🚨 MONOTONICITY VIOLATED on real data. This is a finding about the scorers, "
               "not a wider interval to absorb quietly. G3's fixtures forbid it.")
@@ -199,6 +247,9 @@ def main() -> int:
         "study_wide_max_abs_contribution": magnitude,
         "n_rung_monotonicity_violations": n_violations,
         "rung_monotonicity_violations": violations[:50],
+        "study_wide_max_abs_contribution_anchored": magnitude_2a,
+        "n_rung_monotonicity_violations_anchored": n_violations_2a,
+        "rung_monotonicity_violations_anchored": violations_2a[:50],
         "limitations": [
             "compliance is one generation-level label applied to every rung; §1.1 quantifies "
             "over rungs. Flagged for the planner.",
@@ -247,6 +298,7 @@ def main() -> int:
     h3_demonstration: list = []
     companions: list = []
     gap_parts: list = []
+    gap_parts_2a: list = []
     for task in tasks:
         excluded = task in EXCLUDED_FROM_H3_INTERACTION
         task_rows = [r for r in rows if r["task"] == task]
@@ -261,11 +313,16 @@ def main() -> int:
         companions.extend(rung_mcnemar(task_rows, task=task))
         # R27.1: the gap is a net of two opposing effects, so both directions are reported.
         gap_parts.extend(rung_gap_decomposition(task_rows, task=task))
+        # §5a: the same decomposition at the rung 1 vs rung 2a pair, which is what makes §9h's
+        # per-rung-pair magnitude computable for that pair rather than merely registered.
+        gap_parts_2a.extend(rung_gap_decomposition(
+            task_rows, task=task, rungs=("strict", extract.RUNG_ANCHORED)))
     report["h3_interaction"] = [e.as_dict() for e in h3]
     report["h3_interaction_demonstration_only"] = [e.as_dict() for e in h3_demonstration]
     report["h3_excluded_tasks"] = sorted(EXCLUDED_FROM_H3_INTERACTION & set(tasks))
     report["h3_rung_companion"] = [e.as_dict() for e in companions]
     report["rung_gap_decomposition"] = [e.as_dict() for e in gap_parts]
+    report["rung_gap_decomposition_anchored"] = [e.as_dict() for e in gap_parts_2a]
     # §9: Holm-Bonferroni within the H3 family only, and the demonstration arm is not in it.
     report["h3_holm"] = holm_block(
         h3, family="H3",

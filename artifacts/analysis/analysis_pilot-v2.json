@@ -12908,6 +12908,7 @@
   "math_verify_available": true,
   "n_rows": 5100,
   "n_rung_monotonicity_violations": 6,
+  "n_rung_monotonicity_violations_anchored": 1,
   "run_id": "pilot-v2",
   "rung_gap_decomposition": [
     {
@@ -14213,6 +14214,1310 @@
       "unit": "pp"
     }
   ],
+  "rung_gap_decomposition_anchored": [
+    {
+      "ci_high": 1.5753919941558823,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "awq-4bit",
+        "count": 0,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 0,
+        "net_pp": 0.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "arc_challenge_chat"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 240,
+      "name": "rung_recovered[awq-4bit]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.5753919941558823,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "awq-4bit",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 0,
+        "net_pp": 0.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "arc_challenge_chat"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 240,
+      "name": "rung_destroyed[awq-4bit]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 4.581812953552713,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "awq-4bit-nooffload",
+        "count": 0,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 0,
+        "net_pp": 0.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "arc_challenge_chat"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 80,
+      "name": "rung_recovered[awq-4bit-nooffload]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 4.581812953552713,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "awq-4bit-nooffload",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 0,
+        "net_pp": 0.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "arc_challenge_chat"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 80,
+      "name": "rung_destroyed[awq-4bit-nooffload]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 4.581812953552713,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "awq-4bit-offload",
+        "count": 0,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 0,
+        "net_pp": 0.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "arc_challenge_chat"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 80,
+      "name": "rung_recovered[awq-4bit-offload]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 4.581812953552713,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "awq-4bit-offload",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 0,
+        "net_pp": 0.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "arc_challenge_chat"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 80,
+      "name": "rung_destroyed[awq-4bit-offload]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.5753919941558823,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "bf16",
+        "count": 0,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 0,
+        "net_pp": 0.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "arc_challenge_chat"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 240,
+      "name": "rung_recovered[bf16]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.5753919941558823,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "bf16",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 0,
+        "net_pp": 0.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "arc_challenge_chat"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 240,
+      "name": "rung_destroyed[bf16]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.5753919941558823,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "bnb-nf4",
+        "count": 0,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 0,
+        "net_pp": 0.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "arc_challenge_chat"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 240,
+      "name": "rung_recovered[bnb-nf4]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.5753919941558823,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "bnb-nf4",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 0,
+        "net_pp": 0.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "arc_challenge_chat"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 240,
+      "name": "rung_destroyed[bnb-nf4]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.5753919941558823,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "gptq-4bit",
+        "count": 0,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 0,
+        "net_pp": 0.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "arc_challenge_chat"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 240,
+      "name": "rung_recovered[gptq-4bit]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.5753919941558823,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "gptq-4bit",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 0,
+        "net_pp": 0.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "arc_challenge_chat"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 240,
+      "name": "rung_destroyed[gptq-4bit]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.5753919941558823,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "gptq-8bit",
+        "count": 0,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 0,
+        "net_pp": 0.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "arc_challenge_chat"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 240,
+      "name": "rung_recovered[gptq-8bit]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.5753919941558823,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "gptq-8bit",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 0,
+        "net_pp": 0.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "arc_challenge_chat"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 240,
+      "name": "rung_destroyed[gptq-8bit]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 7.096886497858026,
+      "ci_low": 2.7539586853340485,
+      "claimable": null,
+      "context": {
+        "arm": "awq-4bit",
+        "count": 16,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 16,
+        "net_pp": 4.444444444444445,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "bbh"
+      },
+      "estimate": 4.444444444444445,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 360,
+      "name": "rung_recovered[awq-4bit]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.0558056888693512,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "awq-4bit",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 16,
+        "net_pp": 4.444444444444445,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "bbh"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 360,
+      "name": "rung_destroyed[awq-4bit]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 19.60294020800739,
+      "ci_low": 7.723497273395374,
+      "claimable": null,
+      "context": {
+        "arm": "awq-4bit-nooffload",
+        "count": 15,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 15,
+        "net_pp": 12.5,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "bbh"
+      },
+      "estimate": 12.5,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 120,
+      "name": "rung_recovered[awq-4bit-nooffload]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 3.10191664187035,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "awq-4bit-nooffload",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 15,
+        "net_pp": 12.5,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "bbh"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 120,
+      "name": "rung_destroyed[awq-4bit-nooffload]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 13.64091760599377,
+      "ci_low": 3.9957115395960288,
+      "claimable": null,
+      "context": {
+        "arm": "awq-4bit-offload",
+        "count": 9,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 9,
+        "net_pp": 7.5,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "bbh"
+      },
+      "estimate": 7.5,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 120,
+      "name": "rung_recovered[awq-4bit-offload]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 3.10191664187035,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "awq-4bit-offload",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 9,
+        "net_pp": 7.5,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "bbh"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 120,
+      "name": "rung_destroyed[awq-4bit-offload]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 3.958623820087137,
+      "ci_low": 0.9450116475484053,
+      "claimable": null,
+      "context": {
+        "arm": "bf16",
+        "count": 7,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 7,
+        "net_pp": 1.9444444444444444,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "bbh"
+      },
+      "estimate": 1.9444444444444444,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 360,
+      "name": "rung_recovered[bf16]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.0558056888693512,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "bf16",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 7,
+        "net_pp": 1.9444444444444444,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "bbh"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 360,
+      "name": "rung_destroyed[bf16]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 3.958623820087137,
+      "ci_low": 0.9450116475484053,
+      "claimable": null,
+      "context": {
+        "arm": "bnb-nf4",
+        "count": 7,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 7,
+        "net_pp": 1.9444444444444444,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "bbh"
+      },
+      "estimate": 1.9444444444444444,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 360,
+      "name": "rung_recovered[bnb-nf4]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.0558056888693512,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "bnb-nf4",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 7,
+        "net_pp": 1.9444444444444444,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "bbh"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 360,
+      "name": "rung_destroyed[bnb-nf4]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 8.095414325131756,
+      "ci_low": 3.404500763245829,
+      "claimable": null,
+      "context": {
+        "arm": "gptq-4bit",
+        "count": 19,
+        "direction": "recovered",
+        "n_destroyed": 1,
+        "n_recovered": 19,
+        "net_pp": 5.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "bbh"
+      },
+      "estimate": 5.277777777777778,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 360,
+      "name": "rung_recovered[gptq-4bit]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.5564442180557712,
+      "ci_low": 0.04905143920875031,
+      "claimable": null,
+      "context": {
+        "arm": "gptq-4bit",
+        "count": 1,
+        "direction": "destroyed",
+        "n_destroyed": 1,
+        "n_recovered": 19,
+        "net_pp": 5.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "bbh"
+      },
+      "estimate": 0.2777777777777778,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 360,
+      "name": "rung_destroyed[gptq-4bit]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 6.760094274809934,
+      "ci_low": 2.541060939986971,
+      "claimable": null,
+      "context": {
+        "arm": "gptq-8bit",
+        "count": 15,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 15,
+        "net_pp": 4.166666666666666,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "bbh"
+      },
+      "estimate": 4.166666666666666,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 360,
+      "name": "rung_recovered[gptq-8bit]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.0558056888693512,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "gptq-8bit",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 15,
+        "net_pp": 4.166666666666666,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "bbh"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 360,
+      "name": "rung_destroyed[gptq-8bit]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 51.322615494434366,
+      "ci_low": 40.12029025617836,
+      "claimable": null,
+      "context": {
+        "arm": "awq-4bit",
+        "count": 137,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 137,
+        "net_pp": 45.666666666666664,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "gsm8k"
+      },
+      "estimate": 45.666666666666664,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 300,
+      "name": "rung_recovered[awq-4bit]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.264297122454604,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "awq-4bit",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 137,
+        "net_pp": 45.666666666666664,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "gsm8k"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 300,
+      "name": "rung_destroyed[awq-4bit]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 65.32797336983921,
+      "ci_low": 46.22810465167698,
+      "claimable": null,
+      "context": {
+        "arm": "awq-4bit-nooffload",
+        "count": 56,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 56,
+        "net_pp": 56.00000000000001,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "gsm8k"
+      },
+      "estimate": 56.00000000000001,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 100,
+      "name": "rung_recovered[awq-4bit-nooffload]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 3.6993498206985693,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "awq-4bit-nooffload",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 56,
+        "net_pp": 56.00000000000001,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "gsm8k"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 100,
+      "name": "rung_destroyed[awq-4bit-nooffload]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 68.13268697886348,
+      "ci_low": 49.201430053410775,
+      "claimable": null,
+      "context": {
+        "arm": "awq-4bit-offload",
+        "count": 59,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 59,
+        "net_pp": 59.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "gsm8k"
+      },
+      "estimate": 59.0,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 100,
+      "name": "rung_recovered[awq-4bit-offload]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 3.6993498206985693,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "awq-4bit-offload",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 59,
+        "net_pp": 59.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "gsm8k"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 100,
+      "name": "rung_destroyed[awq-4bit-offload]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 57.59231991372776,
+      "ci_low": 46.35710820137406,
+      "claimable": null,
+      "context": {
+        "arm": "bf16",
+        "count": 156,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 156,
+        "net_pp": 52.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "gsm8k"
+      },
+      "estimate": 52.0,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 300,
+      "name": "rung_recovered[bf16]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.264297122454604,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "bf16",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 156,
+        "net_pp": 52.0,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "gsm8k"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 300,
+      "name": "rung_destroyed[bf16]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 54.30359832381607,
+      "ci_low": 43.06344959944937,
+      "claimable": null,
+      "context": {
+        "arm": "bnb-nf4",
+        "count": 146,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 146,
+        "net_pp": 48.66666666666667,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "gsm8k"
+      },
+      "estimate": 48.66666666666667,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 300,
+      "name": "rung_recovered[bnb-nf4]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.264297122454604,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "bnb-nf4",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 146,
+        "net_pp": 48.66666666666667,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "gsm8k"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 300,
+      "name": "rung_destroyed[bnb-nf4]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 44.287548019276244,
+      "ci_low": 33.33235932848012,
+      "claimable": null,
+      "context": {
+        "arm": "gptq-4bit",
+        "count": 116,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 116,
+        "net_pp": 38.666666666666664,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "gsm8k"
+      },
+      "estimate": 38.666666666666664,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 300,
+      "name": "rung_recovered[gptq-4bit]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.264297122454604,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "gptq-4bit",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 116,
+        "net_pp": 38.666666666666664,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "gsm8k"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 300,
+      "name": "rung_destroyed[gptq-4bit]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 58.90088943329575,
+      "ci_low": 47.681490758540605,
+      "claimable": null,
+      "context": {
+        "arm": "gptq-8bit",
+        "count": 160,
+        "direction": "recovered",
+        "n_destroyed": 0,
+        "n_recovered": 160,
+        "net_pp": 53.333333333333336,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "gsm8k"
+      },
+      "estimate": 53.333333333333336,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 300,
+      "name": "rung_recovered[gptq-8bit]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 1.264297122454604,
+      "ci_low": 0.0,
+      "claimable": null,
+      "context": {
+        "arm": "gptq-8bit",
+        "count": 0,
+        "direction": "destroyed",
+        "n_destroyed": 0,
+        "n_recovered": 160,
+        "net_pp": 53.333333333333336,
+        "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
+        "registered_in": "R27.1",
+        "rungs": [
+          "strict",
+          "permissive_anchored"
+        ],
+        "task": "gsm8k"
+      },
+      "estimate": 0.0,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "Wilson interval on a single proportion",
+      "n": 300,
+      "name": "rung_destroyed[gptq-8bit]",
+      "noise_class": "partially_cancelling",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    }
+  ],
   "rung_monotonicity_violations": [
     {
       "arm": "bnb-nf4",
@@ -14255,6 +15560,15 @@
       "repeat_idx": 0,
       "subtask": null,
       "task": "gsm8k"
+    }
+  ],
+  "rung_monotonicity_violations_anchored": [
+    {
+      "arm": "gptq-4bit",
+      "item_key": "llama-3.1-8b|bbh|dyck_languages|idx-0",
+      "repeat_idx": 0,
+      "subtask": "dyck_languages",
+      "task": "bbh"
     }
   ],
   "rungs": [
@@ -15058,6 +16372,7 @@
     }
   ],
   "study_wide_max_abs_contribution": 2,
+  "study_wide_max_abs_contribution_anchored": 2,
   "transition_effects": [
     {
       "ci_high": 4.581812953552713,

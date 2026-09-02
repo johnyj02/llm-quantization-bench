@@ -754,12 +754,19 @@ data already seen**, with the exploratory numbers stated inline. Not pre-data.
 Rung monotonicity fails on real generations. Measured on `pilot-v2`, six generations have rung 1
 **correct** and rung 2 **incorrect**:
 
-| model / task | rung 1 | rung 2 | cause |
-|---|---|---|---|
-| llama dyck_languages idx-0 | `] ]` ✓ | `] ] ]` ✗ | the model's own closing line is wrong |
-| phi gsm8k idx-55 | `14` ✓ | `Jean can fill 14 bags of lollipops` ✗ | prose after `#### 14` |
-| phi boolean_expressions idx-16 | `False` ✓ | `True` ✗ | a concluding sentence contradicting the marker |
-| phi gsm8k idx-61 | `1430` ✓ | `in dollar format with two decimal points…` ✗ | a trailing `Note:` |
+**All six instances, across five distinct items.** The counts must line up because this section's
+whole purpose is a corrected count:
+
+| # | model / task / item | arm(s) | rung 1 | rung 2 | class |
+|---|---|---|---|---|---|
+| 1 | phi gsm8k idx-55 | awq-4bit | `14` ✓ | `Jean can fill 14 bags of lollipops` ✗ | A |
+| 2 | phi gsm8k idx-61 | gptq-4bit | `1430` ✓ | `in dollar format with two decimal points…` ✗ | A |
+| 3 | phi bbh/boolean_expressions idx-16 | awq-4bit | `False` ✓ | `True` ✗ | B |
+| 4 | phi bbh/logical_deduction idx-12 | awq-4bit | `(A)` ✓ | `not (A), (B), or (E)` ✗ | B |
+| 5, 6 | llama bbh/dyck_languages idx-0 | gptq-4bit **and** bnb-nf4 | `] ]` ✓ | `] ] ]` ✗ | **C** |
+
+Five items, six instances, because item 5/6 violates on two arms. Classes A and B are the four
+**destruction** cases; class C is not destruction (below).
 
 🚨 **CORRECTED 2026-09-02, before this section bound anything.** A first pass described all six
 as one mechanism, "the generation continues past its committed answer". Reading the **real**
@@ -793,9 +800,44 @@ which takes the **first** committed answer and the hash marker, and drops the po
 last-number and last-option-letter fallbacks, since those are the rules that can reach past a
 commitment. Additive means the pilot's numbers stay valid and nothing is re-run.
 
-⚠️ **Rung 2a reduces destruction but does not eliminate it.** On the four traced cases it recovers
-two (both hash-marker cases) and cannot help the `dyck_languages` one, where the model's **only**
-commitment phrase is the wrong one so there is no earlier anchor. Reported as measured.
+⚠️ **CORRECTED TWICE, and the rule list changed once. Recorded in full because the section's
+purpose is a corrected count.**
+
+**First correction.** A first version of rung 2a **dropped** the positional `last_number` and
+`last_option_letter` fallbacks. Computed on the run rather than on fixtures, that produced **14**
+monotonicity violations against rung 2's 6, of which **13 were NON-EXTRACTIONS on
+`arc_challenge_chat`**: neither a commitment phrase nor a `####` marker appears there, and
+`last_option_letter` was the only rule able to read a generation such as *"The best piece of
+equipment ... is C"*. Ruled an **implementation error against §5a's own stated purpose** (R29):
+refusing to reach *past* a commitment is not the same as dropping the only rule that can read a
+commitment-free generation.
+
+**Corrected rule (R29, option ii): the positional fallbacks are ANCHORED rather than dropped**,
+restricted to the pre-commitment span when a commitment exists and applied to the whole generation
+when none does. Every edge case is enumerated in `extract_permissive_anchored`'s docstring, because
+the code has silently decided four such questions already.
+
+**MEASURED after the correction, not predicted** (R29 explicitly forbade predicting it, having been
+wrong once about exactly this):
+
+| rung pair | recovered | destroyed | monotonicity violations | §9h magnitude |
+|---|---|---|---|---|
+| rung 1 vs **rung 2** | 914 | **6** | 6 | **2** |
+| rung 1 vs **rung 2a** | 918 | **1** | **1** | **2** |
+
+🔬 **Rung 2a eliminates all FOUR genuine destruction cases (classes A and B). The single remaining
+violation is the class-C `dyck_languages` case**, which is not destruction at all: rung 1 is
+accidentally correct there via the dropped final character, and rung 2 reports faithfully.
+
+⚠️ **So §9h's magnitude for the rung-1-vs-rung-2a pair remains 2, and it is now driven ENTIRELY by a
+strict-side harness defect rather than by leniency.** It was expected to fall to 1. It did not, the
+bound stays wide, and that is reported as measured rather than adjusted.
+
+🔬 **A finding kept from the failed variant** (R29): on `arc_challenge_chat` positional fallback is
+the **only** rule doing any work. That narrows what H6's control is a control *for*: ARC-chat is
+structurally constrained in its **answer space** (four letters), not in its **extraction surface**,
+whereas §1.3 justified it assuming the latter. H6's test is unaffected (zero interaction on ARC,
+non-zero on BBH), but it is stated because a reviewer reading the filter list will notice.
 
 ### The registered decomposition
 
@@ -1394,9 +1436,35 @@ invocation boundary.** A single floor would be wrong in both directions.
 
 | class | quantities | invocation noise |
 |---|---|---|
-| **1. none** | anything computed by re-scoring **one fixed set** of generations: rung monotonicity, compliance labels, §8's trace scan, the found/committed split, per-item rung agreement | **exactly zero** — no boundary crossed |
+| **1. none** | a **PER-ITEM LABEL** given one fixed stored generation: a rung's correctness on that generation, its compliance label, its §8 trace-scan result, its found/committed split, its per-item rung agreement | **exactly zero** — no boundary crossed |
 | **2. partially cancelling** | a **within-arm** difference of two rungs (the strict−permissive gap) | reduced: the two rungs share the same text, so the noise is common and largely cancels. Pilot max 1.67 pp vs 4.44 pp for raw strict accuracy |
 | **3. compounding** | anything **contrasting arms**: precision main effects, §1.1's competence contrast, §1.3's Manski bounds, H4's components, **and H3's interaction** | two independent invocations, variances **add** |
+
+🚨 **AMENDED 2026-09-02 (R28): class 1 is PER-ITEM LABELS, never CELL-LEVEL RATES over them.**
+The original wording conflated the two and listed only examples of the first, which made the
+second look exempt. The distinction:
+
+* **A per-item label, given one fixed stored generation, is deterministic.** That is genuinely
+  class 1, and it is a statement about **scorer** determinism, i.e. whether the analysis
+  reproduces from the artifacts.
+* **A cell-level aggregate RATE over those labels inherits invocation noise from the
+  generations**, because the generations themselves differ between invocations, so the set of
+  items carrying any given label differs too. That is **not** class 1.
+
+⚠️ This applies to every example the class-1 row lists. The **compliance rates**, the
+**trace-scan rate** and the **per-arm recovered/destroyed rates of §5a** are cell-level
+quantities and are therefore **not** class 1, even though the underlying labels are.
+
+⚠️ **And "it is not a difference, so nothing cancels" does NOT imply class 1.** Absence of
+cancellation is absence of a *mitigation*: it means the noise does not cancel, which leaves the
+quantity worse off rather than exempt. §5a's `recovered` and `destroyed` are therefore **class 2
+as an interim label**, and their floor is to be **measured directly from the K=2 cells** rather
+than inherited, since they move whenever an invocation flips one rung and not the other, which is
+the same event that moves the gap. Because the gap is their *difference*, the measured gap
+movement of 1.67 pp is a **LOWER** bound on the components, not an upper one.
+
+⚠️ §5a's **differential prediction** (destruction higher on quantized arms than `bf16`) contrasts
+two arms, so it is **class 3**, with the same floor treatment as H3's interaction.
 
 ⚠️ **H3's interaction is class 3, not class 1.** Its *outer* difference is between arms, so two
 invocation noises subtract and their variances add. Measured pilot movement **2.78 pp**, worse
