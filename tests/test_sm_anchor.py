@@ -58,29 +58,50 @@ class TestCriterionCannotBeUnfalsifiable:
 
 
 class TestVerdict:
-    """R30 requires the verdict be evaluated against the INTERVAL, not the point alone."""
+    """R31 rewrote this rule. SYMMETRIC on the point estimate, and both non-pass verdicts BLOCK.
+
+    R30's first version required the whole CI inside the band for a PASS. R31 showed that is
+    unusable arithmetic: at n=1319 the CI is about as wide as the band, so PASS would have needed
+    |point| under roughly 0.2 pp and almost everything would have landed INCONCLUSIVE. "A gate that
+    always defers to a human is not a gate."
+    """
 
     def _result(self, diff, low, high):
         return {"difference_pp": diff, "ci_low": low, "ci_high": high}
 
-    def test_clean_pass_needs_the_whole_interval_inside_the_band(self):
-        verdict, why = score_anchor.verdict_for(self._result(0.5, -1.2, 1.4))
+    def test_point_inside_the_band_passes_even_with_a_wide_ci(self):
+        """The case R30's rule wrongly made INCONCLUSIVE. Realistic CI width at n=1319."""
+        verdict, why = score_anchor.verdict_for(self._result(0.5, -1.8, 2.8))
         assert verdict == "PASS"
-        assert "inside the band" in why
-
-    def test_point_inside_but_interval_straddling_is_INCONCLUSIVE_not_a_pass(self):
-        """The whole reason R30 asked for the interval: this must not read as a clean pass."""
-        verdict, why = score_anchor.verdict_for(self._result(1.5, -0.5, 3.4))
-        assert verdict == "INCONCLUSIVE"
-        assert "does not resolve" in why
+        assert "rule out a gap larger than" in why, (
+            "a PASS must state the resolution, which is the claim R31 says is honest")
 
     def test_point_outside_the_band_fails(self):
-        verdict, why = score_anchor.verdict_for(self._result(4.0, 2.5, 5.5))
+        verdict, why = score_anchor.verdict_for(self._result(3.0, 1.2, 4.8))
         assert verdict == "FAIL"
         assert "calibration or serving config is wrong" in why
+        assert "BLOCKS" in why
+
+    def test_the_two_reviewer_examples_are_now_symmetric(self):
+        """The CODE REVIEWER's asymmetry example, which is what exposed the arithmetic problem."""
+        assert score_anchor.verdict_for(self._result(-1.9, -3.5, -0.3))[0] == "PASS"
+        assert score_anchor.verdict_for(self._result(-2.1, -4.0, +0.5))[0] == "FAIL"
+
+    def test_inconclusive_is_reserved_for_a_run_that_cannot_see_gross_error(self):
+        """R31: it fires only when the CI reaches inside the band AND beyond twice it."""
+        verdict, why = score_anchor.verdict_for(self._result(0.5, -4.5, 5.5))
+        assert verdict == "INCONCLUSIVE"
+        assert "cannot distinguish fine agreement from gross error" in why
+        assert "BLOCKS" in why, "R30 said 'investigate'; R31 corrected it to blocking"
+
+    def test_inconclusive_does_not_fire_on_an_ordinary_wide_ci(self):
+        """The failure mode R31 was fixing: INCONCLUSIVE must be rare or the gate is useless."""
+        for diff, low, high in ((0.5, -1.8, 2.8), (1.5, -0.5, 3.4), (-1.9, -3.5, -0.3)):
+            verdict, _ = score_anchor.verdict_for(self._result(diff, low, high))
+            assert verdict != "INCONCLUSIVE", f"({diff}, [{low}, {high}]) should not defer"
 
     def test_verdict_is_from_a_closed_set(self):
-        for diff, low, high in ((0.5, -1.0, 1.0), (1.5, -0.5, 3.4), (4.0, 2.5, 5.5)):
+        for diff, low, high in ((0.5, -1.0, 1.0), (0.5, -4.5, 5.5), (4.0, 2.5, 5.5)):
             verdict, _ = score_anchor.verdict_for(self._result(diff, low, high))
             assert verdict in score_anchor.VERDICTS
 
@@ -95,7 +116,7 @@ class TestPairedDifference:
         assert result["accuracy_ours_pp"] == pytest.approx(60.0)
         assert result["accuracy_official_pp"] == pytest.approx(50.0)
 
-    def test_identical_sides_give_a_nonzero_width_bound_not_a_point(self):
+    def test_identical_sides_give_a_bound_on_a_DIAGNOSTIC_metric(self):
         """Same degeneracy R25.1 registered: nothing to resample, so a bound rather than [0,0]."""
         same = {f"i{i}": i % 2 == 0 for i in range(40)}
         result = score_anchor.paired_difference(same, dict(same), n_boot=500)
@@ -103,6 +124,16 @@ class TestPairedDifference:
         assert result["n_discordant"] == 0
         assert result["ci_high"] > 0.0, "a zero-width interval would overstate resolution"
         assert "zero-variance bound" in result["interval_method"]
+
+    def test_identical_sides_on_the_GATE_metric_is_a_red_flag_and_raises(self):
+        """R31 Q2: zero variance on the gate means the two CHECKPOINTS agreed on every item.
+
+        That is far more likely a wiring error, both sides resolved to one path, than two
+        independently quantized models agreeing perfectly. It must not read as a clean PASS.
+        """
+        same = {f"i{i}": i % 2 == 0 for i in range(40)}
+        with pytest.raises(SystemExit, match="ZERO VARIANCE"):
+            score_anchor.paired_difference(same, dict(same), n_boot=500, gate=True)
 
     def test_discordant_count_is_reported_because_it_drives_the_width(self):
         ours = {f"i{i}": True for i in range(20)}

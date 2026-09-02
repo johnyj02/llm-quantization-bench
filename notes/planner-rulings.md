@@ -2059,3 +2059,70 @@ both GPTQ arms, and AWQ's gemm/`zero_point`. `scripts/anchor_preflight.py`, runs
 > 512×2048. So Anchor A does not test *reproduction* — it tests that our pipeline produces a
 > checkpoint of **comparable quality**. ±2.0 pp is a quality-comparability band. Say so explicitly,
 > or a reviewer reads the anchor as a reproduction claim it can't support."*
+
+---
+
+## R31 — Anchor A's verdict is SYMMETRIC on the point estimate. CI-containment was unusable
+
+Raw answer: `notes/planner-answers/R31-anchor-fail-side-symmetry.txt`. Asked **before the gate ran**
+rather than after it failed, on a CODE REVIEWER flag that R30's interval rule addressed only the pass
+side.
+
+### R31.1 🚨 The asymmetry was real, and the fix is NOT the one I proposed
+
+*"The asymmetry is real and R30's one-sided wording is my drafting error. But (iii) fails on
+arithmetic, so the fix is symmetry applied to the **point estimate**, not to the CI."*
+
+**Why CI-containment cannot be the criterion, and this is the substantive part.** At n=1319 with
+10–20% discordance the paired SE is 0.9–1.2 pp, so the CI is roughly **3.6–4.8 pp wide against a band
+that is 4.0 pp wide**. Requiring the whole CI inside the band means PASS needs
+`|point| + half-width ≤ 2.0`, i.e. `|point|` under about **0.2 pp**, a near-exact match.
+
+> *"So under (iii), and largely under (i)'s pass side too, almost every outcome lands in
+> INCONCLUSIVE. **A gate that always defers to a human is not a gate.** The threshold and the
+> achievable resolution were never matched, and that's the actual defect the CODE REVIEWER's
+> asymmetry example exposed."*
+
+### R31.2 The registered rule
+
+| verdict | condition | blocks `main-v1`? |
+|---|---|---|
+| **PASS** | `\|point\| ≤ 2.0 pp` | no |
+| **FAIL** | `\|point\| > 2.0 pp` | **yes**, debug the checkpoints |
+| **INCONCLUSIVE** | the CI cannot distinguish `≤ 2.0` from `≥ 4.0`, i.e. the run says nothing about *gross* error | **yes**, take a stronger measurement |
+
+Both verdicts report the paired bootstrap CI and the implied resolution.
+
+🚨 **INCONCLUSIVE BLOCKS, exactly as FAIL does**, *"and that is what makes symmetry free: being
+honest about the evidence costs nothing in safety, because both non-pass verdicts stop main-v1. They
+differ only in what they tell you to do next."* R30 said *"investigate"* and **should have said
+"blocks"**; the planner recorded that as its own gap.
+
+**On false-pass safety:** *"a broken calibration produces a large gap, not a 2.1 pp gap. Gating the
+point estimate at ±2.0 pp catches gross error reliably, which is what Anchor A is for. Certifying
+near-equality to 2 pp was never achievable at this n and pretending otherwise is the thing H7
+criticises."* The paper states the resolution beside the verdict: *"our resolution is ±X pp; we can
+rule out a gap larger than Y."*
+
+⚠️ **Implementation note, recorded because the encoding is mine rather than the ruling's.** R31's
+prose says INCONCLUSIVE is for when the CI *"cannot distinguish |diff| ≤ 2.0 from |diff| ≥ 4.0"*. My
+first encoding read that as "the interval overlaps the band **and** reaches beyond twice it", which
+fired on R31's own FAIL example (−2.1, CI [−4.0, +0.5]) and would have made INCONCLUSIVE common,
+defeating the point. Since R31 resolves that case as FAIL and calls INCONCLUSIVE *"rare, and it means
+something when it fires"*, the operative condition is about the measurement's **power**:
+`half_width ≥ 2 × CRITERION_PP`. Verified against all five worked examples R31 gives.
+
+### R31.3 Q2: one criterion is fine, but label the interval and treat degeneracy as a red flag
+
+R26.1's objection was to comparing a bound **against a CI**, an inter-quantity comparison. *"This is
+different: each interval is compared to a fixed threshold. That's legitimate, and a worst-case bound
+inside ±2.0 pp is stronger evidence of agreement than a percentile CI inside it, not incomparable."*
+So no separate verdict label, with two requirements:
+
+1. **Record which interval type produced the verdict**, since the guarantees differ: a bound says
+   *cannot be outside*, a CI says *95% coverage*.
+2. 🚨 **A zero-variance result on the GATE metric is a red flag, not a pass.** It would require strict
+   and permissive to agree on every item **and** the two checkpoints to agree on every item, *"which
+   more likely means we compared a checkpoint to itself, or resolved both sides to the same S3 path,
+   than that the pipeline is perfect."* The degenerate branch now **raises** on the gate metric while
+   remaining legitimate on a diagnostic one.

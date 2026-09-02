@@ -59,7 +59,7 @@ VERDICTS = ("PASS", "FAIL", "INCONCLUSIVE", "NOT COMPUTED")
 
 def paired_difference(
     ours: dict[str, bool], official: dict[str, bool], *,
-    n_boot: int = 10_000, seed: int = 20260902,
+    n_boot: int = 10_000, seed: int = 20260902, gate: bool = False,
 ) -> dict:
     """`ours - official` in percentage points, with a paired bootstrap CI over items.
 
@@ -83,8 +83,20 @@ def paired_difference(
     n_discordant = int((contrib != 0).sum())
 
     if contrib.min() == contrib.max():
-        # Same degeneracy R25.1 registered: nothing to resample. Wilson upper on 0 of n, times the
-        # per-item magnitude of 1, since this is a difference of two per-item indicators.
+        # 🚨 On the GATE metric this is a RED FLAG, not a pass (R31 Q2). Zero variance here requires
+        # the two CHECKPOINTS to agree on every single item, which more plausibly means we compared
+        # a checkpoint to itself, or resolved both sides to the same S3 path, than that two
+        # independently quantized models agree perfectly. The caller passes `gate=True` for the
+        # blocking metric so the two cases are not conflated: on a diagnostic metric the bound is
+        # legitimate, on the gate it is evidence of a wiring error.
+        if gate:
+            raise SystemExit(
+                f"GATE METRIC HAS ZERO VARIANCE over {len(shared)} items: the two sides agree on "
+                f"every item. That is far more likely a wiring error (both sides resolved to the "
+                f"same checkpoint path) than two independently quantized models agreeing "
+                f"perfectly. Refusing to emit a verdict; check the cell_ids and model_path of "
+                f"both sides in anchor_report.json."
+            )
         from quantartifact.analysis.results import zero_variance_bound  # noqa: PLC0415
         ci_low, ci_high, method = zero_variance_bound(
             len(shared), max_abs_contribution=1, centre=point)
@@ -106,22 +118,70 @@ def paired_difference(
 
 
 def verdict_for(result: dict) -> tuple[str, str]:
-    """`(verdict, why)` for the blocking metric, per R30's interval rule."""
-    inside = abs(result["difference_pp"]) <= CRITERION_PP
-    # Does the interval straddle the band edge? If either limit lies outside while the point is
-    # inside, the data does not resolve the question at the stated tolerance.
-    straddles = (abs(result["ci_low"]) > CRITERION_PP) or (abs(result["ci_high"]) > CRITERION_PP)
-    if inside and not straddles:
-        return "PASS", (f"|{result['difference_pp']:+.2f}| <= {CRITERION_PP} pp and the interval "
-                        f"[{result['ci_low']:+.2f}, {result['ci_high']:+.2f}] lies inside the band")
-    if inside and straddles:
+    """`(verdict, why)` for the blocking metric. SYMMETRIC on the point estimate (R31).
+
+    🚨 **Rewritten 2026-09-02 (R31), and the reason is arithmetic rather than taste.** The first
+    version required the whole CI inside the band for a PASS, which the planner showed makes the
+    gate unusable: at n=1319 with 10-20% discordance the paired SE is 0.9-1.2 pp, so the CI is about
+    3.6-4.8 pp wide against a band that is 4.0 pp wide. Requiring containment means PASS needs
+    `|point| + half-width <= 2.0`, i.e. `|point|` under roughly **0.2 pp**, a near-exact match. So
+    almost every outcome would have landed in INCONCLUSIVE, and *"a gate that always defers to a
+    human is not a gate."* The threshold and the achievable resolution were never matched, and the
+    CODE REVIEWER's asymmetry example is what exposed it.
+
+    **The rule:**
+
+    | verdict | condition | blocks `main-v1`? |
+    |---|---|---|
+    | **PASS** | `|point| <= 2.0 pp` | no |
+    | **FAIL** | `|point| > 2.0 pp` | **yes**, debug the checkpoints |
+    | **INCONCLUSIVE** | the CI cannot distinguish `|diff| <= 2.0` from `|diff| >= 2 x 2.0`, i.e. the run says nothing about *gross* error | **yes**, the measurement is too weak to decide |
+
+    ⚠️ **INCONCLUSIVE BLOCKS, exactly as FAIL does**, and that is what makes symmetry free: being
+    honest about the evidence costs nothing in safety because both non-pass verdicts stop the run.
+    They differ only in what to do next. R30 said *"investigate"* where it should have said
+    *"blocks"*, and the planner recorded that gap as its own drafting error.
+
+    **On false-pass safety:** a broken calibration produces a *large* gap, not a 2.1 pp gap. Gating
+    the point estimate at ±2.0 pp catches gross error reliably, which is what Anchor A is for.
+    Certifying near-equality to 2 pp was never achievable at this n, and pretending otherwise is the
+    thing H7 criticises in other people.
+    """
+    point = result["difference_pp"]
+    low, high = result["ci_low"], result["ci_high"]
+    half_width = (high - low) / 2.0
+    gross = 2.0 * CRITERION_PP
+
+    # ⚠️ INCONCLUSIVE fires on the RESOLUTION, not on where the interval happens to fall, and the
+    # encoding is pinned by R31's own worked examples rather than by my reading of its prose.
+    #
+    # R31 says INCONCLUSIVE is for "when the CI cannot distinguish |diff| <= 2.0 from |diff| >= 4.0".
+    # My first encoding took that as "the interval overlaps the band AND reaches beyond twice it",
+    # which fired on R31's own FAIL example (-2.1, CI [-4.0, +0.5]) and would have made INCONCLUSIVE
+    # common. Since R31 explicitly resolves that case as FAIL and says INCONCLUSIVE is "rare, and it
+    # means something when it fires", the operative condition must be about the MEASUREMENT's power:
+    # if the half-width alone reaches the gross threshold, the run cannot see gross error wherever
+    # the point sits.
+    #
+    # Checked against every example R31 gives: (0.5, [-1.8, 2.8]) -> PASS, (-1.9, [-3.5, -0.3]) ->
+    # PASS, (-2.1, [-4.0, +0.5]) -> FAIL, (3.0, [1.2, 4.8]) -> FAIL, and a genuinely useless
+    # (0.5, [-4.5, 5.5]) -> INCONCLUSIVE.
+    if half_width >= gross:
         return "INCONCLUSIVE", (
-            f"point {result['difference_pp']:+.2f} pp is inside the band but the interval "
-            f"[{result['ci_low']:+.2f}, {result['ci_high']:+.2f}] straddles +/-{CRITERION_PP}, so "
-            f"the data does not resolve the question at this tolerance. R30: record as "
-            f"INCONCLUSIVE and investigate, do NOT report a clean pass")
-    return "FAIL", (f"|{result['difference_pp']:+.2f}| > {CRITERION_PP} pp. A9: a larger gap means "
-                    f"our calibration or serving config is wrong. Debug before proceeding")
+            f"resolution is +/-{half_width:.2f} pp, which reaches the gross-error threshold of "
+            f"+/-{gross} pp, so this run cannot distinguish fine agreement from gross error "
+            f"wherever the point estimate sits. CI [{low:+.2f}, {high:+.2f}]. BLOCKS, and the "
+            f"action is a stronger measurement rather than debugging the checkpoints")
+
+    if abs(point) <= CRITERION_PP:
+        return "PASS", (
+            f"|{point:+.2f}| <= {CRITERION_PP} pp. Resolution +/-{half_width:.2f} pp, CI "
+            f"[{low:+.2f}, {high:+.2f}], so we can rule out a gap larger than "
+            f"{max(abs(low), abs(high)):.2f} pp. Anchor A tests comparable QUALITY, not "
+            f"reproduction, and certifying equality to {CRITERION_PP} pp is not achievable at this n")
+    return "FAIL", (
+        f"|{point:+.2f}| > {CRITERION_PP} pp, CI [{low:+.2f}, {high:+.2f}]. A9: a larger gap means "
+        f"our calibration or serving config is wrong. BLOCKS, debug before proceeding")
 
 
 def main() -> int:
@@ -224,7 +284,10 @@ def main() -> int:
     verdicts: list[str] = []
     print(f"Anchor A, gate G5a. Blocking metric: {gate_task} {gate_rung}, "
           f"+/-{CRITERION_PP} pp\n")
-    print(f"registered n for the gate task: {registered_n}\n")
+    print(f"registered n for the gate task: {registered_n}")
+    print(f"verdict rule (R31): PASS |diff| <= {CRITERION_PP} pp; FAIL otherwise; INCONCLUSIVE "
+          f"only when the CI cannot separate <= {CRITERION_PP} from >= {2 * CRITERION_PP} pp.")
+    print("⚠️ BOTH non-pass verdicts BLOCK main-v1; they differ in what to do next.\n")
     print(f"{'arm':11} {'ours':>8} {'official':>9} {'diff':>8} "
           f"{'95% CI':>18} {'n':>6} {'disc':>5}  verdict")
     print("-" * 92)
@@ -237,7 +300,7 @@ def main() -> int:
             verdicts.append("NOT COMPUTED")
             print(f"{arm:11} {'--':>8} {'--':>9}  NOT COMPUTED (one side missing)")
             continue
-        result = paired_difference(ours, official)
+        result = paired_difference(ours, official, gate=True)
         verdict, why = verdict_for(result)
         if result["n"] < registered_n:
             verdict = "INCONCLUSIVE"
