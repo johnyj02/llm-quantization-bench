@@ -1,0 +1,65 @@
+{
+  "matched_settings": {
+    "group_size": 128,
+    "desc_act": false
+  },
+  "checkpoints": {
+    "gptq-4bit": {
+      "repo": "Qwen/Qwen2.5-3B-Instruct-GPTQ-Int4",
+      "revision": "68c4276063d1496cdf13d0b8e8221f899bfa77f7",
+      "source_file": "config.json",
+      "official": {
+        "bits": 4,
+        "group_size": 128,
+        "desc_act": false,
+        "sym": true,
+        "quant_method": "gptq"
+      },
+      "ours": {
+        "bits": 4,
+        "group_size": 128,
+        "desc_act": false,
+        "method": "gptq"
+      },
+      "mismatches": []
+    },
+    "gptq-8bit": {
+      "repo": "Qwen/Qwen2.5-3B-Instruct-GPTQ-Int8",
+      "revision": "1fed15cb34975bc0bd699e62b95a539bb06eed42",
+      "source_file": "config.json",
+      "official": {
+        "bits": 8,
+        "group_size": 128,
+        "desc_act": false,
+        "sym": true,
+        "quant_method": "gptq"
+      },
+      "ours": {
+        "bits": 8,
+        "group_size": 128,
+        "desc_act": false,
+        "method": "gptq"
+      },
+      "mismatches": []
+    },
+    "awq-4bit": {
+      "repo": "Qwen/Qwen2.5-3B-Instruct-AWQ",
+      "revision": "3559b226e8ce77211e2c1bd7ddfb7686fec4d6dd",
+      "source_file": "config.json",
+      "official": {
+        "bits": 4,
+        "group_size": 128,
+        "quant_method": "awq",
+        "version": "gemm",
+        "zero_point": true
+      },
+      "ours": {
+        "bits": 4,
+        "group_size": 128,
+        "desc_act": false,
+        "method": "awq"
+      },
+      "mismatches": []
+    }
+  }
+}

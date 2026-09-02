@@ -111,6 +111,17 @@ STAGES: dict[str, dict] = {
         # outputs are isolated by run_id (`template-v1-smoke`), not by prefix.
         "smoke_isolates_checkpoints": False,
     },
+    "anchor": {
+        "entry_point": "sm_anchor.py",
+        "description": "A9 Anchor A / gate G5a: 3 arms x {official Qwen checkpoint, ours}, "
+                       "BLOCKING",
+        # 6 cells x (1319 gsm8k_cot + 500 gsm8k) = ~10,900 generations. At the measured ~5,250
+        # gen/h for gsm8k plus 6 engine loads at ~2.6 min, roughly 3 h. 8 h caps a hang at ~$22.
+        "max_run": 28800,
+        # READS job 1's checkpoints by recipe hash, so the smoke must see the study prefix.
+        # Isolation of its own writes is by run_id (`anchor-v1-smoke`), not by prefix.
+        "smoke_isolates_checkpoints": False,
+    },
     "determinism": {
         "entry_point": "sm_determinism.py",
         "description": "A7/H8: per-format bitwise disagreement + max_num_seqs frontier",
