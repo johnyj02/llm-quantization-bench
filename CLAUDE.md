@@ -7,6 +7,34 @@ scope/schedule in `EXECUTOR-TASKS.md`; decisions in `notes/decisions.md`. This f
 
 ---
 
+# 🚨🚨 ASK THE PLANNER AND THE CODE REVIEWER. DO NOT SKIP THEM. DO NOT PRE-EMPT THEM. 🚨🚨
+
+**TWO AGENTS EXIST AND BOTH ARE MANDATORY IN THEIR OWN DOMAIN.**
+
+| WHEN | WHO | HOW |
+|---|---|---|
+| **ANY SCIENCE QUESTION**: a hypothesis, an estimator, a scope change, a registered design, a threshold, a claim in the paper | **THE PLANNER** (D13, rule 5) | `./ask-planner "..."` |
+| **ANY CODE CHANGE**, before it feeds a billable job AND before you call it done | **THE CODE REVIEWER** (rule 6) | `./ask-reviewer "..."` |
+
+🚨 **ASKING IS NOT ENOUGH. WAIT FOR THE ANSWER BEFORE CALLING THE WORK DONE.**
+
+Recorded because it happened on 2026-09-01: the analysis layer (`A19`) was written, committed,
+and reported to the user as built, and *then* the reviewer was consulted. The call was genuinely
+made and was still in flight when the work was presented as finished. **That is close to not
+asking at all**, because the user was shown completed work they had no reason to doubt. The
+previous two reviews found a CRITICAL bug each, including one that would have put a fabricated
+statistic in the paper, so the gap between "asked" and "heard back" is precisely where the risk
+lives.
+
+**The obligation in one line: ask, WAIT, act on CRITICAL and MODERATE, record the outcome in
+`notes/reviews/` including what you declined and why, and only then say it is done.**
+
+⚠️ Neither agent writes code and neither holds a job submission. Their authority is advisory;
+the reason to act on them is that their findings are verified, not that they ranked something
+highly. Full detail in rule 5 (planner) and rule 6 (reviewer) below.
+
+---
+
 ## 0. Hard rules
 
 1. **🚨 NO job starts without explicit user confirmation** (D10). Every billable command
