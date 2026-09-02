@@ -13,8 +13,40 @@ scope/schedule in `EXECUTOR-TASKS.md`; decisions in `notes/decisions.md`. This f
 
 | WHEN | WHO | HOW |
 |---|---|---|
-| **ANY SCIENCE QUESTION**: a hypothesis, an estimator, a scope change, a registered design, a threshold, a claim in the paper | **THE PLANNER** (D13, rule 5) | `./ask-planner "..."` |
+| **ANY SCIENCE QUESTION**: a hypothesis, an estimator, a threshold, a scope change, a registered design, anything that becomes a number or a claim in the paper | **THE PLANNER** (D13, rule 5) | `./ask-planner "..."` |
 | **ANY CODE CHANGE**, before it feeds a billable job AND before you call it done | **THE CODE REVIEWER** (rule 6) | `./ask-reviewer "..."` |
+
+## 🚨 THE TEST, for when it is not obvious which one
+
+The category list above is not enough, because the hard cases look like code and are science. Two
+questions decide it, in this order:
+
+1. **Could a planner ruling or `analysis/preregistration.md` overturn the answer?** If yes it is
+   **SCIENCE**, whatever surfaced it. If the only thing that could be wrong is the code, it is
+   **CODE**.
+2. **Does the answer change a number or a claim that reaches the paper?** If yes it is **SCIENCE**,
+   even when the fix is one line of code.
+
+⚠️ **The thing that surfaced a question is not the owner of it.** A defect found by running code,
+or reported by the CODE REVIEWER, can still be a science question. That is the mistake, not a
+hypothetical one:
+
+| what happened | what I did | what was right |
+|---|---|---|
+| A bootstrap returned `[0, 0]` on ARC | Called it a CODE REVIEWER matter because code produced it | The code was correct; *what interval to report* is the **planner's** (R25.1) |
+| Asked "is `zero_variance_bound` applied at the right magnitude?" | Sent one question mixing wiring (code) with whether 2 is the right magnitude (science) | **Split it.** The CODE REVIEWER then volunteered a ruling on the magnitude, and R26.1 later overturned it |
+| §4's stopseq scope was ambiguous | Picked "the conservative reading" in code | **Ask.** R26.2 reversed it: my conservative choice over-corrected in the *wrong family* |
+
+**Three signatures that mean STOP AND ASK THE PLANNER:**
+
+- You are about to **"pick the conservative option"** on anything registered. Conservative is not
+  a substitute for correct: R26.1 showed the conservative magnitude described a range the
+  registered monotonicity property *forbids*, and R26.2 showed a conservative scope choice
+  over-corrected in the wrong hypothesis family.
+- The **CODE REVIEWER volunteers on science.** It does, in good faith, and its reasoning is often
+  right. Do not treat it as settling anything registered. Record that you declined it and why.
+- You find yourself writing **"flagged for the planner"** in a comment. That is not flagging, it is
+  filing. Send it, or accept that the code has decided it.
 
 🚨 **ALWAYS CALL IT THE "CODE REVIEWER", NEVER JUST "THE REVIEWER".**
 
@@ -41,7 +73,7 @@ lives.
 
 ⚠️ Neither agent writes code and neither holds a job submission. Their authority is advisory;
 the reason to act on them is that their findings are verified, not that they ranked something
-highly. Full detail in rule 5 (planner) and rule 6 (reviewer) below.
+highly. Full detail in rule 5 (planner) and rule 6 (CODE REVIEWER) below.
 
 ---
 
@@ -112,8 +144,24 @@ highly. Full detail in rule 5 (planner) and rule 6 (reviewer) below.
     orderings, but it means the probe's data cannot be reused for anything else. Do not repeat the
     pattern in a new stage.
 
-5. **Route questions to the planner**, not the user: `./ask-planner "..."` (D13). Batch them;
-   each call re-sends its whole context. `FORK=1` for throwaway questions.
+5. **🚨 ROUTE SCIENCE QUESTIONS TO THE PLANNER**, not to the user and not to the CODE REVIEWER:
+   `./ask-planner "..."` (D13). Batch them, because each call re-sends its whole context.
+   `FORK=1` for a throwaway question you do not want in its history.
+
+   **The planner's remit**, and it is broader than "hypotheses": any hypothesis or its framing,
+   any **estimator** or the interval around it, any **threshold** or decision rule, any scope or
+   budget change, anything that amends `analysis/preregistration.md`, and **any number or claim
+   that reaches the paper**. Also: what to do when a registered design cannot be implemented as
+   written, which is a question about the registration rather than about the code.
+
+   **Save the answer unabridged** to `notes/planner-answers/`, then distil it into
+   `notes/planner-rulings.md` as an R-number. ⚠️ **Never read a ruling through `tail -n`** — doing
+   that truncated R15 and lost two of its points.
+
+   ⚠️ **The planner can be wrong, and has been.** R24.1 asserted the 10-ordering run spanned
+   {8,32,64} when it measured `[64]` only, and R26.1 withdrew the planner's own H6 overlap framing
+   as *"mine and it was wrong"*. Verify a factual claim about our data against the artifacts before
+   acting on it; that is not insubordination, it is the check the planner expects.
 6. **🚨 CONSULT THE CODE REVIEWER AFTER CODE CHANGES.** `./ask-reviewer "..."` — before the
    change feeds a billable job, and before it is called done.
    ```bash
