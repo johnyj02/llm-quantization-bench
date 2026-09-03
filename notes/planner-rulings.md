@@ -2213,3 +2213,125 @@ were near zero the sweep would measure nothing by construction. On gsm8k_cot it 
 
 ⇒ **A load-bearing precondition for the co-lead hypothesis, established for $0.35.** Recorded here
 because it is an argument for building `A15` rather than a fact about the anchor.
+
+---
+
+## R33 — G5a FAILED as registered. The verdict stands; the DECISION is discharged, with conditions
+
+Raw answer: `notes/planner-answers/R33-anchor-a-failed.txt`. Data:
+`artifacts/tables/anchor_a.json`, `artifacts/generations/anchor-v1/` (9,095 generations).
+
+### R33.1 The gate's verdict is FAIL and stays FAIL. Do not retroactively convert it
+
+*"Two separate things, and collapsing them is how this goes wrong."* The **verdict** is recorded
+permanently as FAIL. What the analysis can discharge is the **decision** the gate gates, which it
+does on three grounds:
+
+1. our permissive accuracy is indistinguishable from official on comparable items;
+2. the residual runs **in our favour**, which is not the direction a broken calibration produces;
+3. 🎯 **`gptq-8bit` passes cleanly on every metric, and that is the control** — a systematic
+   pipeline error would not spare it.
+
+### R33.2 🚨 My decomposition committed the collider error §4.0 EXISTS TO PREVENT
+
+*"Your decomposition commits the error §4.0 exists to prevent, and you should see it before a
+reviewer does."* Conditioning on *"neither side truncated"* conditions on an **outcome both
+checkpoints influence**. That is the collider problem, inside the gate.
+
+Salvageable, because it is the same device as §4.0 part 1: the restriction is applied
+**symmetrically** across both sides, so membership does not differ by arm. It therefore inherits
+the same limitation and the same remedy: **report Manski bounds on the full sample alongside the
+−1.29 pp**, per §4.0 part 3. Also **label the subsetting post-hoc**: R32.4 pre-specified the
+truncation-*rate* diagnostic; the subset analysis is new.
+
+**Computed, and the answer is unfavourable to my reading.** Bounds on the full sample,
+`gsm8k_cot` permissive, unobserved = that side's own truncated items, combined on opposite sides:
+
+| arm | ours | official | difference bound | width |
+|---|---|---|---|---|
+| gptq-4bit | [55.42, 81.96] | [48.82, 85.52] | **[−30.10, +33.13]** | 63.23 pp |
+| gptq-8bit | [56.71, 83.32] | [56.33, 83.24] | **[−26.54, +26.99]** | 53.53 pp |
+
+🚨 **The bounds are UNINFORMATIVE**, 53 to 63 pp wide against a 4.0 pp band, and the planner said
+in advance to say so if they were. ⇒ **The sign flip does NOT survive bounding.** My claim that
+the permissive gap is *entirely* a truncation artifact is **not established by the data**; it holds
+only under a conditioning the bounds cannot support. The subset analysis is **suggestive, not
+load-bearing**, and the discharge rests on R33.1's three grounds plus R33.3's clean checks.
+
+### R33.3 Q2: both free checks came back CLEAN, so the narrow claim becomes admissible
+
+*"Your suspicion is correct and the flattery is avoidable."* Two checks were required **before**
+concluding anything about weights, and both were run:
+
+1. **Recipe settings on the official artifacts** (already in `artifacts/anchor_preflight.json`):
+   both GPTQ arms agree with our recipe on `bits`, `group_size: 128` and **`desc_act: false`**. So
+   the trap `CLAUDE.md` warns about, official shipping `desc_act: true` against our `false`, does
+   **not** apply. This was the single most likely cause of a real quality gap and it is excluded.
+2. **`generation_config.json` and `tokenizer_config.json` diffed** across base, official-Int4 and
+   official-Int8. **Identical on every field except `transformers_version`** (4.37.0 vs 4.39.3),
+   which is metadata. In particular `eos_token_id [151645, 151643]`, `chat_template` (2,507 bytes),
+   `add_bos_token: false`, `eos_token` and `pad_token` all match. ⇒ **A termination-configuration
+   difference, the planner's most plausible alternative and the one that would have explained both
+   observations at once, is ruled out.**
+
+**The registered reframing, which removes the flattery problem entirely:**
+
+> Two checkpoints of the same model at the same bit width, both from documented pipelines, differ
+> by **21.6 pp under strict scoring and 1.3 pp under permissive scoring** on the same non-truncated
+> items.
+
+Symmetric, privileges neither side, and *"a stronger instance of the thesis: strict scoring
+manufactures a quality difference that permissive scoring says does not exist."*
+
+With both checks clean, *"the official checkpoint emits the committed marker less often"* is
+admissible **stated narrowly**: one checkpoint pair, one task, one bit width, a claim about a
+**vendor artifact** and not about GPTQ.
+
+### R33.4 AWQ is DROPPED from G5a, and the incompatibility is worth more than the cell
+
+The official AWQ cell died in `torch.ops._C.awq_dequantize`: *"expected scalar type Half but found
+BFloat16"*. vLLM's native AWQ dequantize path is **fp16-only**; our frozen serving dtype is
+bfloat16.
+
+- ❌ **Serving that cell in fp16 is rejected.** dtype is a frozen config item the paper reports and
+  it affects everything numerically, so a dtype confound is **strictly worse** than the kernel-path
+  one. A bf16-capable AWQ path means re-packing, which R32.2 already ruled destroys what the anchor
+  tests.
+- **Dropping it costs little:** our AWQ checkpoint came from the *same* `llmcompressor` run with the
+  *same* calibration as the GPTQ arms, so the calibration path is validated **transitively** by
+  `gptq-8bit`'s pass.
+- 🔬 **The finding:** vLLM 0.26.0 **cannot serve a stock `awq`-format checkpoint in bfloat16 at
+  all**, with a traceback to prove it. So anyone evaluating AWQ in bf16 is silently in fp16 or using
+  a compressed-tensors repack, which means **published AWQ numbers are not dtype-comparable to
+  published GPTQ numbers unless the dtype is reported.** A sharp reporting-standards point at no
+  compute cost.
+- **One scope sentence the paper's AWQ arm must carry:** ours is a `compressed-tensors` artifact,
+  not a stock `awq` one.
+
+### R33.5 The truncation divergence is PROMOTED to a finding
+
+*"This is H1's mechanism measured on checkpoints rather than on budgets, and it is stronger than
+the sweep alone in one specific way."* The sweep manipulates the cap and shows the effect responds;
+this shows the effect arising between **two artifacts a practitioner would treat as
+interchangeable, at a fixed default cap**, which is the situation the field is actually in.
+
+Official truncates **36.7%** against our **26.5%** on `gsm8k_cot` at 4-bit, a 10.2 pp divergence,
+while the 8-bit pair is symmetric at 26.6 vs 26.9. Frame as an **existence demonstration, not a
+rate**: one checkpoint pair, one model, one task.
+
+⚠️ Narrative note the planner raised: *"the gate built to validate our pipeline instead
+demonstrated the paper's thesis, unplanned."*
+
+### R33.6 ZERO GPU, and do NOT run the kernel control yet
+
+Everything above came from the 9,095 generations plus two file diffs. My argument that the kernel
+path is not the driver was accepted and strengthened: both GPTQ arms share the
+`compressed-tensors`/`auto_gptq` split and 8-bit is clean, **and** *"a kernel path produces
+token-level divergence, which would move both scorers similarly, not open a 21.6 pp strict gap with
+a 1.3 pp permissive one."*
+
+R32.3's `VLLM_DISABLED_KERNELS` control stays **conditional**: run it only if the two config diffs
+came back clean **and the strict gap were still unexplained**. The diffs are clean and the strict
+gap now has an admissible narrow explanation, so it is **not run**.
+
+**Disposition recorded ⇒ `main-v1` is UNBLOCKED.**

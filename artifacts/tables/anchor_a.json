@@ -1,10 +1,11 @@
 {
   "gate": "G5a",
   "anchor": "A",
-  "run_id": "anchor-v1-smoke",
-  "is_smoke": true,
+  "run_id": "anchor-v1",
+  "is_smoke": false,
   "engine_state_mismatches": [
-    "gptq-4bit: engine state differs between sides. ours={'num_gpu_blocks': 67834, 'quantization': 'compressed-tensors', 'max_num_seqs': 32, 'enable_prefix_caching': False} official={'num_gpu_blocks': 67951, 'quantization': 'auto_gptq', 'max_num_seqs': 32, 'enable_prefix_caching': False}"
+    "gptq-4bit: engine state differs between sides. ours={'num_gpu_blocks': 67834, 'quantization': 'compressed-tensors', 'max_num_seqs': 32, 'enable_prefix_caching': False} official={'num_gpu_blocks': 67951, 'quantization': 'auto_gptq', 'max_num_seqs': 32, 'enable_prefix_caching': False}",
+    "gptq-8bit: engine state differs between sides. ours={'num_gpu_blocks': 65461, 'quantization': 'compressed-tensors', 'max_num_seqs': 32, 'enable_prefix_caching': False} official={'num_gpu_blocks': 65544, 'quantization': 'auto_gptq', 'max_num_seqs': 32, 'enable_prefix_caching': False}"
   ],
   "criterion_metric": [
     "gsm8k_cot",
@@ -13,76 +14,163 @@
   "criterion_pp": 2.0,
   "what_this_tests": "comparable end-to-end QUALITY, not reproduction and NOT the weights in isolation. The official checkpoints were calibrated on Qwen's data rather than our ultrachat_200k 512x2048, AND vLLM dispatches each checkpoint through the kernel its own config selects, so the two sides take different kernel paths (R32.1). H8 puts the served-path contribution at 0.2-1.6 pp, so the +/-2.0 pp band is largely consumed by it and a PASS means only 'no gross calibration error at this resolution' (R31).",
   "blocking": {
+    "awq-4bit": {
+      "verdict": "NOT COMPUTED",
+      "why": "one side produced no records"
+    },
     "gptq-4bit": {
-      "difference_pp": 12.5,
-      "ci_low": 0.0,
-      "ci_high": 37.5,
+      "difference_pp": 4.094010614101592,
+      "ci_low": 1.4404852160727823,
+      "ci_high": 6.823351023502654,
       "interval_method": "paired bootstrap over items, 10000 percentile draws",
-      "n": 8,
-      "n_discordant": 1,
-      "accuracy_ours_pp": 62.5,
-      "accuracy_official_pp": 50.0,
+      "n": 1319,
+      "n_discordant": 330,
+      "accuracy_ours_pp": 60.1213040181956,
+      "accuracy_official_pp": 56.02729340409402,
       "n_unpaired": 0,
-      "verdict": "INCONCLUSIVE",
-      "why": "only 8 of the registered 1319 items were scored, a shortfall of 1311. R30 chose 1319 because the band is about one paired SE at 500, so a short cell does not meet the registered resolution. RE-RUN THE CELL rather than debugging the checkpoints"
+      "verdict": "FAIL",
+      "why": "|+4.09| > 2.0 pp, CI [+1.44, +6.82]. A9: a larger gap means our calibration or serving config is wrong. BLOCKS, debug before proceeding"
+    },
+    "gptq-8bit": {
+      "difference_pp": 0.45489006823351025,
+      "ci_low": -1.2130401819560273,
+      "ci_high": 2.122820318423048,
+      "interval_method": "paired bootstrap over items, 10000 percentile draws",
+      "n": 1319,
+      "n_discordant": 130,
+      "accuracy_ours_pp": 61.56178923426838,
+      "accuracy_official_pp": 61.10689916603488,
+      "n_unpaired": 0,
+      "verdict": "PASS",
+      "why": "|+0.45| <= 2.0 pp. Resolution +/-1.67 pp, CI [-1.21, +2.12], so we can rule out a gap larger than 2.12 pp. Anchor A tests comparable QUALITY, not reproduction, and certifying equality to 2.0 pp is not achievable at this n"
     }
   },
   "diagnostic": {
     "gsm8k_cot|strict|gptq-4bit": {
-      "difference_pp": 0.0,
-      "ci_low": -50.0,
-      "ci_high": 50.0,
+      "difference_pp": 16.52767247915087,
+      "ci_low": 14.101592115238818,
+      "ci_high": 19.02956785443518,
       "interval_method": "paired bootstrap over items, 10000 percentile draws",
-      "n": 8,
-      "n_discordant": 4,
-      "accuracy_ours_pp": 25.0,
-      "accuracy_official_pp": 25.0,
+      "n": 1319,
+      "n_discordant": 308,
+      "accuracy_ours_pp": 26.838514025777105,
+      "accuracy_official_pp": 10.310841546626232,
+      "n_unpaired": 0,
+      "exceeds_band": true
+    },
+    "gsm8k_cot|strict|gptq-8bit": {
+      "difference_pp": -0.7581501137225171,
+      "ci_low": -2.1986353297952994,
+      "ci_high": 0.6823351023502654,
+      "interval_method": "paired bootstrap over items, 10000 percentile draws",
+      "n": 1319,
+      "n_discordant": 92,
+      "accuracy_ours_pp": 14.101592115238818,
+      "accuracy_official_pp": 14.859742228961334,
       "n_unpaired": 0,
       "exceeds_band": false
     },
     "gsm8k|permissive|gptq-4bit": {
-      "difference_pp": 0.0,
-      "ci_low": -32.44075648838803,
-      "ci_high": 32.44075648838803,
-      "interval_method": "zero-variance bound: Wilson upper on 0/8 x max|contribution|=1 (R25.1/\u00a79h), NOT a bootstrap interval",
-      "n": 8,
-      "n_discordant": 0,
-      "accuracy_ours_pp": 62.5,
-      "accuracy_official_pp": 62.5,
+      "difference_pp": -1.2,
+      "ci_low": -5.0,
+      "ci_high": 2.8000000000000003,
+      "interval_method": "paired bootstrap over items, 10000 percentile draws",
+      "n": 500,
+      "n_discordant": 100,
+      "accuracy_ours_pp": 59.199999999999996,
+      "accuracy_official_pp": 60.4,
+      "n_unpaired": 0,
+      "exceeds_band": false
+    },
+    "gsm8k|permissive|gptq-8bit": {
+      "difference_pp": 0.8,
+      "ci_low": -1.6,
+      "ci_high": 3.2,
+      "interval_method": "paired bootstrap over items, 10000 percentile draws",
+      "n": 500,
+      "n_discordant": 38,
+      "accuracy_ours_pp": 65.60000000000001,
+      "accuracy_official_pp": 64.8,
       "n_unpaired": 0,
       "exceeds_band": false
     },
     "gsm8k|strict|gptq-4bit": {
-      "difference_pp": 0.0,
-      "ci_low": -32.44075648838803,
-      "ci_high": 32.44075648838803,
-      "interval_method": "zero-variance bound: Wilson upper on 0/8 x max|contribution|=1 (R25.1/\u00a79h), NOT a bootstrap interval",
-      "n": 8,
-      "n_discordant": 0,
+      "difference_pp": -0.6,
+      "ci_low": -1.4000000000000001,
+      "ci_high": 0.0,
+      "interval_method": "paired bootstrap over items, 10000 percentile draws",
+      "n": 500,
+      "n_discordant": 3,
       "accuracy_ours_pp": 0.0,
-      "accuracy_official_pp": 0.0,
+      "accuracy_official_pp": 0.6,
+      "n_unpaired": 0,
+      "exceeds_band": false
+    },
+    "gsm8k|strict|gptq-8bit": {
+      "difference_pp": -0.6,
+      "ci_low": -1.4000000000000001,
+      "ci_high": 0.0,
+      "interval_method": "paired bootstrap over items, 10000 percentile draws",
+      "n": 500,
+      "n_discordant": 3,
+      "accuracy_ours_pp": 0.0,
+      "accuracy_official_pp": 0.6,
       "n_unpaired": 0,
       "exceeds_band": false
     }
   },
   "truncation": {
+    "awq-4bit": {
+      "task": "gsm8k_cot",
+      "counts": {
+        "ours": {
+          "n": 1319,
+          "truncated": 568
+        },
+        "official": {
+          "n": 0,
+          "truncated": 0
+        }
+      },
+      "rate_ours_pct": 43.06292645943897,
+      "rate_official_pct": null,
+      "difference_pp": null,
+      "comparable": null
+    },
     "gptq-4bit": {
       "task": "gsm8k_cot",
       "counts": {
         "ours": {
-          "n": 8,
-          "truncated": 3
+          "n": 1319,
+          "truncated": 350
         },
         "official": {
-          "n": 8,
-          "truncated": 3
+          "n": 1319,
+          "truncated": 484
         }
       },
-      "rate_ours_pct": 37.5,
-      "rate_official_pct": 37.5,
-      "difference_pp": 0.0,
+      "rate_ours_pct": 26.535253980288097,
+      "rate_official_pct": 36.69446550416983,
+      "difference_pp": -10.15921152388173,
+      "comparable": false
+    },
+    "gptq-8bit": {
+      "task": "gsm8k_cot",
+      "counts": {
+        "ours": {
+          "n": 1319,
+          "truncated": 351
+        },
+        "official": {
+          "n": 1319,
+          "truncated": 355
+        }
+      },
+      "rate_ours_pct": 26.61106899166035,
+      "rate_official_pct": 26.914329037149354,
+      "difference_pp": -0.3032600454890044,
       "comparable": true
     }
   },
-  "overall_verdict": "INCONCLUSIVE"
+  "overall_verdict": "FAIL"
 }

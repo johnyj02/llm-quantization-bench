@@ -1,2 +1,4 @@
 run_id,is_smoke,anchor,arm,metric,ours_pp,official_pp,difference_pp,ci_low,ci_high,n,n_discordant,verdict
-anchor-v1-smoke,true,A,gptq-4bit,gsm8k_cot|permissive,62.5,50.0,12.5,0.0,37.5,8,1,INCONCLUSIVE
+anchor-v1,false,A,awq-4bit,gsm8k_cot|permissive,,,,,,,,NOT COMPUTED
+anchor-v1,false,A,gptq-4bit,gsm8k_cot|permissive,60.1213040181956,56.02729340409402,4.094010614101592,1.4404852160727823,6.823351023502654,1319,330,FAIL
+anchor-v1,false,A,gptq-8bit,gsm8k_cot|permissive,61.56178923426838,61.10689916603488,0.45489006823351025,-1.2130401819560273,2.122820318423048,1319,130,PASS
