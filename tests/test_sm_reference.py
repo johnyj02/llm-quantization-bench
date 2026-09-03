@@ -33,7 +33,14 @@ TASKS = yaml.safe_load((REPO / "configs" / "tasks.yaml").read_text())["tasks"]
 class TestRunId:
     def test_run_id_is_main_v1(self):
         """The paper cites this name, and it is the freeze line."""
-        assert sm_reference.RUN_ID in ("main-v1", "main-v1-smoke")
+        # ⚠️ The smoke id is `-smoke2` as of 2026-09-03: the first reference-smoke wrote cells
+        # at the pre-R24.1 `max_num_seqs=64` and `assert_cell_reusable` correctly refused to
+        # resume them at 32. The REAL id stays `main-v1`, which the prereg and the paper cite.
+        assert sm_reference.RUN_ID in ("main-v1", "main-v1-smoke2")
+        assert not sm_reference.RUN_ID.endswith("-smoke"), (
+            "the bare `-smoke` id holds cells generated at the superseded max_num_seqs=64; "
+            "pointing back at it would make every rehearsal fail on a stale-cache refusal"
+        )
 
     def test_smoke_uses_a_separate_run_id(self):
         """A rehearsal sharing it would pool 4-item junk into the population every

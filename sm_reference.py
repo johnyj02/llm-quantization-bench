@@ -93,7 +93,28 @@ SMOKE = os.environ.get("SM_HP_SMOKE") == "1" or "--smoke" in sys.argv
 # 🚨 `main-v1` is the name the paper cites and the freeze line. The smoke gets its own id for
 # the reason established at `pilot-smoke-r2`: a rehearsal sharing a run_id pools 20-item junk
 # into the population every downstream estimate is drawn from, and nothing reveals it.
-RUN_ID = "main-v1-smoke" if SMOKE else "main-v1"
+#
+# ⚠️ THE SMOKE ID IS `-smoke2`, BUMPED 2026-09-03, and the reason is worth keeping. The first
+# `reference-smoke` (ledger 30, 2026-08-31) wrote cells under `main-v1-smoke` at
+# `max_num_seqs=64`. R24.1 then moved the frozen value to 32. Today's rehearsal tried to RESUME
+# those cells and `assert_cell_reusable` refused, naming the field and both values:
+#
+#     REFUSING TO RESUME .../main-v1-smoke/llama-3.1-8b__bf16/gsm8k__fewshot_cot__1x.jsonl.gz
+#       max_num_seqs: stored 64  ->  now 32
+#
+# That guard exists because of a CODE REVIEWER MODERATE, and this is it earning its cost: without
+# it the run would have APPENDED 32-batch generations into a 64-batch file and exited 0, mixing
+# two serving configurations inside one cell with nothing downstream able to tell.
+#
+# The old cells are NOT deleted. They are the rehearsal record for the run at the superseded
+# batch size, and deleting artifacts to make a resume succeed is the move that makes the guard
+# pointless. Same disposition as `pilot-v1` and `template-v1`, both retained.
+#
+# ⚠️ A fingerprint-derived id (appending `decoding_fingerprint()`) was considered and rejected:
+# it would make collisions structurally impossible but also make the id unpredictable, which
+# breaks `peek_generations.py --run-id` and `score_*.py --run-id`, the two things a human runs
+# right after a job. The guard already fails loudly, so naming only has to be legible.
+RUN_ID = "main-v1-smoke2" if SMOKE else "main-v1"
 GENERATIONS_ROOT = CHECKPOINT_DIR / "generations"
 
 # The FULL precision ladder. Five arms, not three: `gptq-8bit` and `bnb-nf4` are here for
