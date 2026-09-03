@@ -17,11 +17,51 @@ reject). Anchor A is the check that would catch a repeat of that before `main-v1
 on it.
 
 **The construction, and it is what makes the comparison mean anything.** Both sides are measured
-through **our** pipeline, at the frozen serving configuration, on the same items, in the same
-engine version. So any pipeline error is COMMON to both and cancels in the difference, and what
-remains isolates the weights. Comparing our number against a number Qwen published elsewhere would
-confound the weights with every protocol difference between us and them, which is the exact
-confound §0.1(b) says makes published deltas incomparable.
+through **our** pipeline, on the same items, with the same prompts, at the frozen `max_num_seqs`
+and with batch invariance engaged identically. Comparing our number against a number Qwen published
+elsewhere would instead confound the weights with every protocol difference between us and them,
+which is the exact confound §0.1(b) says makes published deltas incomparable.
+
+🚨 **AMENDED 2026-09-02 (planner ruling R32.1). An earlier version of this paragraph claimed that
+"any pipeline error is COMMON to both and cancels in the difference, and what remains isolates the
+weights". That claim is measurably FALSE and is withdrawn.** The `anchor-smoke` run's recorded
+`engine_state` shows the two sides are not served identically:
+
+    ours      quantization=compressed-tensors   KV=67,834 tokens
+    official  quantization=auto_gptq            KV=67,951 tokens
+
+Both differences are **inherent rather than misconfiguration**. vLLM selects its GPTQ kernel from
+each checkpoint's own config, so Qwen's `auto_gptq` checkpoint and our `compressed-tensors` one
+take different kernel paths; and the two are the same bit width at different on-disk sizes, so at
+fixed `gpu_memory_utilization` they profile different KV cache.
+
+**The registered framing (R32.1):**
+
+> Anchor A compares our quantization-and-serving stack against Qwen's published checkpoint **as
+> vLLM dispatches it**. It is an **END-TO-END COMPARABILITY CHECK** and **cannot attribute a gap to
+> the weights specifically.**
+
+That is the right construction for what G5a is *for*, which is catching a broken stack before 17
+hours of generation: nobody deploys weights in the abstract, and a gross calibration error shows up
+as many points regardless of kernel path. What changed is the claim, not the gate.
+
+⚠️ **Scale of the irreducible term, from our own data rather than hand-waved:** H8 measured 33–47%
+text divergence yielding **0.2–1.6 pp** accuracy divergence from a serving-path change alone. So the
+±2.0 pp band is *largely consumed* by served-path variance, leaving less headroom for calibration
+error than it appears. The band is deliberately **not** widened, because per R31 a pass only ever
+meant *"no gross calibration error at this resolution"*.
+
+✅ **The KV half of the confound is PROVABLY INERT, verified rather than assumed (R32.2).** The safe
+prompt-length ceiling at `max_num_seqs=32` with a 256-token cap is `67,834 / 32 − 256 = 1,863`
+tokens. The gate metric `gsm8k_cot`'s observed maximum across 18,040 stored records is **938**, a
+925-token margin, so peak co-resident demand is bounded by the **sequence count** and not by memory
+and a 0.17% KV difference cannot change scheduling. Only the kernel path remains.
+
+⚠️ **The kernel path is irreducible and belongs in the paper as a limitation.** Re-packing either
+side would destroy what the anchor tests. If the anchor lands marginal (`|point|` within ~0.5 pp of
+the threshold, or INCONCLUSIVE), the registered control is `VLLM_DISABLED_KERNELS` on **both** sides
+to force a common non-Marlin fallback, reusing H8's machinery. It is conditional on purpose: if the
+anchor passes with a small point difference, the confound did not bite.
 
 **Six cells:** 3 arms × {official checkpoint, our self-quantized checkpoint}. One engine load per
 cell, in its own subprocess, for the reason job 1 established the hard way: torch's caching

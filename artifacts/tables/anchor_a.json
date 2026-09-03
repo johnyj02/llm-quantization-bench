@@ -1,0 +1,88 @@
+{
+  "gate": "G5a",
+  "anchor": "A",
+  "run_id": "anchor-v1-smoke",
+  "is_smoke": true,
+  "engine_state_mismatches": [
+    "gptq-4bit: engine state differs between sides. ours={'num_gpu_blocks': 67834, 'quantization': 'compressed-tensors', 'max_num_seqs': 32, 'enable_prefix_caching': False} official={'num_gpu_blocks': 67951, 'quantization': 'auto_gptq', 'max_num_seqs': 32, 'enable_prefix_caching': False}"
+  ],
+  "criterion_metric": [
+    "gsm8k_cot",
+    "permissive"
+  ],
+  "criterion_pp": 2.0,
+  "what_this_tests": "comparable end-to-end QUALITY, not reproduction and NOT the weights in isolation. The official checkpoints were calibrated on Qwen's data rather than our ultrachat_200k 512x2048, AND vLLM dispatches each checkpoint through the kernel its own config selects, so the two sides take different kernel paths (R32.1). H8 puts the served-path contribution at 0.2-1.6 pp, so the +/-2.0 pp band is largely consumed by it and a PASS means only 'no gross calibration error at this resolution' (R31).",
+  "blocking": {
+    "gptq-4bit": {
+      "difference_pp": 12.5,
+      "ci_low": 0.0,
+      "ci_high": 37.5,
+      "interval_method": "paired bootstrap over items, 10000 percentile draws",
+      "n": 8,
+      "n_discordant": 1,
+      "accuracy_ours_pp": 62.5,
+      "accuracy_official_pp": 50.0,
+      "n_unpaired": 0,
+      "verdict": "INCONCLUSIVE",
+      "why": "only 8 of the registered 1319 items were scored, a shortfall of 1311. R30 chose 1319 because the band is about one paired SE at 500, so a short cell does not meet the registered resolution. RE-RUN THE CELL rather than debugging the checkpoints"
+    }
+  },
+  "diagnostic": {
+    "gsm8k_cot|strict|gptq-4bit": {
+      "difference_pp": 0.0,
+      "ci_low": -50.0,
+      "ci_high": 50.0,
+      "interval_method": "paired bootstrap over items, 10000 percentile draws",
+      "n": 8,
+      "n_discordant": 4,
+      "accuracy_ours_pp": 25.0,
+      "accuracy_official_pp": 25.0,
+      "n_unpaired": 0,
+      "exceeds_band": false
+    },
+    "gsm8k|permissive|gptq-4bit": {
+      "difference_pp": 0.0,
+      "ci_low": -32.44075648838803,
+      "ci_high": 32.44075648838803,
+      "interval_method": "zero-variance bound: Wilson upper on 0/8 x max|contribution|=1 (R25.1/\u00a79h), NOT a bootstrap interval",
+      "n": 8,
+      "n_discordant": 0,
+      "accuracy_ours_pp": 62.5,
+      "accuracy_official_pp": 62.5,
+      "n_unpaired": 0,
+      "exceeds_band": false
+    },
+    "gsm8k|strict|gptq-4bit": {
+      "difference_pp": 0.0,
+      "ci_low": -32.44075648838803,
+      "ci_high": 32.44075648838803,
+      "interval_method": "zero-variance bound: Wilson upper on 0/8 x max|contribution|=1 (R25.1/\u00a79h), NOT a bootstrap interval",
+      "n": 8,
+      "n_discordant": 0,
+      "accuracy_ours_pp": 0.0,
+      "accuracy_official_pp": 0.0,
+      "n_unpaired": 0,
+      "exceeds_band": false
+    }
+  },
+  "truncation": {
+    "gptq-4bit": {
+      "task": "gsm8k_cot",
+      "counts": {
+        "ours": {
+          "n": 8,
+          "truncated": 3
+        },
+        "official": {
+          "n": 8,
+          "truncated": 3
+        }
+      },
+      "rate_ours_pct": 37.5,
+      "rate_official_pct": 37.5,
+      "difference_pp": 0.0,
+      "comparable": true
+    }
+  },
+  "overall_verdict": "INCONCLUSIVE"
+}

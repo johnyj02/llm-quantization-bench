@@ -2126,3 +2126,90 @@ So no separate verdict label, with two requirements:
    more likely means we compared a checkpoint to itself, or resolved both sides to the same S3 path,
    than that the pipeline is perfect."* The degenerate branch now **raises** on the gate metric while
    remaining legitimate on a diagnostic one.
+
+---
+
+## R32 — Anchor A is an END-TO-END comparability check. Narrow the claim, keep the gate
+
+Raw answer: `notes/planner-answers/R32-anchor-kernel-path-confound.txt`. Surfaced by the
+`anchor-smoke` engine state, which exists only because the CODE REVIEWER's round-5 MODERATE added
+it. The defect it guarded against was not that the confound was likely; it was that the job could
+not have told us whether it bit.
+
+### R32.1 The purpose is unchanged. The CLAIM was measurably false and is narrowed
+
+G5a exists to catch a broken quantization or serving stack before 17 hours of generation, and for
+that purpose *"end-to-end is the right construction, arguably MORE right than a weights-only
+comparison: nobody deploys weights in the abstract, and a gross calibration error shows up as many
+points regardless of kernel path."*
+
+🚨 **R30.5's claim that "any pipeline error cancels, leaving the weights isolated" is now
+measurably false and is withdrawn.** The registered framing:
+
+> Anchor A compares our quantization-and-serving stack against Qwen's published checkpoint as vLLM
+> dispatches it. It is an **end-to-end comparability check** and **cannot attribute a gap to the
+> weights specifically**, because vLLM selects the GPTQ kernel from each checkpoint's own config
+> and the two checkpoints therefore take different kernel paths.
+
+**Quantify the irreducible term from our own data rather than hand-waving it:** H8 measured 33–47%
+text divergence yielding **0.2–1.6 pp** accuracy divergence from a serving-path change alone. So
+the ±2.0 pp band is *largely consumed by served-path variance*, leaving less headroom for
+calibration error than it appears.
+
+⚠️ **Do NOT widen the band.** Per R31 a pass only ever meant *"no gross calibration error at this
+resolution"*. State that, with 0.2–1.6 pp as the scale of the irreducible term.
+
+### R32.2 ✅ The KV half of the confound is PROVABLY INERT, and I verified the arithmetic
+
+The planner's argument: at `max_num_seqs=32`, peak co-resident demand is bounded by the sequence
+count rather than by memory, so a 0.17% KV difference cannot change scheduling. It asked me to
+check it against real prompt lengths rather than accept it.
+
+**Checked, and it holds with margin.** The safe prompt-length ceiling is
+`67,834 / 32 − 256 = 1,863` tokens. Across every generation held locally:
+
+| task | records | max `n_prompt_tokens` | peak demand | margin | verdict |
+|---|---|---|---|---|---|
+| `gsm8k_cot` (**the gate metric**) | 18,040 | **938** | 38,208 | **925** | SAFE |
+| `gsm8k` (diagnostic only) | 3,416 | 1,562 | 58,176 | 301 | SAFE |
+
+Memory is not binding; the sequence count is. ⇒ **One of the two confounds is eliminated
+analytically rather than empirically, and only the kernel path remains.**
+
+⚠️ **Caveat I am recording rather than papering over:** those maxima come from the items rendered
+so far, and `gsm8k`'s full 1,319-item set contains items never yet rendered, so its 301-token
+margin is not guaranteed. The gate metric's 925-token margin is comfortable either way.
+
+### R32.3 Q2: my reasoning was right, but the planner's third option is better than mine
+
+Re-packing either side destroys what the anchor tests. **Confirmed, irreducible, belongs in the
+paper as a stated limitation.** My proposed third cell (serve ours through the official backend)
+has the same flaw in miniature, since vLLM dispatches from the checkpoint's config format.
+
+🎯 **Use `VLLM_DISABLED_KERNELS` on BOTH sides instead**, forcing a common non-Marlin fallback, and
+re-run the gate metric. If the verdict is unchanged, the kernel path is not driving it. No
+re-packing, and it reuses machinery already built and validated in H8.
+
+⚠️ **CONDITIONAL, not automatic:** run it only if the main anchor lands **marginal**, meaning
+`|point|` within ~0.5 pp of the 2.0 threshold, or INCONCLUSIVE. If the anchor passes with a small
+point difference the confound did not bite, and the control would cost a queue cycle for nothing.
+
+### R32.4 Q3: framing text FIRST, then run. Two requirements on the real run
+
+*"The framing edit is a docstring plus prereg text, minutes, not a work item. Do it first so the
+run's report is written against correct claims, then run. There's no trade-off to make here."*
+
+1. 🚨 **Report budget-truncation rate PER SIDE and assert comparability.** Truncation is served
+   behaviour, so it can differ across kernel paths at scale, and unlike the symmetric n=8 case it
+   would enter `gsm8k_cot` permissive **directly rather than cancelling**. If the rates diverge
+   materially the verdict carries that caveat explicitly.
+2. Report the paired CI and the resolution statement, per R31.
+
+### R32.5 🔬 An incidental finding worth more than the smoke cost
+
+**12 of 32 records truncated at the 256-token cap, 37.5%.** That answers an open R20 question:
+whether H1's budget sweep has headroom on `gsm8k_cot`. *"I flagged earlier that if 1× truncation
+were near zero the sweep would measure nothing by construction. On gsm8k_cot it clearly won't."*
+
+⇒ **A load-bearing precondition for the co-lead hypothesis, established for $0.35.** Recorded here
+because it is an argument for building `A15` rather than a fact about the anchor.

@@ -1,0 +1,39 @@
+Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.
+## Q1 — Purpose unchanged, claim narrowed. It's an end-to-end comparability check.
+
+G5a's job is to catch a broken quantization/serving stack before 17 hours of generation. For that purpose **end-to-end is the right construction, arguably more right than a weights-only comparison** — nobody deploys weights in the abstract, and a gross calibration error shows up as many points regardless of kernel path.
+
+What has to change is the *claim*, not the gate. R30.5's "any pipeline error cancels, leaving the weights isolated" is now measurably false. Correct framing:
+
+> Anchor A compares our quantization-and-serving stack against Qwen's published checkpoint as vLLM dispatches it. It is an end-to-end comparability check and **cannot attribute a gap to the weights specifically**, because vLLM selects the GPTQ kernel from each checkpoint's own config and the two checkpoints therefore take different kernel paths.
+
+**Quantify the served-path contribution from our own data rather than hand-waving it:** H8 measured 33–47% text divergence yielding 0.2–1.6 pp accuracy divergence from a serving-path change alone. So the ±2.0 pp band is largely consumed by served-path variance, leaving less headroom for calibration error than it appears.
+
+**Don't widen the band.** Per R31, a pass only ever meant "no gross calibration error" at this resolution. State that, with the 0.2–1.6 pp figure as the scale of the irreducible term.
+
+## The KV-cache half of the confound is provably inert — check and state it
+
+At `max_num_seqs=32` with ~954 prompt + 256 generated tokens, peak co-resident demand is ~38,700 tokens against 67,834 available. **Memory is not binding; the sequence count is.** So a 0.17% KV difference cannot change scheduling. Verify that arithmetic against the real prompt lengths at n=1319, and if it holds, you've eliminated one of the two confounds analytically rather than empirically. Only the kernel path remains.
+
+## Q2 — Your reasoning is right. But there's a better third option than the one you proposed.
+
+Re-packing either side destroys what the anchor exists to test. Confirmed, irreducible, belongs in the paper as a stated limitation.
+
+Your third-cell idea has a problem: vLLM dispatches from the checkpoint's config format, so you likely can't serve a compressed-tensors checkpoint through `auto_gptq` without conversion — same objection in miniature.
+
+**Use `VLLM_DISABLED_KERNELS` on both sides instead.** Force both onto a common non-Marlin fallback and re-run the gate metric. If the verdict is unchanged, the kernel path isn't driving it. No re-packing, and it reuses machinery already built and validated in H8.
+
+**Make it conditional:** run it only if the main anchor lands marginal (|point| within ~0.5 pp of the 2.0 threshold, or INCONCLUSIVE). If the anchor passes with a small point difference, the confound didn't bite and the control costs a queue cycle for nothing.
+
+## Q3 — Framing text first, then run. Both today.
+
+The framing edit is a docstring plus prereg text — minutes, not a work item. Do it first so the run's report is written against correct claims, then run. There's no trade-off to make here.
+
+**Two things to require of the real run:**
+
+1. **Report budget-truncation rate per side** and assert comparability. You're right that truncation is served behaviour, so it can differ across kernel paths at scale — and unlike the symmetric n=8 case it would enter `gsm8k_cot` permissive directly rather than cancelling. If the rates diverge materially, the verdict carries that caveat explicitly.
+2. Report the paired CI and the resolution statement per R31.
+
+## One incidental finding in your smoke worth banking
+
+**12 of 32 records truncated at 256 tokens — 37.5%.** That answers the open R20 question about whether H1's budget sweep has headroom on `gsm8k_cot`: it does, substantially. I flagged earlier that if 1× truncation were near zero the sweep would measure nothing by construction. On gsm8k_cot it clearly won't. Record it — it's a load-bearing precondition for the co-lead hypothesis, established for $0.35.

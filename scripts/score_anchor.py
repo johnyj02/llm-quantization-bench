@@ -204,6 +204,12 @@ def main() -> int:
     # level, one prompt variant) but it is a set of facts about the stage rather than a property of
     # the code, and one tuple element removes the precondition entirely.
     scored: dict[tuple, dict[str, bool]] = defaultdict(dict)
+    # 🚨 R32.4(1): budget truncation PER SIDE, on the gate task. Truncation is SERVED behaviour,
+    # so the two sides' different kernel paths (R32.1) can move it -- and unlike a symmetric rate
+    # it would then enter the gate metric DIRECTLY rather than cancelling in the paired difference.
+    # The smoke measured 6 of 16 per side, symmetric, but n=8 establishes nothing about n=1319.
+    truncated: dict[tuple, int] = defaultdict(int)
+    n_records: dict[tuple, int] = defaultdict(int)
     arms: set[str] = set()
     for record in records:
         cell_id = record["cell_id"]
@@ -225,12 +231,22 @@ def main() -> int:
         for rung in RUNGS:
             scored[(model_key, task, rung, arm, side)][record["item_id"]] = bool(
                 result[rung]["correct"])
+        # `finish_reason == "length"` is the budget cap, distinct from a stop sequence firing.
+        # Keyed by (task, arm, side) so the gate task can be read out on its own.
+        n_records[(task, arm, side)] += 1
+        if record.get("finish_reason") == "length":
+            truncated[(task, arm, side)] += 1
 
     # 🚨 The cross-side engine check, which is what makes the "any pipeline error is common to
     # both and cancels" claim checked rather than asserted. Compares what the two sides' engines
     # actually REPORTED, not what we asked for.
     engine_mismatches: list[str] = []
-    job_report = REPO / "artifacts" / "anchor_report.json"
+    # 🚨 Scoped by run_id, not a single fixed filename. A shared path would let the smoke's
+    # report be read as the real gate's, which is the isolation every other stage gets from its
+    # own `run_id` and which `anchors.csv` was missing until R32 exposed it. It also means the
+    # rehearsal's engine-state check actually RUNS, which is how the kernel-path confound was
+    # found at all.
+    job_report = REPO / "artifacts" / f"anchor_report_{args.run_id}.json"
     if job_report.is_file():
         cells = {c["cell_id"]: c for c in json.loads(job_report.read_text()).get("cells", [])}
         for arm in sorted({c["arm"] for c in cells.values() if "arm" in c}):
@@ -249,15 +265,26 @@ def main() -> int:
     else:
         engine_mismatches.append(
             f"{job_report.name} not found, so the two sides' engine states were NOT compared. "
-            f"The claim that pipeline error is common to both is unverified for this run.")
+            f"So the two sides' served configurations were NOT compared for this run, and "
+            f"R32.1's kernel-path finding could not be checked here.")
+
+    # Derived from the run_id rather than passed as a flag, so a caller cannot label a smoke as
+    # a real gate by forgetting an argument. `sm_anchor.py` sets RUN_ID = "anchor-v1-smoke" when
+    # SMOKE, so the suffix IS the provenance.
+    is_smoke = args.run_id.endswith("-smoke")
 
     report: dict = {
-        "gate": "G5a", "anchor": "A", "run_id": args.run_id,
+        "gate": "G5a", "anchor": "A", "run_id": args.run_id, "is_smoke": is_smoke,
         "engine_state_mismatches": engine_mismatches,
         "criterion_metric": list(CRITERION_METRIC), "criterion_pp": CRITERION_PP,
         "what_this_tests": (
-            "comparable QUALITY, not reproduction: the official checkpoints were calibrated on "
-            "Qwen's data, not our ultrachat_200k 512x2048"),
+            "comparable end-to-end QUALITY, not reproduction and NOT the weights in isolation. "
+            "The official checkpoints were calibrated on Qwen's data rather than our "
+            "ultrachat_200k 512x2048, AND vLLM dispatches each checkpoint through the kernel its "
+            "own config selects, so the two sides take different kernel paths (R32.1). H8 puts "
+            "the served-path contribution at 0.2-1.6 pp, so the +/-2.0 pp band is largely "
+            "consumed by it and a PASS means only 'no gross calibration error at this "
+            "resolution' (R31)."),
         "blocking": {}, "diagnostic": {},
     }
 
@@ -338,6 +365,43 @@ def main() -> int:
         print(f"  {key:34} {result['difference_pp']:>+7.2f} pp "
               f"[{result['ci_low']:>+6.2f}, {result['ci_high']:>+6.2f}]{flag}")
 
+    # ---- R32.4(1): truncation comparability on the gate task -----------------------------
+    gate_task_only = CRITERION_METRIC[0]
+    report["truncation"] = {}
+    for arm in sorted(arms):
+        counts, rates = {}, {}
+        for side in ("ours", "official"):
+            n = n_records.get((gate_task_only, arm, side), 0)
+            k = truncated.get((gate_task_only, arm, side), 0)
+            counts[side] = {"n": n, "truncated": k}
+            rates[side] = (100.0 * k / n) if n else None
+        entry = {"task": gate_task_only, "counts": counts,
+                 "rate_ours_pct": rates["ours"], "rate_official_pct": rates["official"]}
+        if rates["ours"] is not None and rates["official"] is not None:
+            gap = rates["ours"] - rates["official"]
+            entry["difference_pp"] = gap
+            # 5 pp is a REPORTING trigger, not a gate: nothing about the verdict changes, but a
+            # divergence this size means the two kernel paths produce materially different
+            # generation lengths, which enters `permissive` directly since it scans the trace.
+            entry["comparable"] = abs(gap) <= 5.0
+        else:
+            entry["difference_pp"] = None
+            entry["comparable"] = None
+        report["truncation"][arm] = entry
+
+    print()
+    print(f"BUDGET TRUNCATION on the gate task ({gate_task_only}), per side (R32.4):")
+    for arm, e in sorted(report["truncation"].items()):
+        if e["difference_pp"] is None:
+            print(f"  {arm:11} not computable: "
+                  f"ours n={e['counts']['ours']['n']}, official n={e['counts']['official']['n']}")
+            continue
+        flag = "" if e["comparable"] else "  <-- DIVERGENT, the verdict carries this caveat"
+        print(f"  {arm:11} ours {e['rate_ours_pct']:5.1f}%  official "
+              f"{e['rate_official_pct']:5.1f}%  diff {e['difference_pp']:+5.1f} pp{flag}")
+    print("  Truncation is served behaviour, so different kernel paths can move it. A symmetric")
+    print("  rate cancels in the paired difference; a divergent one enters permissive directly.")
+
     overall = ("FAIL" if "FAIL" in verdicts
                else "NOT COMPUTED" if "NOT COMPUTED" in verdicts
                else "INCONCLUSIVE" if "INCONCLUSIVE" in verdicts
@@ -352,10 +416,19 @@ def main() -> int:
 
     out_dir = REPO / args.out
     out_dir.mkdir(parents=True, exist_ok=True)
+    # 🚨 `run_id` and `is_smoke` are the FIRST columns, and they are here because the smoke
+    # exposed the gap. `anchors.csv` is A9's NAMED evidence artifact for gate G5a, and the
+    # rehearsal wrote an 8-item INCONCLUSIVE row into it carrying no indication of which run it
+    # came from. The `n` column hints at it, but a reader of the gate's evidence file should not
+    # have to infer provenance from a sample size. Same family as the project's standing rule
+    # that a smoke result must never be readable as a real one, which every other stage honours
+    # by writing to a separate `run_id` -- this file was the one place that isolation did not
+    # reach, because both runs write to the same path.
     (out_dir / "anchors.csv").write_text(
-        "anchor,arm,metric,ours_pp,official_pp,difference_pp,ci_low,ci_high,"
+        "run_id,is_smoke,anchor,arm,metric,ours_pp,official_pp,difference_pp,ci_low,ci_high,"
         "n,n_discordant,verdict\n"
         + "".join(
+            f"{args.run_id},{str(is_smoke).lower()},"
             f"A,{arm},{gate_task}|{gate_rung},{r.get('accuracy_ours_pp', '')},"
             f"{r.get('accuracy_official_pp', '')},{r.get('difference_pp', '')},"
             f"{r.get('ci_low', '')},{r.get('ci_high', '')},{r.get('n', '')},"
@@ -368,9 +441,10 @@ def main() -> int:
         print("⚠️ ENGINE STATE, cross-side:")
         for message in engine_mismatches:
             print(f"  - {message}")
-        print("   A difference here means the two sides were not served identically, so the")
-        print("   comparison no longer isolates the weights. That is a finding Anchor A exists to")
-        print("   surface, not a reason to discard the run.")
+        print("   Anchor A is an END-TO-END comparability check and never isolated the weights")
+        print("   (R32.1): vLLM dispatches each checkpoint through the kernel its own config")
+        print("   selects. A difference here is expected and is a finding to REPORT, not a")
+        print("   reason to discard the run. H8 puts the served-path contribution at 0.2-1.6 pp.")
 
     print()
     print(f"GATE G5a: {overall}")

@@ -1,0 +1,2 @@
+run_id,is_smoke,anchor,arm,metric,ours_pp,official_pp,difference_pp,ci_low,ci_high,n,n_discordant,verdict
+anchor-v1-smoke,true,A,gptq-4bit,gsm8k_cot|permissive,62.5,50.0,12.5,0.0,37.5,8,1,INCONCLUSIVE

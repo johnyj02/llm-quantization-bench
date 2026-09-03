@@ -1,0 +1,117 @@
+{
+  "gate": "G5a",
+  "anchor": "A",
+  "run_id": "anchor-v1-smoke",
+  "model": "qwen2.5-3b",
+  "max_num_seqs": 32,
+  "criterion_pp": 2.0,
+  "criterion_metric": [
+    "gsm8k_cot",
+    "permissive"
+  ],
+  "cells": [
+    {
+      "cell_id": "qwen2.5-3b|gptq-4bit|ours",
+      "side": "ours",
+      "arm": "gptq-4bit",
+      "model_key": "qwen2.5-3b",
+      "model_path": "/opt/ml/checkpoints/qwen2.5-3b__gptq-4bit__4285d63706c2f769",
+      "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+      "base_repo": "Qwen/Qwen2.5-3B-Instruct",
+      "base_revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+      "quant_method": "gptq",
+      "bits": 4,
+      "quant_config_hash": "4285d63706c2f769",
+      "written": 16,
+      "skipped": 0,
+      "total": 16,
+      "engine_state": {
+        "max_num_seqs": 32,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 67834,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          24,
+          32,
+          40,
+          48,
+          56,
+          64
+        ],
+        "max_cudagraph_capture_size": "64",
+        "compile_ranges_endpoints": [
+          8192
+        ],
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "dtype": "torch.bfloat16",
+        "quantization": "compressed-tensors"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "minutes": 1.37948433275
+    },
+    {
+      "cell_id": "qwen2.5-3b|gptq-4bit|official",
+      "side": "official",
+      "arm": "gptq-4bit",
+      "model_key": "qwen2.5-3b",
+      "model_path": "Qwen/Qwen2.5-3B-Instruct-GPTQ-Int4",
+      "revision": "68c4276063d1496cdf13d0b8e8221f899bfa77f7",
+      "base_repo": "Qwen/Qwen2.5-3B-Instruct",
+      "base_revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+      "quant_method": "gptq",
+      "bits": 4,
+      "quant_config_hash": null,
+      "written": 16,
+      "skipped": 0,
+      "total": 16,
+      "engine_state": {
+        "max_num_seqs": 32,
+        "async_scheduling": false,
+        "enable_prefix_caching": false,
+        "num_gpu_blocks": 67951,
+        "cudagraph_mode": "FULL_AND_PIECEWISE",
+        "cudagraph_capture_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          24,
+          32,
+          40,
+          48,
+          56,
+          64
+        ],
+        "max_cudagraph_capture_size": "64",
+        "compile_ranges_endpoints": [
+          8192
+        ],
+        "revision": "68c4276063d1496cdf13d0b8e8221f899bfa77f7",
+        "dtype": "torch.bfloat16",
+        "quantization": "auto_gptq"
+      },
+      "batch_invariance": {
+        "torch_bmm": "bmm_batch_invariant",
+        "_batch_invariant_MODE": true,
+        "allow_bf16_reduced_precision_reduction": false,
+        "allow_fp16_reduced_precision_reduction": false,
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+      },
+      "minutes": 1.1463209566833332
+    }
+  ],
+  "smoke": true
+}
