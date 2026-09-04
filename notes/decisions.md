@@ -246,3 +246,48 @@ truncating the result; the user caught it in the console. **Always paginate that
 - vLLM 0.26.0 pins torch exactly, and the PyTorch DLC ships a different torch. The sibling
   project hit this and solved it with a custom image (`MedLLMSafety/Dockerfile.vllm`). Expect
   `framework: generic` + an ECR image rather than the stock DLC.
+
+---
+
+## 2026-09-04
+
+### D15 — 🚨 BUDGET IS NOT A CONSTRAINT. Spend to raise acceptance odds. (user, 2026-09-04)
+
+The user's words: *"dont worry about the budget; its more important to increase the chances of
+acceptance hence feel free to make as many submissions as required"*.
+
+**What this changes.** Cost stops being a reason to hesitate, to batch work into fewer jobs, or to
+ask before a rehearsal. Ledger at the time: 42 jobs, 25.70 h, **$71.95** against the $370–440
+envelope of `EXECUTOR-TASKS.md` §2.6, so roughly 18% used. R20.1's *"probe gets ≤15% of remaining
+budget"* rule was already lifted; this goes further and lifts cost as a consideration entirely.
+
+⚠️ **What it does NOT change, and the distinction matters.**
+
+1. **D10 still governs.** Every billable command still requires `--i-have-confirmation` and still
+   offers a zero-cost inspection mode. D15 is a standing *authorisation to submit*, not permission
+   to remove the gate: the flag exists so a job cannot start by accident, including by me.
+2. **`--smoke` first, every time.** That rule was never about money. With one queue slot, a broken
+   multi-hour job costs a queue cycle and a day, and no budget makes that back.
+3. 🚨 **`main-v1` is still special, and NOT because of cost.** It is the pre-registration freeze
+   line: from its first generation, `analysis/preregistration.md` §1–§9 become append-only. That
+   is a **scientific** irreversibility and D15 does not touch it. Anything to be registered must
+   land first.
+4. **Wall clock is now the binding constraint**, and it always really was. ARR is **2026-10-12**,
+   queue waits have run 1 h to 6 h 19 m on a shared single slot, and only one job can exist at a
+   time. So the freedom D15 grants is best spent on jobs that *unblock* work rather than on jobs
+   that merely add polish.
+
+**How to spend it, in the order that most affects acceptance** (from `notes/scope-audit.md`):
+
+| priority | why it moves acceptance |
+|---|---|
+| **`A15` token-budget sweep** | H1 is the **lead hypothesis, "never cut"**, and its instrument does not exist. ~25,000 generations, previously uncosted. This is the single largest acceptance risk that money can fix. |
+| **H6's log-likelihood arms** | The **"never cut" negative control** (§3c). Also unblocks G3's ARC cross-validation. Needs a build, not just a job. |
+| **`A18` zero-shot arm (H5)** | 9 cells, currently `prompt_variant` is hardcoded to few-shot. |
+| **`A14` pipeline noise floor** | §4.5 calls it mandatory, and it is the self-application of our own standard that earns reviewer trust. |
+| **Extra orderings / replicates** | Cheap precision on H8, which is already the strongest result. |
+
+⚠️ **The largest acceptance risks are NOT purchasable.** An empty Limitations section is an
+automatic desk reject and costs only writing; the judge and annotation track needs the co-author's
+calendar; the Oct 14 reviewer registration is per-author and unbuyable. D15 does not help with any
+of them, and it must not become a reason to prefer compute over writing.
