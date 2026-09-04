@@ -178,6 +178,8 @@ def score_one(record: dict) -> dict:
         "subtask": subtask,
         "item_id": record["item_id"],
         "n_gen_tokens": record.get("n_gen_tokens"),
+        "n_gen_tokens_scored": record.get("n_gen_tokens_scored"),
+        "stop_string_hit": record.get("stop_string_hit"),
         "max_gen_toks": record.get("max_gen_toks"),
         "finish_reason": record.get("finish_reason"),
         "compliance": labels.compliance,
@@ -254,9 +256,30 @@ def aggregate(rows: list[dict]) -> dict:
             r["termination"] == compliance.TRUNC_BUDGET for r in group)
         entry["trunc_stopseq_rate"] = mean(
             r["termination"] == compliance.TRUNC_STOPSEQ for r in group)
-        lengths = [r["n_gen_tokens"] for r in group if r["n_gen_tokens"] is not None]
-        entry["n_gen_tokens_mean"] = mean(lengths)
-        entry["n_gen_tokens_median"] = statistics.median(lengths) if lengths else None
+        # 🚨 TWO LENGTHS, and H1's estimand is the SCORED one (planner R35.Q4).
+        #
+        # R34 made `n_gen_tokens` describe the FULL generation, so reporting it alone would
+        # answer a different question from the one H1 asks. A15 names "mean and median
+        # `n_gen_tokens` by precision, with a CI" as a citable contribution settling the
+        # 2606.25519-vs-2504.04823 contradiction about whether quantization lengthens CoT --
+        # and that contradiction is about the ANSWER the model produced, not about text the
+        # harness discarded. Reporting the full length there would inflate every arm by
+        # whatever ran past the terminator, differentially, since the overrun rate differs by
+        # arm (17.5% vs 3.3% on Llama BBH).
+        #
+        # `n_gen_tokens_scored` is None on pre-R34 records, where the engine stopped at the
+        # terminator so the two lengths coincide -- hence the fallback rather than a refusal.
+        full = [r["n_gen_tokens"] for r in group if r["n_gen_tokens"] is not None]
+        scored = [r["n_gen_tokens_scored"] if r.get("n_gen_tokens_scored") is not None
+                  else r["n_gen_tokens"]
+                  for r in group if r["n_gen_tokens"] is not None]
+        entry["n_gen_tokens_mean"] = mean(scored)
+        entry["n_gen_tokens_median"] = statistics.median(scored) if scored else None
+        entry["n_gen_tokens_full_mean"] = mean(full)
+        entry["n_gen_tokens_full_median"] = statistics.median(full) if full else None
+        # How much text the harness discards, per cell. Zero on pre-R34 records by construction.
+        entry["n_gen_tokens_discarded_mean"] = (
+            mean([f - s for f, s in zip(full, scored, strict=True)]) if full else None)
         cells[cell_key(cell_id, repeat_idx)] = entry
 
     # Per (cell, task) as well: the format gradient is a per-task claim, and a blended

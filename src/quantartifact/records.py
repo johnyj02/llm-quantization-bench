@@ -30,10 +30,11 @@ from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = "1.4.0"   # 1.0.0 -> 1.1.0: added invocation_id (R21.3)
+SCHEMA_VERSION = "1.5.0"   # 1.0.0 -> 1.1.0: added invocation_id (R21.3)
 #                          # 1.1.0 -> 1.2.0: added until (self-classifying artifact)
 #                          # 1.2.0 -> 1.3.0: added template_level (ditto)
 #                          # 1.3.0 -> 1.4.0: added until_applied (R34; see the field)
+#                          # 1.4.0 -> 1.5.0: added stop_string_hit + n_gen_tokens_scored (R35.Q4)
 
 # The join key across generations and EVERY scorer. Enforced as a uniqueness
 # constraint by the loader, which fails loudly on a duplicate -- a silently
@@ -165,6 +166,31 @@ class GenerationRecord:
     # None means a record predating the field, which is treated as `"generation"` because that
     # is what every such record actually did.
     until_applied: str | None = None
+    #: 🚨 THE SCORED PREFIX, recorded separately from the full generation (planner R35.Q4).
+    #
+    # R34 moved `until` to scoring time, which made `finish_reason` and `n_gen_tokens` describe
+    # the FULL generation. That silently redefined §4's two truncation classes, and the planner
+    # caught it before the freeze:
+    #
+    # * `TRUNC_BUDGET` began OVER-COUNTING: a generation that ran past its stop string to the
+    #   cap reads as budget-truncated even when its scored prefix ended complete and early.
+    # * H1's estimand became unanswerable. H1 asks whether the **scored answer** was cut off by
+    #   the budget, and a full-generation `finish_reason` cannot say.
+    #
+    # So the classes are defined on the SCORED PREFIX, which needs these recorded at generation
+    # time: the scorer has no tokenizer, so `n_gen_tokens_scored` is unrecoverable afterwards.
+    # Exactly the rule that already governs `finish_reason` (README §1, task A4).
+    #
+    # `stop_string_hit`      which `until` string terminated the prefix, or None if none did.
+    # `n_gen_tokens_scored`  tokens up to that string; equals the full count when None.
+    #
+    # ⚠️ `finish_reason` and `n_gen_tokens` retain their existing names and now describe the
+    # FULL generation under `until_applied == "scoring"`. They are NOT renamed, because
+    # `validate()` requires them and README §1 and A4 name them as the two unreconstructable
+    # fields; renaming would break every existing reader for a cosmetic gain. `until_applied`
+    # is what tells a reader which they are.
+    stop_string_hit: str | None = None
+    n_gen_tokens_scored: int | None = None
     schema_version: str = SCHEMA_VERSION
 
     def key(self) -> tuple:

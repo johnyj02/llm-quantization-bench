@@ -27,6 +27,7 @@ gate impossible to trip past by accident, including by me.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import os
 import shutil
 import subprocess
@@ -769,6 +770,15 @@ class VLLMRunner:
                     )
 
         results: list[dict[str, Any]] = []
+        # The engine's OWN tokenizer, for `n_gen_tokens_scored`. Fetched defensively because
+        # `get_tokenizer` is not part of a stable vLLM contract: if it is unavailable the
+        # scored token count falls back to the full count and `stop_string_hit` still records
+        # WHICH string fired, so the class definitions stay correct and only the reported
+        # length degrades. A missing length is recoverable; a wrong class is not.
+        tokenizer = None
+        with contextlib.suppress(Exception):
+            tokenizer = self.llm.get_tokenizer()
+
         for output in outputs:
             completion = output.outputs[0]
             results.append(
@@ -780,9 +790,69 @@ class VLLMRunner:
                     "n_gen_tokens": len(completion.token_ids),
                     "stop_reason": _normalise_stop_reason(completion.stop_reason),
                     "n_prompt_tokens": len(output.prompt_token_ids or []),
+                    # 🚨 R35.Q4: THE SCORED PREFIX, recorded separately from the full
+                    # generation. Without these two, R34 silently redefined both truncation
+                    # classes: any generation running past its stop string to the cap reads as
+                    # `TRUNC_BUDGET` even when its scored prefix terminated complete and early,
+                    # and H1 -- which asks whether the SCORED ANSWER was cut off by the budget --
+                    # cannot be answered from a full-generation `finish_reason` at all.
+                    #
+                    # `n_gen_tokens_scored` is computed by walking the output token ids and
+                    # decoding cumulatively until the stop string appears, so it is EXACT rather
+                    # than a re-encode of the prefix (re-encoding can differ by a token at the
+                    # boundary where merges change). `None` when no stop string fired, meaning
+                    # the scored prefix IS the full generation.
+                    **_scored_prefix_fields(completion, until, tokenizer),
                 }
             )
         return results
+
+
+def _scored_prefix_fields(completion, until, tokenizer) -> dict[str, Any]:
+    """`stop_string_hit` and `n_gen_tokens_scored` for one completion.
+
+    🚨 Why these exist (planner ruling R35.Q4). R34 moved `until` to scoring time, which made
+    `finish_reason` and `n_gen_tokens` describe the FULL generation. That silently redefined
+    §4's two truncation classes:
+
+    * `TRUNC_BUDGET` began over-counting, because a generation that ran past its stop string to
+      the cap looks budget-truncated even when its scored prefix ended complete and early.
+    * H1's estimand became unanswerable, because H1 asks whether the **scored answer** was cut
+      off by the budget and a full-generation `finish_reason` cannot say.
+
+    So the class definitions move onto the scored prefix, and that needs these fields recorded
+    at generation time: the scorer has no tokenizer, so `n_gen_tokens_scored` is not
+    recoverable afterwards. Same rule as `finish_reason` itself (README §1, task A4).
+
+    ⚠️ EXACT, not approximate. Walking the token ids and decoding cumulatively gives the true
+    token index at which the stop string first appears. Re-encoding the prefix string instead
+    could differ by a token wherever the truncation splits a merge, and an off-by-one in a
+    length that feeds H1's median-token-count reporting is the kind of error nobody catches.
+    """
+    if not until:
+        return {"stop_string_hit": None, "n_gen_tokens_scored": len(completion.token_ids)}
+
+    text = completion.text
+    earliest, matched = None, None
+    for needle in until:
+        if not needle:
+            continue
+        found = text.find(needle)
+        if found != -1 and (earliest is None or found < earliest):
+            earliest, matched = found, needle
+    if matched is None:
+        return {"stop_string_hit": None, "n_gen_tokens_scored": len(completion.token_ids)}
+
+    ids = list(completion.token_ids)
+    n_scored = len(ids)
+    if tokenizer is not None:
+        # Bounded linear walk: decode the first k tokens for increasing k until the stop string
+        # appears. `earliest` bounds how far we must look, so this is cheap in practice.
+        for k in range(1, len(ids) + 1):
+            if matched in tokenizer.decode(ids[:k], skip_special_tokens=True):
+                n_scored = k - 1 if k > 1 else 0
+                break
+    return {"stop_string_hit": matched, "n_gen_tokens_scored": n_scored}
 
 
 def _normalise_stop_reason(stop_reason: Any) -> str | None:
@@ -933,6 +1003,10 @@ def run_cell(
                 # reader never has to infer it, and so pre-R34 records keep their own
                 # semantics rather than being reinterpreted under the new ones.
                 until_applied="scoring",
+                # R35.Q4: the scored prefix, so §4's classes are defined on it rather than on
+                # the full generation. Unrecoverable after the fact; see the field docs.
+                stop_string_hit=output.get("stop_string_hit"),
+                n_gen_tokens_scored=output.get("n_gen_tokens_scored"),
                 template_level=template_level,
             )
             for item, output in zip(batch, outputs, strict=True)

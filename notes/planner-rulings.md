@@ -2335,3 +2335,97 @@ came back clean **and the strict gap were still unexplained**. The diffs are cle
 gap now has an admissible narrow explanation, so it is **not run**.
 
 **Disposition recorded ⇒ `main-v1` is UNBLOCKED.**
+
+---
+
+## R35 — Q4 was a blocker that had already corrupted Q3's numbers, and my Q1 lean was wrong
+
+Raw answer: `notes/planner-answers/R35-llama-bbh-deltas-before-freeze.txt`. Registered as prereg
+§1.4 (amended) and §5b. Asked **before** `main-v1` locks the pre-registration, which is the only
+reason any of it could be registered.
+
+### R35.Q4 🚨 R34 silently redefined both truncation classes. Take this first
+
+*"Q4 is the blocker, and it has already corrupted the numbers in your Q3."*
+
+`finish_reason` and `n_gen_tokens` now describe the **full** generation, so `TRUNC_BUDGET`
+over-counts any generation that runs past its stop string to the cap, and **H1's estimand becomes
+unanswerable**: H1 asks whether the *scored answer* was cut off by the budget, which a
+full-generation `finish_reason` cannot say.
+
+**Registered fix.** Record both, and define the classes on the **scored prefix**:
+`stop_string_hit`, `n_gen_tokens_scored` alongside the full values. Schema **1.5.0**.
+
+| class | definition |
+|---|---|
+| `TRUNC_STOPSEQ` | a stop string fired, no committed answer before it |
+| `TRUNC_BUDGET` | **no** stop string fired **and** the full generation hit the cap |
+| `COMPLETE` | EOS, or a stop string with an answer |
+
+⚠️ **One correction in the planner's favour and against my own framing.** The *classification* was
+already correct, because I check the terminator before the budget and the CODE REVIEWER had
+validated that ordering, so `TRUNC_BUDGET` was not in fact over-counting. **The real defect was
+the LENGTHS**: `score_pilot` computed `n_gen_tokens_mean`/`_median` from the full generation, and
+A15 names *"mean and median `n_gen_tokens` by precision, with a CI"* as the citable contribution
+settling the 2606.25519-vs-2504.04823 contradiction. That contradiction is about the **answer the
+model produced**, so reporting the full length would have inflated every arm by its overrun,
+**differentially**, since the overrun rate differs by arm. Now reports scored as primary, full
+beside it, and the discarded amount per cell.
+
+### R35.Q3 The stopseq-versus-budget trade-off is NOT a finding
+
+*"The counts moved because the definitions moved."* bf16 stopseq 5 / budget 2 against gptq-4bit
+stopseq 2 / budget 5 is what you get when generations that used to stop at a terminator now run on
+to the cap. **Not interpreted at all** until the scored-prefix classes are in force; n=24 is the
+second problem, not the first. §4's internal-control logic is unaffected once the classes are
+correct.
+
+### R35.Q1 🚨 (c), and my lean toward (a) was WRONG ON THE ARITHMETIC
+
+I leaned "nothing needed", on the reasoning that the raw delta is not a registered estimand. The
+planner showed why that fails, and the mechanism is arithmetic rather than judgement:
+
+An empty scored prefix scores wrong under **both** rungs, so it contributes **zero** to that
+item's gap. That looks like immunity and is the reverse. With **21% of `bf16`'s items gap-neutral
+against 8% of `gptq-4bit`'s**, `bf16` has fewer items able to contribute a nonzero gap, so **its
+measured gap is deflated more**, and the interaction `gap(alt) − gap(bf16)` is **inflated
+positive** — *"in the direction that flatters our hypothesis. Again."*
+
+**Registered remedy, using machinery already specified.** Empty-prefix items are not committed, so
+§1.1's stratum already excludes them:
+
+1. Report the H3 interaction **both full-sample and stratum-restricted, for every cell, always**.
+2. 🚨 **Stratum-restricted is PRIMARY wherever the arm-wise empty-prefix spread exceeds 5 pp.**
+   Threshold registered now, before the reference run exists.
+3. The per-arm empty-prefix rate is reported alongside, since it decides which version is primary.
+
+🚨 **And §4.0's own note had to be amended, because it was false.** §1.4 asserted *"the
+interaction model is fit on correctness, which is well-defined for all items, so H3 is
+unaffected"*. That does not hold for a cell with a differential configuration-caused
+non-commitment rate. §4.0 is the section that explicitly cannot be patched later, so the text is
+corrected **before** `main-v1` with the reason recorded in place.
+
+### R35.Q2 Register it, but first name the instrument — and my example undercut my own claim
+
+*"Your own example undercuts the claim as stated."* The continuation I quoted appeared to end
+`...So the ans...`, truncated before any answer, so the planner correctly asked whether the
+6-of-7 came from an **extractor** or from a **human reading the reasoning**, since the two license
+different claims.
+
+✅ **Checked: the EXTRACTOR found it**, via the `commitment_phrase` rule, at **rung 1 as well as
+rung 2**. The apparent truncation was an artifact of my own display, which cut the text at 220
+characters; the full generation emits *"...So the answer is syndrome therefrom."* against gold
+`syndrome therefrom`. So the strong branch applies: **the harness discarded a correct answer.**
+The seventh case is a genuine model error, which is a useful sign the extractor is not matching
+indiscriminately.
+
+**Registered as confirmatory** in §5b.2: the estimand, the extraction rule per rung, **§8's
+false-positive guard as mandatory** (this is H2's recoverable-failure shape with a configuration
+cause, so it inherits H2's conservative/permissive pair and its incidental-match floor), and the
+directional prediction — which runs **opposite** to the paper's main hypothesis and is registered
+for that reason. n=7 stated inline as the dated exploratory basis, same structure as R17's
+confirmatory-extension framing.
+
+*"Worth registering. Moving the terminator makes visible that the standard configuration destroys
+recoverable answers, at a rate that differs by arm, and no one has measured it — but it has to
+survive its own guard first."*

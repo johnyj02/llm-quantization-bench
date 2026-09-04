@@ -1,0 +1,47 @@
+Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.
+Q4 is the blocker, and it has already corrupted the numbers in your Q3. Take it first.
+
+## Q4 — R34 silently redefined both truncation classes. Fix before the freeze.
+
+`finish_reason` and `n_gen_tokens` now describe the full generation, so:
+
+- **`TRUNC_BUDGET` over-counts.** Any generation that runs past its stop string to the cap is now labelled budget-truncated, even when its scored prefix terminated complete and early. That is not what §4 registered.
+- **H1's estimand is wrong.** H1 asks whether the *scored answer* was cut off by the budget. Full-generation `finish_reason` cannot answer that.
+
+**Record both, and define the classes on the scored prefix:**
+
+| field | meaning |
+|---|---|
+| `n_gen_tokens_full`, `finish_reason_full` | raw generation |
+| `n_gen_tokens_scored`, `stop_string_hit` | prefix after applying `until`, and which string terminated it |
+
+Then: `TRUNC_BUDGET` = no stop string fired **and** the full generation hit the cap. `TRUNC_STOPSEQ` = a stop string fired with no committed answer before it. `COMPLETE` = EOS, or a stop string with an answer. That restores the registered semantics exactly while keeping R34's observability. Schema change, lands before main-v1.
+
+## Q3 — Not a finding. It's the redefinition above.
+
+bf16 stopseq 5 / budget 2 versus gptq-4bit stopseq 2 / budget 5 is what you get when generations that used to stop at a terminator now run on to the cap. The counts moved because the definitions moved. **Don't read the trade-off at all until the scored-prefix classes exist**, then re-derive it — n=24 is the second problem, not the first.
+
+§4's internal-control logic is unaffected once the classes are correct: `TRUNC_STOPSEQ` on the scored prefix still should not respond to the budget sweep.
+
+## Q1 — (c). Your wariness was right and (a) is wrong on the arithmetic.
+
+An empty prefix scores wrong under **both** rungs, so it contributes 0 to that item's gap. That sounds immune, and it isn't: with 21% of bf16's items gap-neutral against 8% of gptq-4bit's, **bf16 has fewer items able to contribute a nonzero gap, so its measured gap is deflated more** — and the interaction (arm gap − bf16 gap) is inflated positive. In the direction that flatters our hypothesis. Again.
+
+The fix uses machinery already registered: **empty-prefix items are not committed, so the always-compliant stratum already excludes them.** Report the interaction both full-sample and stratum-restricted, for every cell, always — free — and **make the stratum-restricted version primary wherever the arm-wise empty-prefix rate spread exceeds 5 pp.** Register that threshold now.
+
+**And amend §4.0's note.** It asserts "the interaction model is fit on correctness, which is well-defined for all items, so H3 is unaffected." That is false for cells with a differential ABSENT-by-configuration rate. §4.0 is the section that cannot be patched later, so fix the text before main-v1, with the reason recorded.
+
+## Q2 — Register it, but first check what instrument found those 6 correct.
+
+**Your own example undercuts the claim as stated.** The preserved text ends `...So the ans...` — truncated before any answer is emitted. Gold is `syndrome therefrom`; the *reasoning* establishes it, but **no extractor would find a committed answer there.**
+
+So: is the 6-of-7 a rung-1/rung-2 extraction result on the full generation, or a human reading the trace? That decides the claim:
+
+- **Extractor found it** → "the harness discarded a correct answer." Strong, novel, quotable.
+- **Human read the reasoning** → this is H2's original recoverable-failure measurement, needs H2's false-positive guard, and **cannot** be described as a discarded correct answer.
+
+Report which, and if it's the latter, restate accordingly.
+
+Register the design either way, as confirmatory, before the freeze: the estimand (fraction of empty-scored-prefix items whose preserved continuation yields a correct answer, by arm, under a named extractor), the extraction rule, H2's conservative/permissive guard pair, and the arm-differential direction. State the n=7 observation inline as the dated exploratory basis — same honest structure as R17's confirmatory-extension framing. Don't present it as pre-data.
+
+This is worth registering. "Moving the terminator makes visible that the standard configuration destroys recoverable answers, at a rate that differs by arm" is on-thesis and no one has measured it — but it has to survive its own guard first.

@@ -311,11 +311,23 @@ def classify_termination(
                 f"classifying without it would silently report every record COMPLETE."
             )
         _, matched = apply_until(generation_text, terms)
+        # 🚨 THE REGISTERED DEFINITIONS, on the SCORED PREFIX (planner R35.Q4):
+        #
+        #   TRUNC_STOPSEQ  a stop string fired, with no committed answer before it
+        #   TRUNC_BUDGET   NO stop string fired *and* the full generation hit the cap
+        #   COMPLETE       EOS, or a stop string with an answer before it
+        #
+        # The ordering is not a preference, it is what keeps §4's classes meaning what they
+        # were registered to mean. R34 made `finish_reason` describe the FULL generation, so
+        # checking the budget first would label a generation that ran past its stop string to
+        # the cap as `TRUNC_BUDGET` even though its scored prefix ended complete and early --
+        # over-counting the class H1's budget sweep manipulates, and leaving H1's actual
+        # estimand (was the SCORED answer cut off?) unanswerable.
         if matched is not None:
-            # A terminator is present, so the harness would have cut here regardless of what
-            # happened afterwards. Checked BEFORE the budget, per the docstring.
             return COMPLETE if committed else TRUNC_STOPSEQ
         if finish_reason == "length":
+            # No stop string anywhere, so the scored prefix IS the full generation and the cap
+            # genuinely bound it.
             return TRUNC_BUDGET
         return COMPLETE
 

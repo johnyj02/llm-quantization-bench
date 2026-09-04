@@ -182,8 +182,45 @@ what the data can and cannot rule out without the stratum restriction.
 ### 1.4 Scope of the fix
 
 This interacts with §2 below: the H3 interaction model is fit on **correctness**, which is
-well-defined for all items regardless of compliance, so **H3 is unaffected** by the
-selection problem. Only the H4 competence decomposition needs the stratum restriction.
+well-defined for all items regardless of compliance, so H3 is unaffected by the *selection*
+problem as §1.0 poses it. Only the H4 competence decomposition needs the stratum restriction.
+
+🚨 **AMENDED 2026-09-04 (planner ruling R35.Q1). The sentence above was FALSE as an unqualified
+claim, and §4.0 is the section that cannot be patched later, so the correction is recorded here
+with its reason rather than left to the analysis.**
+
+**H3 is NOT unaffected in any cell with an arm-differential rate of configuration-caused
+non-commitment.** The mechanism, and it is arithmetic rather than judgement:
+
+An item whose scored prefix is **empty** scores wrong under **both** rungs, so it contributes
+**zero** to that item's strict-minus-permissive gap. That looks like immunity and is the opposite.
+If arm A has a higher empty-prefix rate than arm B, then **arm A has fewer items able to
+contribute a nonzero gap, so its measured gap is deflated further**, and the interaction
+`gap(alt) − gap(bf16)` is correspondingly **inflated**.
+
+Measured, and the direction is the one that matters: on Llama BBH the empty-prefix rate is
+**~21% for `bf16` against ~8% for `gptq-4bit`** (`main-v1-smoke3`, 24 items per cell, so
+indicative only). `bf16` is the reference arm, so its gap is the one deflated most, and the
+interaction is inflated **positive** — i.e. **toward this paper's own hypothesis**. That is the
+third time an artifact in this study has pointed that way, after §4.0's original collider and
+R10's found/committed leak, and it is why the note could not be left standing.
+
+**Registered remedy, using machinery already specified rather than anything new.** Empty-prefix
+items are **not committed**, so §1.1's always-compliant stratum **already excludes them**.
+Therefore:
+
+1. **The H3 interaction is reported BOTH full-sample and stratum-restricted, for every cell,
+   always.** Both are free once the stratum is computed, and reporting only one invites the
+   question of which was chosen.
+2. 🚨 **The stratum-restricted version is PRIMARY wherever the arm-wise empty-prefix rate spread
+   within a cell exceeds 5 pp.** The threshold is registered here, before the reference run
+   exists, so it cannot be selected after seeing which cells it moves.
+3. The empty-prefix rate **per arm** is reported alongside, since it is the quantity that decides
+   which version is primary and a reader must be able to check the switch.
+
+⚠️ This is a *presentation and primacy* rule, not a new estimator: both quantities were already
+specified, and §1.1's stratum was already the instrument for exactly this class of problem. What
+changed is the recognition that H3, not only H4, needs it.
 
 ---
 
@@ -1556,6 +1593,88 @@ registered plan to the artifact it produced without taking anything on trust. Re
 ⚠️ **`run_id=pilot-v1` is retained and is NOT the annotation pool.** It was generated with the
 defective BBH terminators (§9b) and exists as the evidence for that finding. Any analysis
 drawing on it must say which run it used.
+
+## 5b. Harness-discarded recoverable answers, and the two truncation classes on the SCORED prefix
+
+Registered **2026-09-04**, planner ruling R35. ⚠️ **A pre-specified confirmatory extension
+informed by pilot data already seen**, with the exploratory observation stated inline. Not
+pre-data, and the git history shows it.
+
+### 5b.1 Both truncation classes are defined on the SCORED PREFIX
+
+R34 moved `until` from a generation-time stop to scoring time (§9b-bis), which made
+`finish_reason` and `n_gen_tokens` describe the **full** generation. Left unaddressed that would
+have redefined §4's classes by accident, so the definitions are pinned here:
+
+| class | definition |
+|---|---|
+| `TRUNC_STOPSEQ` | a stop string fired, with **no committed answer before it** |
+| `TRUNC_BUDGET` | **no** stop string fired **and** the full generation hit the cap |
+| `COMPLETE` | EOS, or a stop string with a committed answer before it |
+
+⚠️ The ordering is load-bearing: checking the budget first would classify a generation that ran
+past its stop string to the cap as `TRUNC_BUDGET`, even though its scored prefix ended complete
+and early. That over-counts the class H1's sweep manipulates.
+
+**Two fields are recorded at generation time because they are unreconstructable afterwards**, the
+same rule that already governs `finish_reason` (README §1, task A4): `stop_string_hit` (which
+string terminated the prefix) and `n_gen_tokens_scored` (tokens up to it). Schema 1.5.0.
+
+🚨 **H1's estimand is the SCORED length.** A15 names *"mean and median `n_gen_tokens` by
+precision, with a CI"* as a citable contribution settling the 2606.25519-vs-2504.04823
+contradiction about whether quantization lengthens chain-of-thought. That contradiction concerns
+the **answer the model produced**, not text the harness discarded, so the scored length is
+primary and the full length is reported beside it. Reporting only the full length would inflate
+every arm by its overrun, **differentially**, since the overrun rate differs by arm.
+
+⚠️ **§4's internal-control logic is unchanged and still holds:** `TRUNC_STOPSEQ` on the scored
+prefix should **not** respond to the budget sweep. Any apparent trade-off between the two classes
+observed before these definitions were in force is **not interpreted** (R35.Q3): the counts moved
+because the definitions moved.
+
+### 5b.2 The harness discards recoverable answers, at an arm-differential rate
+
+**The exploratory observation, stated inline and dated.** On `main-v1-smoke3` (2026-09-04, 4 items
+per task path, so 120 BBH records), **7 items had an empty scored prefix and 6 of those 7 yielded
+a CORRECT answer from the preserved continuation**:
+
+| model | arm | BBH n | empty scored prefix | of those, correct in the continuation |
+|---|---|---|---|---|
+| llama-3.1-8b | bf16 | 24 | 5 | **4** |
+| llama-3.1-8b | gptq-4bit | 24 | 2 | **2** |
+| qwen2.5-3b | bf16 | 48 | 0 | 0 |
+| qwen2.5-3b | gptq-4bit | 24 | 0 | 0 |
+
+🚨 **Found by the EXTRACTOR, not by a human reading reasoning**, which R35.Q2 required be stated
+because it decides what may be claimed. All six were extracted by the `commitment_phrase` rule at
+**rung 1 as well as rung 2** — a properly committed answer, e.g. `"...So the answer is syndrome
+therefrom."` against gold `syndrome therefrom`. The seventh is a genuine model error (gold `True`,
+model committed `False`), which is a useful sign the extractor is not matching indiscriminately.
+
+⚠️ A first report of this described the continuation as ending mid-word, which was an artifact of
+truncating the *display* at 220 characters. Corrected before this section bound anything.
+
+**Registered estimand.** The fraction of items whose **scored prefix is empty** whose **preserved
+continuation** yields a correct answer, **per arm**, under a named extractor.
+
+- **Extraction rule:** rungs 1 and 2 as already specified in §5, applied to the full generation.
+  Reported separately per rung, never pooled.
+- 🚨 **§8's false-positive guard applies and is mandatory here.** This is H2's recoverable-failure
+  shape with a **configuration** cause rather than a model cause, so it inherits H2's
+  conservative/permissive pair and its incidental-match floor, and the rate is **always reported
+  net of that floor**. A claim that leniency recovered an answer is worthless without it.
+- **Registered directional prediction:** the discard rate is **higher on arms that continue the
+  transcript more often**, which on the pilot is the *less* quantized arm (bf16 21% against
+  gptq-4bit 8%). ⚠️ Note this runs **opposite** to the paper's main hypothesis, which is why it is
+  registered rather than left exploratory.
+- **Scope:** an existence demonstration at pilot n, and a rate only at reference n. n=7 supports
+  no magnitude.
+
+**Why it is worth registering.** *"Moving the terminator makes visible that the standard
+configuration destroys recoverable answers, at a rate that differs by arm"* is on-thesis and, as
+far as the survey in `notes/protocol-survey.md` reaches, unmeasured. ⚠️ It is only observable on
+post-R34 data: every earlier run destroyed the evidence at generation time, so `pilot-v1`,
+`pilot-v2`, `template-v1` and `template-v2` cannot be re-analysed for it.
 
 ---
 
