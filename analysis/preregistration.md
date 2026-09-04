@@ -1,6 +1,10 @@
 # Pre-registration — QuantArtifact
 
-**Status:** DRAFT (task `C2`). Committed and frozen by **2026-09-02** (gate `PREREG`,
+**Status:** 🔒 **FROZEN 2026-09-04**, at the commit immediately preceding the submission of `run_id=main-v1`. §1–§9 are **APPEND-ONLY** from here: amendments go below the `## Amendments` heading, dated, with the reason stated.
+
+⚠️ This marker is committed **BEFORE** the job was submitted, deliberately, so the git history shows the plan was fixed before any confirmatory generation existed rather than asserted to have been afterwards. That ordering is the whole value of the document (`EXECUTOR-PLAN.md` §4.0: a reviewer who detects patching rather than pre-specification caps acceptance at ~25%).
+
+**Previously:** DRAFT (task `C2`). Committed and frozen by **2026-09-02** (gate `PREREG`,
 `EXECUTOR-TASKS.md` §8) — but the date is the *schedule* target. **The scientifically binding
 line is the first `run_id=main-v1` generation**, because that is the moment at which a change
 to this document could be influenced by confirmatory results.
