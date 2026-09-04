@@ -226,7 +226,7 @@ def main() -> int:
         task = record["task"]
         gold = reduce_gold(record.get("gold") or "", task)
         result = extract.score_generation(
-            record["generation_text"], gold, task, record.get("subtask"),
+            extract.scored_text_for(record), gold, task, record.get("subtask"),
             rungs=RUNGS, math_verify_available=MATH_VERIFY)
         for rung in RUNGS:
             scored[(model_key, task, rung, arm, side)][record["item_id"]] = bool(

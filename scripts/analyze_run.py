@@ -99,7 +99,9 @@ def to_analysis_row(record: dict) -> dict:
     model_key, arm = cell_id.split("|", 1)
 
     task, subtask = record["task"], record.get("subtask")
-    generation = record["generation_text"]
+    # R34: the SINGLE path for a scorer to read a generation. Never `record["generation_text"]`
+    # directly: under `until_applied == "scoring"` the stored text runs past the terminator.
+    generation = extract.scored_text_for(record)
     gold = reduce_gold(record.get("gold") or "", task)
 
     scored = extract.score_generation(generation, gold, task, subtask,
@@ -115,12 +117,23 @@ def to_analysis_row(record: dict) -> dict:
         and extract.answers_match(anchored.value, gold, task, subtask))
     strict = extract.extract_strict(generation, task, subtask)
     permissive = extract.extract_permissive(generation, task, subtask)
+    # 🚨 THE FULL TEXT, NOT `generation`, AND THE DISTINCTION IS LOAD-BEARING (R34).
+    #
+    # Everything above extracts from the TRUNCATED prefix, which is correct. But
+    # `classify_termination` has to decide whether a terminator fired at all, and it cannot see
+    # one that has already been removed. Passing the truncated text here would make every
+    # stop-sequence kill look like `COMPLETE`, silently zeroing §4's `TRUNC_STOPSEQ` differential
+    # test -- the same quantity a stale literal already zeroed once (CODE REVIEWER, BLOCKER 1).
+    #
+    # `strict` and `permissive` are passed explicitly, so `label_compliance` does no extraction
+    # of its own and the full text is used for nothing but the termination class.
     labels = compliance_module.label_compliance(
-        generation, task, subtask,
+        record.get("generation_text") or "", task, subtask,
         finish_reason=record.get("finish_reason"),
         stop_reason=record.get("stop_reason"),
         strict=strict, permissive=permissive,
         until=record.get("until"),
+        until_applied=record.get("until_applied"),
     )
     return {
         "model_key": model_key,

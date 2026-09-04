@@ -73,8 +73,13 @@ from quantartifact.records import (
 # requires per RECORD because it must be joinable per item. The fingerprint is a property of
 # the whole cell, so the report is still the right home — but the argument is now "the report
 # is the right level", not "we cannot afford the bump".
-DECODING_VERSION = "3"   # 1 -> 2: pinned top_k/penalties, generation_config="vllm"
+DECODING_VERSION = "4"   # 1 -> 2: pinned top_k/penalties, generation_config="vllm"
 #                        # 2 -> 3: max_num_seqs ADDED to the fingerprint (see below)
+#                        # 3 -> 4: `until` moved from a generation-time `stop=` to SCORING
+#                        #         time (R34). This genuinely changes what a generation IS --
+#                        #         the text now runs past the terminator -- so every cached
+#                        #         cell is correctly invalidated. That invalidation is the
+#                        #         real price of the fix and it is the intended behaviour.
 
 # The six sampling fields, pinned. `top_k` has two sentinel spellings for "disabled" and
 # vLLM normalises between them, so both are accepted on read-back.
@@ -108,6 +113,11 @@ def decoding_fingerprint(spec) -> str:
         "async_scheduling": getattr(spec, "async_scheduling", None),
         "enforce_eager": getattr(spec, "enforce_eager", None),
         "disabled_kernels": getattr(spec, "disabled_kernels", None),
+        # R34: WHERE `until` is applied. In the fingerprint because it changes the stored
+        # text, not merely how the text is read: under "scoring" the generation continues
+        # past the terminator. Two cells with the same everything-else but different modes
+        # hold genuinely different data and must never be pooled or resumed across.
+        "until_applied": "scoring",
         # 🚨 ADDED 2026-08-31 (R24.1). Its absence was the NINTH instance of this
         # project's recurring bug family, and the most indefensible one: this study's
         # own H8 result is that `max_num_seqs` changes generated text by up to **59%**,
@@ -666,7 +676,29 @@ class VLLMRunner:
             presence_penalty=0.0,
             frequency_penalty=0.0,
             max_tokens=max_gen_toks,
-            stop=until,
+            # 🚨 `stop` is DELIBERATELY NOT SET (planner ruling R34). `until` is applied at
+            # SCORING time by `scoring.extract.apply_until` instead.
+            #
+            # Under greedy decoding the two are equivalent for the kept prefix, so published
+            # semantics are preserved exactly and R19.1's constraint (do not replace the
+            # harness's terminators with our own invention) is respected. What changes is that
+            # the discarded continuation survives, and that is a correctness fix rather than a
+            # convenience:
+            #
+            # Llama-3.1-8B emits `Q:` as its FIRST TWO TOKENS on some chat-templated BBH items,
+            # continuing the few-shot transcript instead of answering. As a generation-time stop
+            # that produced an EMPTY record at `n_gen_tokens=2`, indistinguishable from "the
+            # model had nothing to say" -- and at an ARM-DIFFERENTIAL rate, 17.5% on bf16 against
+            # 3.3% on gptq-4bit. A 14 pp gap that scores as competence and flatters this paper's
+            # own hypothesis is the failure mode SS4.0 exists to prevent.
+            #
+            # ⚠️ CONSEQUENCE FOR THE RECORD, and it is why `until_applied` is stored: with no
+            # generation-time stop, `finish_reason` and `n_gen_tokens` now describe the FULL
+            # generation. `stop_reason` will be None or an EOS token, never an `until` string.
+            # So `TRUNC_STOPSEQ` can no longer be read off `stop_reason` and must be DERIVED
+            # from the text. `compliance.classify_termination` does that, keyed on
+            # `until_applied`, so records from before this change keep their old semantics.
+            stop=None,
             seed=self.spec.seed,
             n=1,
         )
@@ -877,6 +909,10 @@ def run_cell(
                 # The list actually passed to the engine for THIS cell, so no scorer has to
                 # infer it from a task-keyed table. See GenerationRecord.until.
                 until=list(until) if until is not None else None,
+                # R34: `until` is applied by the SCORER, not by the engine. Recorded so a
+                # reader never has to infer it, and so pre-R34 records keep their own
+                # semantics rather than being reinterpreted under the new ones.
+                until_applied="scoring",
                 template_level=template_level,
             )
             for item, output in zip(batch, outputs, strict=True)

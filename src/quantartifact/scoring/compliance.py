@@ -42,6 +42,7 @@ from pathlib import Path
 from quantartifact.scoring.extract import (
     Extraction,
     _as_number,
+    apply_until,
     extract_permissive,
     extract_strict,
     normalise_answer,
@@ -160,6 +161,7 @@ def label_compliance(
     strict: Extraction | None = None,
     permissive: Extraction | None = None,
     until: Sequence[str] | None = None,
+    until_applied: str | None = None,
 ) -> ComplianceLabels:
     """Assign the compliance label and the termination class.
 
@@ -168,10 +170,25 @@ def label_compliance(
     fact, and H1 is impossible without it -- so a missing value is flagged in
     ``note`` rather than quietly defaulted.
     """
+    # 🚨 UNDER THE `"scoring"` REGIME, EXTRACT FROM THE TRUNCATED TEXT (planner R34).
+    #
+    # `generation` now holds the FULL output, including whatever the model produced after a
+    # terminator. Extracting from all of it would credit the study with answers the harness
+    # would never have seen, which is the mirror image of the bug R34 fixed and just as wrong:
+    # the old regime lost real answers, and this would invent ones. The truncated prefix is
+    # byte-identical to what a generation-time `stop=` produced, so this keeps published
+    # semantics exactly.
+    #
+    # `termination` below is deliberately classified against the FULL text, because deciding
+    # whether a terminator fired at all requires seeing past it.
+    scored_text = generation
+    if until_applied == "scoring":
+        scored_text, _ = apply_until(generation, _resolve_terminators(task, until))
+
     if strict is None:
-        strict = extract_strict(generation, task, subtask)
+        strict = extract_strict(scored_text, task, subtask)
     if permissive is None:
-        permissive = extract_permissive(generation, task, subtask)
+        permissive = extract_permissive(scored_text, task, subtask)
 
     # NOTE the asymmetry, and it is deliberate: `found` for scoring, `committed`
     # for compliance. A positional fallback (last number in string) yields a
@@ -191,6 +208,8 @@ def label_compliance(
         stop_reason=stop_reason,
         committed=permissive.committed,
         until=until,
+        generation_text=generation,
+        until_applied=until_applied,
     )
 
     note = None
@@ -212,12 +231,37 @@ def label_compliance(
     )
 
 
+def _resolve_terminators(task: str, until: Sequence[str] | None) -> tuple[str, ...]:
+    """The ACTUAL list when the caller has it, the config-derived union otherwise.
+
+    🚨 Never a hardcoded literal: that is what drifted and became BLOCKER 1 (see
+    ``HARNESS_UNTIL`` above). And it REFUSES rather than assuming, because *"I cannot know
+    this task's terminators"* and *"the model chose to stop"* are different answers, and
+    collapsing them into ``COMPLETE`` is how that blocker stayed hidden for weeks: 1,106 BBH
+    records took the catch-all and were reported complete.
+    """
+    if until is not None:
+        return tuple(until)
+    if task in HARNESS_UNTIL:
+        return HARNESS_UNTIL[task]
+    raise UnclassifiableTerminationError(
+        f"cannot classify termination for task {task!r}: the record carries no `until` "
+        f"(pre-schema-1.2.0) and {task!r} is not in the config-derived HARNESS_UNTIL "
+        f"{sorted(HARNESS_UNTIL)}.\n"
+        f"  Pass `until=` from the record, or add the task to configs/tasks.yaml. Returning "
+        f"COMPLETE here would silently under-count TRUNC_STOPSEQ."
+    )
+
+
 def classify_termination(
     task: str,
     finish_reason: str | None,
     stop_reason: str | None,
     committed: bool,
     until: Sequence[str] | None = None,
+    *,
+    generation_text: str | None = None,
+    until_applied: str | None = None,
 ) -> str:
     """Three mutually exclusive termination classes.
 
@@ -228,7 +272,53 @@ def classify_termination(
       causal pathway, and a useful **internal control**: it should NOT respond
       to the budget sweep.
     * ``COMPLETE``      -- EOS, or a stop sequence with an answer present.
+
+    🚨 **TWO REGIMES, selected by the record's own ``until_applied`` field** (planner R34).
+    The regime has to come from the record rather than from ``schema_version``, because a
+    reader should not need to know which release changed the generation path.
+
+    ``"generation"`` (every record before R34: ``pilot-v1``, ``pilot-v2``, ``template-v1``,
+    ``template-v2``, and ``None``, which is treated as this regime because it is what those
+    records actually did) -- ``until`` was passed to vLLM as ``stop=``, so the engine halted
+    there and ``stop_reason`` names the string that fired. Read the class off ``stop_reason``.
+
+    ``"scoring"`` -- nothing was passed as ``stop=``. The generation ran to EOS or the budget,
+    so ``stop_reason`` is ``None`` or an EOS token and **never** an ``until`` string. The class
+    must therefore be **DERIVED FROM THE TEXT**: if a terminator appears in
+    ``generation_text``, the harness would have cut it there, so the same record that was
+    ``TRUNC_STOPSEQ`` under the old regime is ``TRUNC_STOPSEQ`` under this one, and the
+    published semantics are preserved. ``committed`` must already have been computed on the
+    **truncated** text by the caller, via ``scoring.extract.apply_until``.
+
+    ⚠️ Order matters and ``TRUNC_BUDGET`` is checked FIRST in both regimes, but it means
+    something subtly different under ``"scoring"``: ``finish_reason == "length"`` now describes
+    the FULL generation. A generation that emitted a terminator early and then ran on to the
+    cap is a stop-sequence kill in published terms, not a budget truncation, so the terminator
+    check has to precede the budget check in that regime. Getting this backwards would move
+    records from ``TRUNC_STOPSEQ`` into ``TRUNC_BUDGET`` and corrupt §4's differential test,
+    whose whole design is that the two respond differently to the budget sweep.
     """
+    scoring_regime = until_applied == "scoring"
+
+    if scoring_regime:
+        # Resolve the terminator set once, with the same refuse-rather-than-assume rule as
+        # the legacy branch below.
+        terms = _resolve_terminators(task, until)
+        if generation_text is None:
+            raise UnclassifiableTerminationError(
+                f"task {task!r}: until_applied='scoring' but no `generation_text` was passed. "
+                f"Under that regime the termination class is DERIVED FROM THE TEXT, so "
+                f"classifying without it would silently report every record COMPLETE."
+            )
+        _, matched = apply_until(generation_text, terms)
+        if matched is not None:
+            # A terminator is present, so the harness would have cut here regardless of what
+            # happened afterwards. Checked BEFORE the budget, per the docstring.
+            return COMPLETE if committed else TRUNC_STOPSEQ
+        if finish_reason == "length":
+            return TRUNC_BUDGET
+        return COMPLETE
+
     if finish_reason == "length":
         return TRUNC_BUDGET
 
@@ -254,24 +344,7 @@ def classify_termination(
         if stop_reason is not None and str(stop_reason).lstrip("-").isdigit():
             return COMPLETE
 
-        # 🚨 The ACTUAL list when the caller has it, the config-derived union otherwise.
-        # Never a hardcoded literal: that is what drifted (see HARNESS_UNTIL above).
-        if until is not None:
-            terminators: tuple[str, ...] = tuple(until)
-        elif task in HARNESS_UNTIL:
-            terminators = HARNESS_UNTIL[task]
-        else:
-            # 🚨 REFUSE rather than assume. "I cannot know this task's terminators" and "the
-            # model chose to stop" are different answers, and collapsing them into COMPLETE is
-            # how BLOCKER 1 stayed hidden for weeks: 1,106 BBH records took the catch-all and
-            # were reported as complete. An unclassifiable record must be loud.
-            raise UnclassifiableTerminationError(
-                f"cannot classify termination for task {task!r}: the record carries no "
-                f"`until` (pre-schema-1.2.0) and {task!r} is not in the config-derived "
-                f"HARNESS_UNTIL {sorted(HARNESS_UNTIL)}.\n"
-                f"  Pass `until=` from the record, or add the task to configs/tasks.yaml. "
-                f"Returning COMPLETE here would silently under-count TRUNC_STOPSEQ."
-            )
+        terminators = _resolve_terminators(task, until)
         if stop_reason in terminators:
             return TRUNC_STOPSEQ
         return COMPLETE

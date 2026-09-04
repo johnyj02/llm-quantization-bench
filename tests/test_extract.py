@@ -17,6 +17,9 @@ Two tests here assert behaviour that looks like a defect and is deliberate:
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 import pytest
 
 import quantartifact.scoring.extract as extract_module
@@ -24,12 +27,14 @@ from quantartifact.scoring.extract import (
     RUNG_ANCHORED,
     RUNGS,
     answers_match,
+    apply_until,
     extract_permissive,
     extract_permissive_anchored,
     extract_strict,
     extract_strict_last,
     normalise_answer,
     score_generation,
+    scored_text_for,
 )
 
 # ---------------------------------------------------------------------------
@@ -658,3 +663,90 @@ def test_strict_can_be_accidentally_correct_via_the_dropped_final_char(
     assert permissive.value.count("]") > strict.value.count("]"), (
         f"{label}: the tell is that rung 2 has MORE of the repeated token than rung 1, because "
         f"rung 1 lost one to the dropped final character")
+
+
+class TestApplyUntilAndScoringRegime:
+    """🚨 R34: `until` moved from a generation-time `stop=` to scoring time.
+
+    The regression these guard is specific and was measured, not imagined. Llama-3.1-8B emits
+    `Q:` as its first two tokens on some chat-templated BBH items, continuing the few-shot
+    transcript instead of answering. As a generation-time stop that produced an EMPTY record at
+    `n_gen_tokens=2`, indistinguishable from "the model had nothing to say" -- at an
+    ARM-DIFFERENTIAL rate (17.5% bf16 against 3.3% gptq-4bit) running in the direction that
+    flatters this paper's own hypothesis.
+    """
+
+    BBH = ["</s>", "Q:", "<|im_end|>"]
+
+    def test_matched_string_is_excluded_like_vllm(self):
+        """vLLM's `include_stop_str_in_output` defaults False, so the prefix must match it."""
+        kept, matched = apply_until("the answer is 18.\n\nQ: next one", self.BBH)
+        assert kept == "the answer is 18.\n\n"
+        assert matched == "Q:"
+
+    def test_earliest_terminator_wins(self):
+        kept, matched = apply_until("a</s>b Q: c", self.BBH)
+        assert kept == "a"
+        assert matched == "</s>"
+
+    def test_no_terminator_returns_text_unchanged(self):
+        kept, matched = apply_until("clean reasoning, no terminator", self.BBH)
+        assert kept == "clean reasoning, no terminator"
+        assert matched is None
+
+    def test_empty_until_is_a_no_op(self):
+        for empty in (None, [], ()):
+            assert apply_until("text", empty) == ("text", None)
+
+    def test_the_llama_case_yields_the_same_empty_prefix(self):
+        """The prefix is byte-identical to what the generation-time stop produced: empty."""
+        kept, matched = apply_until("Q: not ( True ) and ( True ) is\nA: ...", self.BBH)
+        assert kept == ""
+        assert matched == "Q:"
+
+    def test_scored_text_for_truncates_only_in_the_scoring_regime(self):
+        full = "ans 4.\n\nQ: next"
+        assert scored_text_for(
+            {"generation_text": full, "until": self.BBH, "until_applied": "scoring"}
+        ) == "ans 4.\n\n"
+        # Pre-R34 records: the engine already cut the text, so truncating again is wrong.
+        assert scored_text_for(
+            {"generation_text": full, "until": self.BBH, "until_applied": "generation"}
+        ) == full
+        # A record predating the field at all.
+        assert scored_text_for({"generation_text": full, "until": self.BBH}) == full
+
+    def test_scored_text_for_is_idempotent(self):
+        """Applying it twice must not truncate twice, since scorers may compose."""
+        rec = {"generation_text": "ans 4.\n\nQ: next", "until": self.BBH,
+               "until_applied": "scoring"}
+        once = scored_text_for(rec)
+        twice = scored_text_for({**rec, "generation_text": once})
+        assert once == twice
+
+    def test_no_scorer_reads_generation_text_directly(self):
+        """🚨 The five-callers regression, in the form that actually recurs.
+
+        A fix documented as landing in four callers had landed in one (CODE REVIEWER,
+        2026-08-31). There are five scorers, and a missed one would silently credit answers the
+        harness never saw. So the SINGLE path is asserted structurally rather than by review.
+        """
+        scripts = Path(__file__).resolve().parents[1] / "scripts"
+        offenders = []
+        for name in ("score_pilot.py", "score_anchor.py", "score_template.py",
+                     "score_probe.py", "analyze_run.py"):
+            path = scripts / name
+            if not path.is_file():
+                continue
+            for num, line in enumerate(path.read_text().splitlines(), 1):
+                if line.lstrip().startswith("#"):
+                    continue
+                if re.search(r'record\[["\']generation_text["\']\]', line):
+                    # `label_compliance` legitimately takes the FULL text, because
+                    # `classify_termination` cannot see a terminator already removed.
+                    if "label_compliance" in line or "generation_text\") or \"\"" in line:
+                        continue
+                    offenders.append(f"{name}:{num}: {line.strip()}")
+        assert not offenders, (
+            "these read generation_text directly instead of extract.scored_text_for():\n  "
+            + "\n  ".join(offenders))

@@ -117,23 +117,41 @@ def read_records(root: Path) -> list[dict]:
 
 def score_one(record: dict) -> dict:
     """Score a single generation. Returns the flat row the aggregates read."""
-    generation = record["generation_text"]
     task, subtask = record["task"], record.get("subtask")
     gold = reduce_gold(record.get("gold") or "", task)
 
+    # 🚨 R34: under `until_applied == "scoring"` the stored text runs PAST the terminator, so
+    # EVERY extraction must use the truncated prefix, including the rung ladder below.
+    # Extracting from the full text would credit answers the harness would never have seen,
+    # which is the mirror image of the bug R34 fixed and just as wrong. Pre-R34 records are
+    # unaffected: `apply_until` is a no-op on them, because the engine already cut the text.
+    #
+    # ⚠️ Computed BEFORE `score_generation`, and that ordering is the whole point. My first
+    # version of this patch left `score_generation` on the full text and truncated only for
+    # the compliance extractors, so the rungs and the compliance labels would have disagreed
+    # about the same record. Anything that reads the generation reads `scored_text`.
+    scored_text = record.get("generation_text") or ""
+    if record.get("until_applied") == "scoring":
+        scored_text, _ = extract.apply_until(scored_text, record.get("until"))
+
     scored = extract.score_generation(
-        generation, gold, task, subtask,
+        scored_text, gold, task, subtask,
         rungs=RUNGS, math_verify_available=MATH_VERIFY,
     )
     # `score_generation` returns per-rung dicts of extracted/correct/rule, not the
     # `Extraction` objects `label_compliance` needs, so the two extractors are called
-    # directly. They are pure functions of (generation, task, subtask), so this cannot
-    # disagree with what was just scored.
-    strict = extract.extract_strict(generation, task, subtask)
-    permissive = extract.extract_permissive(generation, task, subtask)
+    # directly. They are pure functions of (text, task, subtask) and take the SAME
+    # `scored_text`, so they cannot disagree with what was just scored.
+    strict = extract.extract_strict(scored_text, task, subtask)
+    permissive = extract.extract_permissive(scored_text, task, subtask)
 
+    # 🚨 THE FULL TEXT here, deliberately, while everything above uses `scored_text`.
+    # `classify_termination` must decide whether a terminator fired, and it cannot see one that
+    # has already been removed; passing the truncated text would report every stop-sequence kill
+    # as COMPLETE and silently zero §4's differential test. `strict`/`permissive` are supplied,
+    # so the full text is used for nothing else.
     labels = compliance.label_compliance(
-        generation, task, subtask,
+        record.get("generation_text") or "", task, subtask,
         finish_reason=record.get("finish_reason"),
         stop_reason=record.get("stop_reason"),
         strict=strict, permissive=permissive,
@@ -142,6 +160,9 @@ def score_one(record: dict) -> dict:
         # config-derived table -- imprecise for BBH, whose two template levels have
         # different sets, but never wrong the way the old hardcoded literal was.
         until=record.get("until"),
+        # Which regime produced this record. `label_compliance` needs it for the same reason
+        # this function does, and it classifies termination against the FULL text.
+        until_applied=record.get("until_applied"),
     )
 
     row = {

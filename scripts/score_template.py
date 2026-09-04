@@ -88,7 +88,7 @@ def score_run(root: Path) -> dict:
                 record = json.loads(line)
                 task = record["task"]
                 scored = extract.score_generation(
-                    record["generation_text"],
+                    extract.scored_text_for(record),
                     reduce_gold(record.get("gold") or "", task),
                     task, record.get("subtask"),
                     rungs=RUNGS, math_verify_available=False,

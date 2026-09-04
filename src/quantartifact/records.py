@@ -30,9 +30,10 @@ from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = "1.3.0"   # 1.0.0 -> 1.1.0: added invocation_id (R21.3)
+SCHEMA_VERSION = "1.4.0"   # 1.0.0 -> 1.1.0: added invocation_id (R21.3)
 #                          # 1.1.0 -> 1.2.0: added until (self-classifying artifact)
 #                          # 1.2.0 -> 1.3.0: added template_level (ditto)
+#                          # 1.3.0 -> 1.4.0: added until_applied (R34; see the field)
 
 # The join key across generations and EVERY scorer. Enforced as a uniqueness
 # constraint by the loader, which fails loudly on a duplicate -- a silently
@@ -142,6 +143,28 @@ class GenerationRecord:
     # recorded they could infer it -- BBH's two sets differ -- but inference is exactly what
     # recording `until` removed from the termination path, and the same argument applies here.
     template_level: str | None = None
+    #: WHERE the `until` strings were applied: `"generation"` or `"scoring"`.
+    #
+    # 🚨 This field is what keeps records from before and after planner ruling R34 from being
+    # silently mixed, and that is not a hypothetical: `pilot-v1`, `pilot-v2`, `template-v1` and
+    # `template-v2` all carry `"generation"`, and every record after R34 carries `"scoring"`.
+    #
+    # `"generation"` — `until` was passed to vLLM as `stop=`, so the engine halted there and the
+    #   continuation is GONE. `stop_reason` names the string that fired, and `n_gen_tokens`
+    #   counts only the kept prefix.
+    # `"scoring"`   — nothing was passed as `stop=`. The generation ran to EOS or the budget, so
+    #   `generation_text` holds the FULL output, `finish_reason`/`n_gen_tokens` describe all of
+    #   it, and `stop_reason` is None or an EOS token but never an `until` string. Scoring calls
+    #   `scoring.extract.apply_until` to recover the identical prefix.
+    #
+    # ⚠️ So `TRUNC_STOPSEQ` is read off `stop_reason` under `"generation"` and DERIVED FROM THE
+    # TEXT under `"scoring"`. `compliance.classify_termination` branches on this field, which is
+    # why it has to be recorded rather than inferred from `schema_version`: a reader should not
+    # have to know which release changed the generation path.
+    #
+    # None means a record predating the field, which is treated as `"generation"` because that
+    # is what every such record actually did.
+    until_applied: str | None = None
     schema_version: str = SCHEMA_VERSION
 
     def key(self) -> tuple:

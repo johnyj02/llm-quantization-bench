@@ -783,6 +783,77 @@ def _as_number(text: str) -> float | None:
 #   1 -> 1b  position-selection effect (first vs last match)
 #   1b -> 2  strictness effect (pattern rigidity)
 # Monotonicity is asserted along this order.
+def scored_text_for(record: dict) -> str:
+    """The text a scorer must extract from, for a record from EITHER regime.
+
+    🚨 THE SINGLE PATH, and it exists because of how this project fails. R34 moved `until`
+    from a generation-time stop to scoring time, which means every scorer must now truncate
+    before extracting. There are FIVE scorers. Patching each by hand is precisely the shape
+    the CODE REVIEWER caught on 2026-08-31, where a fix documented as landing in four callers
+    had landed in one, and a missed caller here would silently credit answers the harness
+    would never have seen.
+
+    So: no scorer computes this itself. `record["generation_text"]` is not read directly by
+    any of them.
+
+    * `until_applied == "scoring"` -- truncate at the first terminator, giving byte-identical
+      text to what a generation-time `stop=` produced.
+    * anything else, including `None` for pre-R34 records -- return the text unchanged, because
+      the engine already cut it.
+    """
+    text = record.get("generation_text") or ""
+    if record.get("until_applied") == "scoring":
+        text, _ = apply_until(text, record.get("until"))
+    return text
+
+
+def apply_until(
+    generation: str, until: Sequence[str] | None
+) -> tuple[str, str | None]:
+    """Truncate `generation` at the FIRST occurrence of any `until` string.
+
+    Returns `(kept_text, matched_string_or_None)`. The matched string is **excluded**, which
+    is vLLM's own default (`include_stop_str_in_output=False`), so this is byte-for-byte what
+    a generation-time `stop=` would have produced.
+
+    🚨 WHY THIS EXISTS, and it is a correctness fix rather than a refactor (planner R34).
+    We used to hand `until` to vLLM as a generation-time `stop=`. Under greedy decoding the
+    two are equivalent *for the kept prefix*, but a generation-time stop **destroys the
+    continuation irreversibly**, and that cost us a real measurement:
+
+    Llama-3.1-8B emits `Q:` as its FIRST TWO TOKENS on some chat-templated BBH items,
+    continuing the few-shot transcript instead of answering. With `Q:` as a generation-time
+    stop, the recorded generation is EMPTY at `n_gen_tokens=2` and we cannot tell whether an
+    answer existed after it. Worse, the rate is **arm-differential**: 17.5% on `bf16` against
+    3.3% on `gptq-4bit`, a 14 pp gap that scores as competence and runs in the direction that
+    flatters this paper's own hypothesis. Qwen and Phi are at 0.0%.
+
+    Applying `until` here instead keeps published semantics exactly while making the discarded
+    continuation observable, so "the model never answered" and "we stopped it before it could"
+    become different, checkable states. §4.0 exists to prevent exactly the conflation of a
+    configuration artifact with a model property.
+
+    ⚠️ Generalisable enough to belong in the paper alongside "report K" and "report item
+    ordering": a stop sequence destroys information irreversibly, while applying it at
+    scoring time costs tokens and preserves everything.
+    """
+    if not until:
+        return generation, None
+    earliest: int | None = None
+    matched: str | None = None
+    for needle in until:
+        if not needle:
+            continue
+        found = generation.find(needle)
+        # Strictly earlier, so ties resolve to the FIRST string in the caller's order,
+        # matching how a single-pass scanner would behave.
+        if found != -1 and (earliest is None or found < earliest):
+            earliest, matched = found, needle
+    if earliest is None:
+        return generation, None
+    return generation[:earliest], matched
+
+
 RUNGS: tuple[str, ...] = ("strict", "strict_last", "permissive", "math_verify")
 
 #: Rung 2a, registered by R27.1 as an additive robustness rung. Kept out of `RUNGS` so it cannot
