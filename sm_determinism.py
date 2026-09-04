@@ -392,6 +392,26 @@ for index, spec_pass in enumerate(payload["passes"]):
         results = runner.generate(
             [g["prompt"] for g in group], max_toks, list(until),
             token_ids=[g["prompt_token_ids"] for g in group],
+            # 🚨 THE PROBE KEEPS GENERATION-TIME TRUNCATION, deliberately, while the generation
+            # stages moved to scoring time under R34. Three reasons, and the third is the binding
+            # one:
+            #
+            # 1. This probe measures TEXT DIVERGENCE across orderings. Longer strings give more
+            #    opportunity to differ, so moving the regime would shift the measured divergence
+            #    rates for a reason that has nothing to do with batch invariance -- in the table
+            #    the H8 section leads with.
+            # 2. The probe stores TEXT ONLY (CLAUDE.md rule 4b: per-pass keys are
+            #    `ordering_seed`, `outputs`, `seconds`). With no `finish_reason` and no
+            #    `until_applied`, `scored_text_for` cannot be applied to a probe pass even in
+            #    principle, so `score_probe.py` would silently extract from untruncated text.
+            # 3. R34's defect is about SCORING an arm-differential artifact into the paper's
+            #    deltas. The probe's orderings all receive identical treatment, so the artifact
+            #    is common within a cell and the ordering comparison is unaffected.
+            #
+            # ⚠️ Moving the probe to the scoring regime would SUPERSEDE the already-measured H8
+            # divergence rates, which is a planner decision rather than a code one. Raised; this
+            # preserves the measured behaviour until it is ruled on.
+            until_at_generation=True,
         )
         for g, r in zip(group, results):
             texts[g["item_id"]] = r["text"]

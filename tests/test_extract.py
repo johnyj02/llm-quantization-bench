@@ -738,13 +738,26 @@ class TestApplyUntilAndScoringRegime:
             path = scripts / name
             if not path.is_file():
                 continue
-            for num, line in enumerate(path.read_text().splitlines(), 1):
+            lines = path.read_text().splitlines()
+            for num, line in enumerate(lines, 1):
                 if line.lstrip().startswith("#"):
                     continue
-                if re.search(r'record\[["\']generation_text["\']\]', line):
+                # 🚨 BOTH subscript AND `.get()`. The first version of this test matched only
+                # `record["generation_text"]`, while every real call site uses
+                # `record.get("generation_text")` -- so it matched NOTHING and passed
+                # vacuously. The CODE REVIEWER caught that it "would pass with every scorer
+                # reading the full text directly", which is the opposite of its purpose.
+                if re.search(r'record(\[|\.get\()["\']generation_text["\']', line):
                     # `label_compliance` legitimately takes the FULL text, because
-                    # `classify_termination` cannot see a terminator already removed.
-                    if "label_compliance" in line or "generation_text\") or \"\"" in line:
+                    # `classify_termination` cannot see a terminator already removed. This is
+                    # the ONLY exemption: an earlier version also allowed any line containing
+                    # `generation_text") or ""`, which is precisely the idiom an offender would
+                    # use, so it would have exempted the very thing being checked.
+                    # The call spans lines, so look back a little: the argument sits on a
+                    # different line from `label_compliance(`. Bounded at 3 lines so the
+                    # exemption cannot drift into unrelated code.
+                    window = "".join(lines[max(0, num - 4):num])
+                    if "label_compliance(" in window:
                         continue
                     offenders.append(f"{name}:{num}: {line.strip()}")
         assert not offenders, (

@@ -130,9 +130,7 @@ def score_one(record: dict) -> dict:
     # version of this patch left `score_generation` on the full text and truncated only for
     # the compliance extractors, so the rungs and the compliance labels would have disagreed
     # about the same record. Anything that reads the generation reads `scored_text`.
-    scored_text = record.get("generation_text") or ""
-    if record.get("until_applied") == "scoring":
-        scored_text, _ = extract.apply_until(scored_text, record.get("until"))
+    scored_text = extract.scored_text_for(record)
 
     scored = extract.score_generation(
         scored_text, gold, task, subtask,

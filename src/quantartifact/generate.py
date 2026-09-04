@@ -618,6 +618,8 @@ class VLLMRunner:
         max_gen_toks: int,
         until: list[str],
         token_ids: list[list[int]] | None = None,
+        *,
+        until_at_generation: bool,
     ) -> list[dict[str, Any]]:
         """Greedy generation. Returns one dict per prompt, input order preserved.
 
@@ -698,7 +700,18 @@ class VLLMRunner:
             # So `TRUNC_STOPSEQ` can no longer be read off `stop_reason` and must be DERIVED
             # from the text. `compliance.classify_termination` does that, keyed on
             # `until_applied`, so records from before this change keep their old semantics.
-            stop=None,
+            #
+            # 🚨 `until_at_generation` IS REQUIRED AND KEYWORD-ONLY, with NO DEFAULT, and that is
+            # the point. My first version of this change hardcoded `stop=None` and left `until` as
+            # a dead positional parameter -- which the CODE REVIEWER caught, because
+            # `sm_determinism.py` calls this method DIRECTLY and depended on the old behaviour.
+            # Its H8 probe would have started storing full-length generations, shifting the
+            # measured text-divergence rates for a reason unrelated to batch invariance, in the
+            # table the H8 section leads with. A parameter accepted and then ignored is the
+            # charter's named pattern and is how `add_bos_token` and `async_scheduling` happened.
+            #
+            # No default, so a new caller cannot omit the decision and inherit someone else's.
+            stop=until if until_at_generation else None,
             seed=self.spec.seed,
             n=1,
         )
@@ -862,6 +875,9 @@ def run_cell(
         ids = [item.get("prompt_token_ids") for item in batch]
         outputs = runner.generate(
             [item["prompt"] for item in batch], max_gen_toks, until,
+            # R34: the SCORING regime. `until` is stamped on the record and applied by
+            # `scoring.extract.scored_text_for`, so the continuation survives.
+            until_at_generation=False,
             token_ids=[i for i in ids if i is not None] if all(ids) else None,
         )
         elapsed_ms = int((time.monotonic() - started) * 1000)

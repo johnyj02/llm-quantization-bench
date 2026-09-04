@@ -1,0 +1,147 @@
+# VERDICT
+
+**514 passed, 2 skipped, ruff clean — confirmed by execution.** (Both skips are legitimate: local checkpoints absent, and a superseded A7 guard.)
+
+**Your question 1 is right, and I can prove the equivalence rather than just agree with it.** Terminator-before-budget is correct in every case.
+
+🚨 **But there is a CRITICAL: `VLLMRunner.generate` still accepts `until` and now silently ignores it, and `sm_determinism.py` is a live caller that depends on the old behaviour.** Confirmed by execution — `ruff --select ARG` reports `ARG002 Unused method argument: until` at `generate.py:619`. That rule is not in your default ruff selection, which is why the repo reads clean. H8's probe outputs will now be full-length generations, and `score_probe.py` extracts from them with no `until_applied` to tell it otherwise.
+
+**And your question 3's suspicion is correct but understated: the enforcement test cannot fail at all.** Its regex matches only `record["generation_text"]`, while every real call site uses `record.get("generation_text")`. Zero subscript accesses exist in the five scorers, so `offenders` is always empty.
+
+---
+
+## CRITICAL 1 — `generate()` ignores `until`, and the determinism probe still passes it
+
+`src/quantartifact/generate.py:619` (parameter), `sm_determinism.py:392-393` (caller)
+
+**Why it is wrong.** The diff replaced `stop=until` with `stop=None` inside `VLLMRunner.generate`, but left `until: list[str]` as a **required positional parameter**. It is now dead:
+
+```
+ARG002 Unused method argument: `until`
+   --> src/quantartifact/generate.py:619:9
+```
+
+`run_cell` is fine — it stamps `until` on the record and the scorers apply it. But `run_cell` is not the only caller. `sm_determinism.py:389-393` calls the runner directly:
+
+```python
+groups.setdefault((item["max_gen_toks"], tuple(item["until"])), []).append(item)
+for (max_toks, until), group in sorted(groups.items()):
+    results = runner.generate([g["prompt"] for g in group], max_toks, list(until), ...)
+```
+
+**How it fails.** Three consequences, all silent:
+
+1. **The probe's stored `outputs` become full-length generations.** They were truncated at `until` before; now they run to EOS or the 256-token cap. The decoding fingerprint now includes `until_applied: "scoring"`, so `cell_tag` changes and every cached probe cell correctly regenerates — no stale-cache bug. But what regenerates is different data.
+2. **H8's text-divergence rates shift for a reason unrelated to batch invariance.** Divergence is measured on the raw output strings; longer strings give more opportunity to diverge. So the frontier table and `\hEightWorstSD` would move, and the movement would be attributed to batch composition when it is attributable to the terminator change. That is a wrong number in the section the H8 chapter leads with.
+3. **`score_probe.py:121` extracts from untruncated text with no way to know.** It calls `score_generation(text, ...)` on `first["outputs"]`, and the probe stores **text only** — per CLAUDE.md §0 rule 4b, its per-pass keys are `ordering_seed`, `outputs` and `seconds`, with no `finish_reason`, no `n_gen_tokens` and therefore no `until_applied`. So `scored_text_for` cannot be applied to a probe pass even in principle. Post-R34 probe accuracy numbers would credit answers appearing after a terminator, which is precisely the "mirror image of the bug R34 fixed" your own `label_compliance` comment warns against.
+
+This is the charter's named pattern — a parameter accepted and then ignored — with a live caller that reads as configured and is not.
+
+**Confirmed by:** execution (`ruff --select ARG`), plus reading `sm_determinism.py:389-393` and `score_probe.py:105-128`.
+
+**Fix, and I would not submit the smoke without it.** Decide the probe's regime explicitly rather than by omission:
+
+- If the probe should keep generation-time truncation (defensible: it measures text divergence, and comparability with the already-published H8 numbers has value), then `generate()` needs to take the regime as an argument rather than dropping `stop` unconditionally — for example `stop=until if until_at_generation else None` — and `sm_determinism` passes `True`.
+- If the probe should move to the scoring regime, then its stored passes must carry `until` and `until_applied`, and `score_probe` must route through `scored_text_for`. That also means the previously measured H8 divergence rates are superseded, which is a planner matter, not a code one.
+
+Either way, **remove the dead parameter or make it live**. Leaving a required argument that does nothing is how `add_bos_token` and `async_scheduling` happened. And add `ARG` to the ruff selection: it caught this in one command.
+
+---
+
+## Q1 — the ordering is correct, and here is the proof
+
+Under the old regime, vLLM halts at whichever comes first in token order: a `stop` match, EOS, or `max_tokens`. So for any generation:
+
+| full text contains a terminator? | old regime outcome | new regime under your logic |
+|---|---|---|
+| yes, at token k | halts at k, `finish_reason="stop"`, `stop_reason=<str>` → TRUNC_STOPSEQ (if uncommitted) | terminator found → TRUNC_STOPSEQ (if uncommitted) ✓ |
+| no, and the run hit the cap | `finish_reason="length"` → TRUNC_BUDGET | no terminator, `finish_reason=="length"` → TRUNC_BUDGET ✓ |
+| no, and the run hit EOS | `finish_reason="stop"`, `stop_reason` None/EOS → COMPLETE | no terminator, not length → COMPLETE ✓ |
+
+The key step is the one your docstring asserts: **a terminator present anywhere in the full text necessarily occurred at a token position at or before where generation actually ended**, so the old engine would have cut there and could never have reached the cap. That makes terminator-presence strictly dominant over `finish_reason == "length"`, which is exactly your ordering.
+
+The remaining case worth checking is the one that looks like a counterexample and is not: a generation whose terminator would have appeared *beyond* the cap. Then the new text has no terminator and hits the cap → TRUNC_BUDGET; and the old regime also saw no terminator within the cap → TRUNC_BUDGET. They agree. **I could not construct a case where your ordering is wrong.**
+
+One thing worth adding to the docstring: the classification is not merely "reasonable under the new regime", it is **provably identical to what the old regime would have produced**, which is a stronger claim and the one §4's differential test needs.
+
+## Q2 — the split is correct at every site
+
+| site | extraction text | `label_compliance` text | verdict |
+|---|---|---|---|
+| `score_template.py:91` | `scored_text_for(record)` | not used | ✓ |
+| `score_anchor.py:229` | `scored_text_for(record)` | not used | ✓ |
+| `score_pilot.py:137-146` | `scored_text` (truncated) | full, at `:154` | ✓ |
+| `analyze_run.py:104-119` | `scored_text_for(record)` | full, at `:131` | ✓ |
+| `score_probe.py:121` | raw probe text | not used | see CRITICAL 1 |
+| `label_compliance` itself | `scored_text` when `strict`/`permissive` are `None` | full to `classify_termination` | ✓ |
+
+The one subtlety I checked because it would have been invisible: `label_compliance` computes `scored_text` and then **only uses it if `strict`/`permissive` are `None`**. Both `score_pilot` and `analyze_run` pass them explicitly, so `scored_text` is computed and discarded at those two sites. That is harmless *because* both callers computed them on the truncated text themselves — but it means `classify_termination`'s docstring requirement ("`committed` must already have been computed on the truncated text by the caller") is satisfied by caller discipline rather than by construction. If a future caller passes extractions computed on the full text, `committed` is wrong and nothing notices. Cheap hardening: when `until_applied == "scoring"` and `strict`/`permissive` are supplied, there is no way to verify they came from the truncated text, so consider dropping the pass-through parameters and always extracting internally, or having `label_compliance` accept `scored_text` explicitly.
+
+## Q3 — the enforcement test matches nothing and would exempt everything if fixed
+
+`tests/test_extract.py:727-752`
+
+Two independent breakages:
+
+1. **The regex only matches subscript access.** `re.search(r'record\[["\']generation_text["\']\]', line)` matches `record["generation_text"]`. Every real call site uses `record.get("generation_text")`: `score_pilot.py:133`, `:154`, `analyze_run.py:131`. `grep` across the five scorers finds **zero** subscript accesses, so the regex never fires, `offenders` is always `[]`, and the assertion is vacuously true. The test would pass with every scorer reading the full text directly.
+
+2. **The second allowlist clause would exempt the offending idiom if the regex were fixed.** `if "label_compliance" in line or "generation_text\") or \"\"" in line: continue` — that second condition is `record.get("generation_text") or ""`, which is *precisely* the pattern an offender would use. Today it is dead code (unreachable, since the regex never matches). Fix the regex without removing it and the test is still vacuous.
+
+**Fix:**
+```python
+if re.search(r'record(\[|\.get\()["\']generation_text["\']', line):
+    if "label_compliance" in line:      # the one legitimate full-text case
+        continue
+    offenders.append(...)
+```
+Drop the `or ""` clause entirely. Note this will then flag `score_pilot.py:133` — correctly, see below.
+
+## MODERATE — `score_pilot` duplicates `scored_text_for` instead of calling it
+
+`scripts/score_pilot.py:133-135`
+
+```python
+scored_text = record.get("generation_text") or ""
+if record.get("until_applied") == "scoring":
+    scored_text, _ = extract.apply_until(scored_text, record.get("until"))
+```
+
+That is `scored_text_for`'s body, line for line. So the single path has two implementations, in the file whose comment at `:129-132` explains why the single path exists — and the test built to enforce it cannot see the duplication. Currently correct; structurally it is the five-callers problem in miniature. Replace with `scored_text = extract.scored_text_for(record)`.
+
+## Q4 — clean, and the reason is that `until` is on the record
+
+`apply_until` is idempotent by construction: truncating at the first terminator leaves text containing no terminator, so a second pass finds nothing. Your test pins it.
+
+Double truncation with a *different* list is closed, and it is closed by schema rather than by discipline: `scored_text_for` uses `record["until"]`, `label_compliance` receives `record.get("until")`, and both therefore use the list that generation actually used — which for BBH is the level-specific set, since `until` and `template_level` are both stamped. The wrong-template-level scenario you worried about needs a record with no `until`, and a scoring-regime record always has one (schema 1.4.0 implies 1.2.0).
+
+One residual worth a comment rather than a fix: `_resolve_terminators` falls back to `HARNESS_UNTIL[task]`, the **union across both template levels**, when `until is None`. Under the scoring regime that union would drive `apply_until`, so a hypothetical `until`-less scoring record would be truncated at whichever level's terminator appeared first — possibly the wrong level's. Unreachable today; worth an assertion that `until_applied == "scoring"` implies `until is not None`, since that is a schema invariant you can state in one line.
+
+## Q5 — three things, and two of them are yours to decide
+
+**(a) The determinism probe.** CRITICAL 1. Your instinct to look there was right.
+
+**(b) `n_gen_tokens` changes meaning across the regime boundary, and is aggregated under one key.** `score_pilot.py:259-261` computes `n_gen_tokens_mean` and `n_gen_tokens_median` from `record["n_gen_tokens"]` with no regime branch. Pre-R34 records report the kept prefix; post-R34 report the full generation including everything after the terminator. Same field, same report key, incomparable quantities — so a `pilot-v2` median printed beside a `main-v1` median would be comparing prefix length against full length.
+
+This matters more than a display inconsistency because `records.py:12` stakes a paper claim on the field: *"`n_gen_tokens` — same, and it settles the arXiv:2606.25519 vs arXiv:2504.04823 contradiction about whether quantization lengthens CoT."* The full-generation measure is arguably the *better* instrument for that question, since it no longer truncates at an arbitrary terminator — but it is not the same instrument, and nothing records which one produced a given median. At minimum, key the aggregate on the regime and refuse to pool. Whether the CoT-length claim should now be made on the full or the truncated length is a planner question, and it is worth asking before `main-v1` rather than after, because the answer might be "record both" and the truncated length is derivable only if the scorer stores it.
+
+**(c) `peek_generations.py:117` — rule 4b's primary heuristic inverts.** The script tells the reader: *"Is `n_gen_tokens` far below `max_gen_toks`? On a CoT task that is suspicious."* Under the old regime a stop sequence firing early produced exactly that signature, and it is how this very defect was found. Post-R34, a terminator no longer shortens `n_gen_tokens`, so the check goes quiet on the failure mode it exists to catch. The replacement signal is available and better: a large gap between `len(generation_text)` and the length after `apply_until`. Since you are about to run rule 4b on the smoke, updating the printed guidance is worth doing first, or the check will read as clean for the wrong reason.
+
+---
+
+## MINOR (not actioned)
+
+- `label_compliance` and `classify_termination` each call `_resolve_terminators` and `apply_until` on the same text, so a scoring-regime record is truncated twice per call. Harmless and identical, but the second call could take the first's result.
+- `sm_determinism.py:389` groups probe items by `(max_gen_toks, tuple(until))`, and `until` no longer affects generation, so that half of the key is now inert.
+- The `until_applied` docstring in `records.py` says `stop_reason` under `"scoring"` is *"None or an EOS token but never an `until` string"* — true, and worth also saying that a numeric token id remains possible, since `classify_termination`'s numeric branch still exists in the legacy path only.
+- `DECODING_VERSION = "4"` correctly invalidates every cached cell, and the comment says so plainly. Worth stating in the commit or RUNLOG that `pilot-v2`/`template-v2` are **not** regenerated by this (they keep `"generation"` and their own fingerprint), so a reader does not expect them to move.
+
+## What I did not check
+
+- **Scope honoured**: I did not revisit the analysis layer's statistics.
+- **`ruff --select ARG` is not in your default selection.** I ran it ad hoc and it found CRITICAL 1 immediately. I did not run the other non-default rule groups; `ARG` alone looks worth adding permanently given this project's history with ignored parameters.
+- **I did not read the new tests for `apply_until`, `scored_text_for` or the regime branch** beyond the two the grep surfaced (`test_no_scorer_reads_generation_text_directly`, and the idempotence test at `:723-725`). So I cannot say whether the regime branch itself is behaviourally pinned, only that the enforcement test is not.
+- **I did not verify the R34 ruling text**, only the diff against it as you described it. `notes/planner-rulings.md` may or may not carry an R34 entry; R30 was missing from it two rounds ago, so it is worth confirming this one landed.
+- **I did not check `sm_diagnose.py`, `sm_throughput.py` or `sm_anchor.py`'s `CELL_SCRIPT`** for other direct `runner.generate` callers. `sm_anchor` and `sm_pilot` go through `run_cell`, but `grep -n "runner.generate"` across all `sm_*.py` would settle whether `sm_determinism` is the only one, and that is the first thing I would run.
+- **No AWS calls, nothing billable.**
+
+saved: notes/reviews/2026-09-04T050210Z.md
