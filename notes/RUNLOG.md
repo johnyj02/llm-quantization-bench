@@ -1469,11 +1469,90 @@ scoring and 1.3 pp under permissive scoring** on the same non-truncated items.*
 `johnyj02-QA-v0-1-20260903-33b4267e-reference-smoke-r2`
 
 - PASSED every structural check: 4 cells, 180 records, all checkpoints resolve by hash, and K=2 WORKS (qwen bf16 at repeat_idx 0 and 1 with different invocation_id and pids). But rule 4b then found a PRE-EXISTING ARM-DIFFERENTIAL defect: Llama emits 'Q:' as its first 2 tokens on some BBH items so the generation is EMPTY, at rates 3.3% to 32.5% ACROSS ARMS. Raised as R34; main-v1 HELD
-- <!-- TODO: what it taught us, and what changed as a result -->
+- ✅ **Passed every structural check**, which is what a reference rehearsal exists to prove:
+  4 cells x 9 task paths x 4 items = 180 records, all fifteen cells resolving their checkpoints by
+  recipe hash, and **K=2 working** (`qwen2.5-3b|bf16` at `repeat_idx` 0 and 1 with different
+  `invocation_id` and different pids, so two genuinely separate engine loads). That was the newest
+  untested code in the file.
+- 🚨 **And then rule 4b found a defect the aggregates would have hidden, which is the entry's
+  point.** Llama emits `Q:` as its FIRST TWO TOKENS on some chat-templated BBH items, continuing
+  the few-shot transcript instead of answering. With `Q:` a generation-time stop, the record is
+  EMPTY at `n_gen_tokens=2`.
+- ⚠️ **Pre-existing, and every completed run carries it**: `pilot-v1` 16.8%, `pilot-v2` 16.7%,
+  `template-v1` 6.2%, `template-v2` 6.3%. Llama only; Qwen and Phi are 0.0% everywhere. R19's fix
+  (bare `Q` to `Q:`) is what saved Qwen and Phi, and Llama emits literally `Q:`, so the corrected
+  set catches it exactly as the old one did.
+- 🚨 **ARM-DIFFERENTIAL, which is why the run was held**: 3.3% on gptq-4bit against 17.5% on bf16
+  and 32.5% on bnb-nf4, a **29 pp spread**. An empty generation scores wrong, so that hands
+  gptq-4bit roughly a 14 pp advantage for a formatting reason, **in the direction that flatters
+  this paper's own hypothesis**. `template-v2`'s `raw` level is 0.00% on all arms, which pins the
+  mechanism to the chat template.
+- Escalated as **R34** rather than fixed unilaterally, and the planner returned a fifth option
+  none of my four had: apply `until` at SCORING time. It also corrected my framing, that an empty
+  generation at `n_gen_tokens=2` is **not** ABSENT compliance, because the model was stopped
+  before it could produce anything, so labelling it ABSENT records *our configuration* as a model
+  property.
+- ⚠️ **This entry was left unfilled for a day.** I logged the run, went straight to the planner
+  escalation, and never came back, which the next run's scripted edit caught by finding two TODO
+  markers instead of one. Rule 4a says *as soon as a job reaches a terminal state*, and the reason
+  is exactly this: the details that matter are the ones that evaporate.
 
 ## reference-smoke · Completed · 1431 s · $1.11
 
 `johnyj02-QA-v0-1-20260904-33b4267e-reference-smoke`
 
 - R34 VERIFIED ON GPU: 180 records all until_applied=scoring at schema 1.4.0, K=2 gives two engine loads, and the Llama continuations that used to be destroyed are now visible. 6 of 7 killed BBH generations CONTAINED THE CORRECT ANSWER, arm-differentially, and that was previously unmeasurable. Score unchanged by design
-- <!-- TODO: what it taught us, and what changed as a result -->
+- ✅ **The rehearsal passed everything, and R34 is verified on GPU.** 5 units x 36 records = 180,
+  every one carrying `until_applied: "scoring"` at **schema 1.4.0**, all fifteen cells resolving by
+  recipe hash, and **K=2 producing two separate engine loads**.
+
+### 🔬 THE FIX DID SOMETHING BETTER THAN INTENDED, and this is the entry's point
+
+R34 moved `until` to scoring time so the discarded continuation would become *observable*. It is,
+and what it shows is sharper than the defect it was fixing.
+
+Llama still emits `Q:` first, so the harness-equivalent prefix is still empty and still scores
+**wrong** -- correctly, by published semantics, and R34 deliberately did not change that. What is
+new is that the text after the terminator survives:
+
+```
+llama|gptq-4bit  word_sorting idx-0   gold: "syndrome therefrom"
+  harness-equivalent prefix : ''            <-- all the OLD regime stored
+  now preserved             : 'Q: Sort the following words alphabetically: List: syndrome
+     therefrom\nA: Let's think step by step.\nThe first letter: "syndrome": "s" (19).
+     "therefrom": "t" (20). We now have: (19) "syndrome" < (20) "therefrom". So the ans...'
+```
+
+**The model answered correctly and we were storing an empty string.** Across this run's 120 BBH
+records:
+
+| model | arm | n | prefix empty | of those, DISCARDED text held the right answer |
+|---|---|---|---|---|
+| llama-3.1-8b | bf16 | 24 | 5 | **4** |
+| llama-3.1-8b | gptq-4bit | 24 | 2 | **2** |
+| qwen2.5-3b | bf16 | 48 | 0 | 0 |
+| qwen2.5-3b | gptq-4bit | 24 | 0 | 0 |
+
+**6 of 7 recoverable, arm-differentially.** So the 29 pp arm spread in the empty rate was not
+competence differing by arm: it was **the harness discarding correct answers at different rates
+per arm.**
+
+🚨 **This measurement was IMPOSSIBLE before today.** Every pre-R34 run destroyed the evidence at
+generation time, so *"the model never answered"* and *"we stopped it before it could"* were the
+same observation. `pilot-v1`, `pilot-v2`, `template-v1` and `template-v2` cannot be re-analysed
+for it; only new data can.
+
+- ⚠️ **n=7 is an existence demonstration, not a rate** (4 items per task path). The real figure
+  comes from `main-v1` and needs no extra recording, since the full text is already stored.
+- H2's *recoverable failure* shape with a **configuration** cause rather than a model cause, which
+  is a distinction the paper is specifically about. Worth a planner question once `main-v1` gives a
+  real n; it does not block the run.
+
+### What the submission caught before spending anything
+
+Resubmitting was going to silently mix regimes. `main-v1-smoke2` held pre-R34 cells, every
+resume-critical field matched, and `assert_cell_reusable` **skips** fields absent from the stored
+record -- so it would have appended scoring-regime records into a generation-regime file and exited
+0. Closed by `ABSENT_DEFAULTS`, which records what a field's *absence means*, and **verified against
+the real cell on disk**. Smoke id bumped to `main-v1-smoke3`; both superseded ids are refused by
+name in a test. The real `main-v1` id has never run, so the freeze line is clean.
