@@ -36,7 +36,13 @@ class TestRunId:
         # ⚠️ The smoke id is `-smoke2` as of 2026-09-03: the first reference-smoke wrote cells
         # at the pre-R24.1 `max_num_seqs=64` and `assert_cell_reusable` correctly refused to
         # resume them at 32. The REAL id stays `main-v1`, which the prereg and the paper cite.
-        assert sm_reference.RUN_ID in ("main-v1", "main-v1-smoke2")
+        assert sm_reference.RUN_ID in ("main-v1", "main-v1-smoke3")
+        assert sm_reference.RUN_ID not in ("main-v1-smoke", "main-v1-smoke2"), (
+            "both superseded smoke ids hold cells from a different configuration: `-smoke` at "
+            "max_num_seqs=64 (pre-R24.1) and `-smoke2` with until applied at generation time "
+            "(pre-R34). Pointing back at either makes every rehearsal fail on a stale-cache "
+            "refusal, which is the guard working but the wrong way to discover it."
+        )
         assert not sm_reference.RUN_ID.endswith("-smoke"), (
             "the bare `-smoke` id holds cells generated at the superseded max_num_seqs=64; "
             "pointing back at it would make every rehearsal fail on a stale-cache refusal"

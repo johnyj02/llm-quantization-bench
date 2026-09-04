@@ -360,7 +360,25 @@ RESUME_CRITICAL_FIELDS: tuple[str, ...] = (
     # time, so editing it mid-run is a live path. This guard exists for this family; `until`
     # is the member it should most obviously cover.
     "until",
+    # 🚨 R34, and it needs the ABSENT_DEFAULTS entry below to work at all. `until` alone is not
+    # enough: the same terminator list means two different things depending on WHERE it was
+    # applied, and a cell mixing the two holds text whose meaning changes halfway through the
+    # file. Found by checking before a resubmission rather than by a failure: yesterday's
+    # `main-v1-smoke2` cells predate R34, every other resume-critical field matched, and the
+    # resume would have appended scoring-regime records into them and exited 0.
+    "until_applied",
 )
+
+#: What a MISSING field means, for fields whose absence is itself information.
+#:
+#: 🚨 Without this the guard cannot see the R34 transition at all. `assert_cell_reusable` skips
+#: any field absent from the stored record, which is right for a field that is merely newer and
+#: catastrophically wrong for one whose absence carries meaning: every pre-R34 record lacks
+#: `until_applied` precisely BECAUSE it used generation-time truncation. Treating that as "no
+#: information" is how the two regimes would have been mixed silently.
+ABSENT_DEFAULTS: dict[str, object] = {
+    "until_applied": "generation",
+}
 
 
 class StaleCacheError(RuntimeError):
@@ -398,10 +416,18 @@ def assert_cell_reusable(path: Path, expected: dict[str, Any]) -> dict[str, Any]
 
     mismatches = []
     for field in RESUME_CRITICAL_FIELDS:
-        if field not in stored or field not in expected:
+        # ⚠️ A field absent from BOTH sides is genuinely uncomparable and is skipped. A field
+        # absent from ONE side is only skipped when `ABSENT_DEFAULTS` has nothing to say about
+        # it: where absence carries meaning, substitute that meaning and COMPARE. See R34.
+        if field in ABSENT_DEFAULTS:
+            was = stored.get(field, ABSENT_DEFAULTS[field])
+            now = expected.get(field, ABSENT_DEFAULTS[field])
+        elif field not in stored or field not in expected:
             continue
-        if stored[field] != expected[field]:
-            mismatches.append((field, stored[field], expected[field]))
+        else:
+            was, now = stored[field], expected[field]
+        if was != now:
+            mismatches.append((field, was, now))
     if mismatches:
         lines = "\n".join(
             f"    {field}: stored {was!r}  ->  now {now!r}" for field, was, now in mismatches

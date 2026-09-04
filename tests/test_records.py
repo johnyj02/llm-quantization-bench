@@ -11,15 +11,21 @@ from __future__ import annotations
 
 import dataclasses
 import gzip
+import json
+import tempfile
+from pathlib import Path
 
 import pytest
 
 from quantartifact.records import (
     JOIN_KEY,
+    RESUME_CRITICAL_FIELDS,
     GenerationRecord,
     SchemaError,
+    StaleCacheError,
     TruncatedCellError,
     append_records,
+    assert_cell_reusable,
     assert_join_key_unique,
     build_resume_index,
     cell_path,
@@ -317,3 +323,68 @@ def test_env_hash_tracks_batch_invariance(monkeypatch):
     monkeypatch.setenv("VLLM_BATCH_INVARIANT", "0")
     without_bi = env_hash()
     assert with_bi != without_bi
+
+
+class TestUntilAppliedIsResumeCritical:
+    """🚨 R34. Caught by checking before a resubmission, not by a failure.
+
+    `main-v1-smoke2` held cells generated before R34. Every other resume-critical field
+    matched, so the resume would have appended scoring-regime records into a
+    generation-regime file and exited 0 -- one cell whose text means different things in
+    its two halves.
+    """
+
+    def _cell(self, tmp_path, **overrides):
+        base = {
+            "run_id": "r", "cell_id": "qwen|bf16", "task": "bbh", "subtask": "word_sorting",
+            "item_id": "idx-0", "budget_level": "1x", "prompt_variant": "fewshot_cot",
+            "sample_idx": 0, "repeat_idx": 0,
+            "max_num_seqs": 32, "disabled_kernels": None, "seed": 0,
+            "batch_invariant": True, "engine": "vllm==0.26.0", "max_gen_toks": 1024,
+            "decoding": "greedy", "model_revision": "abc", "quant_config_hash": None,
+            "until": ["</s>", "Q:"],
+        }
+        base.update(overrides)
+        path = tmp_path / "cell.jsonl.gz"
+        with gzip.open(path, "wt") as handle:
+            handle.write(json.dumps(base) + "\n")
+        return path
+
+    EXPECTED = {
+        "max_num_seqs": 32, "disabled_kernels": None, "seed": 0, "batch_invariant": True,
+        "engine": "vllm==0.26.0", "max_gen_toks": 1024, "decoding": "greedy",
+        "model_revision": "abc", "quant_config_hash": None, "until": ["</s>", "Q:"],
+        "until_applied": "scoring",
+    }
+
+    def test_until_applied_is_in_the_critical_set(self):
+        assert "until_applied" in RESUME_CRITICAL_FIELDS
+
+    def test_a_pre_r34_cell_is_REFUSED(self):
+        """The live case: the stored record has NO `until_applied` at all.
+
+        This is the one a plain `field not in stored: continue` would wave through, and it is
+        the only one that actually existed on disk.
+        """
+        path = self._cell(Path(tempfile.mkdtemp()))
+        with pytest.raises(StaleCacheError) as excinfo:
+            assert_cell_reusable(path, self.EXPECTED)
+        assert "until_applied" in str(excinfo.value)
+        # The message must name what it saw, not merely that something differed.
+        assert "generation" in str(excinfo.value)
+        assert "scoring" in str(excinfo.value)
+
+    def test_an_explicit_generation_regime_cell_is_REFUSED(self):
+        path = self._cell(Path(tempfile.mkdtemp()), until_applied="generation")
+        with pytest.raises(StaleCacheError):
+            assert_cell_reusable(path, self.EXPECTED)
+
+    def test_a_matching_scoring_regime_cell_RESUMES(self):
+        path = self._cell(Path(tempfile.mkdtemp()), until_applied="scoring")
+        assert_cell_reusable(path, self.EXPECTED)   # must not raise
+
+    def test_absence_on_BOTH_sides_still_resumes(self):
+        """Absent from both is genuinely uncomparable, and pre-R34 tooling must keep working."""
+        path = self._cell(Path(tempfile.mkdtemp()))
+        expected = {k: v for k, v in self.EXPECTED.items() if k != "until_applied"}
+        assert_cell_reusable(path, expected)   # both default to "generation"

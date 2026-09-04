@@ -847,6 +847,10 @@ def run_cell(
         # See RESUME_CRITICAL_FIELDS: `until` is read from tasks.yaml at run time, so a
         # mid-run edit must refuse to resume rather than mix two terminator sets in one file.
         "until": list(until) if until is not None else None,
+        # R34: WHERE `until` was applied. The same terminator list means different things in the
+        # two regimes, so a cell generated under one must not be resumed under the other -- the
+        # stored text would mean different things in the two halves of one file.
+        "until_applied": "scoring",
     })
 
     already = build_resume_index(path)

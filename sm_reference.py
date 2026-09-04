@@ -114,7 +114,15 @@ SMOKE = os.environ.get("SM_HP_SMOKE") == "1" or "--smoke" in sys.argv
 # it would make collisions structurally impossible but also make the id unpredictable, which
 # breaks `peek_generations.py --run-id` and `score_*.py --run-id`, the two things a human runs
 # right after a job. The guard already fails loudly, so naming only has to be legible.
-RUN_ID = "main-v1-smoke2" if SMOKE else "main-v1"
+RUN_ID = "main-v1-smoke3" if SMOKE else "main-v1"
+# ⚠️ `-smoke3` as of 2026-09-04. `-smoke2` holds cells generated BEFORE R34, i.e. with `until`
+# applied at generation time, and `assert_cell_reusable` correctly refuses to resume them under
+# the scoring regime (verified against the real cell on disk, not only synthetically). The old
+# cells are retained: they are the rehearsal record for the superseded regime, and deleting
+# artifacts to make a resume succeed is the move that makes the guard pointless.
+#
+# 🚨 THE REAL id STAYS `main-v1`, and it has never run, so it carries no pre-R34 cells. That is
+# the property that matters here: the freeze line is clean.
 GENERATIONS_ROOT = CHECKPOINT_DIR / "generations"
 
 # The FULL precision ladder. Five arms, not three: `gptq-8bit` and `bnb-nf4` are here for
