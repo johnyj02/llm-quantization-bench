@@ -622,10 +622,12 @@ mutually incomparable.}
 \todo{H1 --- degradation vs generation budget; mean/median n\_gen\_tokens by
 precision with CIs, settling 2606.25519 vs 2504.04823.}
 
-\subsection{Recoverable failures (H2)}
-\label{sec:h2}
-\todo{H2 --- gold-in-trace rate, permissive and conservative variants, always
-reported net of the incidental-match false-positive floor.}
+% 🚨 H2 CUT to a stated absence (R41.3): "half-built hypotheses read worse than absent ones."
+% The trace scan is implemented and its false-positive guard is registered (§8), but the
+% quantity is only measurable on post-R34 records and has not been computed. Rather than
+% report a partial number, H2 is named in Limitations as unmeasured. The subsection is removed
+% rather than left as a placeholder, so the paper does not advertise a result it lacks.
+
 
 \subsection{Precision $\times$ scoring interaction (H3)}
 \label{sec:h3}
@@ -633,16 +635,40 @@ reported net of the incidental-match false-positive floor.}
 accuracy points with 95\% CI, plus paired McNemar. A NULL IS PUBLISHABLE and
 must not read as failure.}
 
-\subsection{Decomposition (H4)}
+\subsection{Compliance shift under quantization (H4)}
 \label{sec:h4}
-\todo{H4 --- THE CENTREPIECE TABLE. Design it first and let it drive what gets
-logged. Always-compliant stratum size as a first-class number;
-compliance-transition matrix; Manski bounds.}
+% 🚨 SCOPE CUT 2026-09-05 (planner ruling R41.3), and cutting is stronger than compressing.
+% This was "THE CENTREPIECE TABLE": the always-compliant stratum, the competence contrast on
+% it, the transition matrix and the Manski bounds. The competence decomposition is now
+% SUPPLEMENTARY and only the transition matrix is reported here.
+%
+% The reason is identification, not page budget. The stratum falls below half the paired items
+% in 14 of 27 cells and is THREE ITEMS in the worst, so a centrepiece resting on it invites
+% "your decomposition is unidentified" -- and Holm reports m=0 for this family, which confirms
+% the registered tests are not currently tests. The transition matrix needs NO stratum, is
+% informative in every cell, and is what explains H3's negative interactions.
+\todo{H4 --- report the 2x2 compliance-transition matrix per ordered precision pair
+(committed/abstained, both directions) with the off-diagonal asymmetry and exact McNemar. 108
+effects computed, 48 of which exclude the null. Lead with this; it needs no stratum and it is
+the channel that explains the negative interactions in \S\ref{sec:h3}. Stratum sizes reported
+as a first-class number with the 14-of-27 figure stated. Competence contrast and full Manski
+bounds table to supplementary, with ONE in-text sentence naming the widest bound honestly.}
 
-\subsection{Prompt format (H5) and the structural control (H6)}
+\subsection{The structural control (H6)}
 \label{sec:h5h6}
-\todo{H5 zero-shot arm; H6 ARC-Challenge under log-likelihood vs generative
-scoring on the same 500 items --- the gap between modes IS the extraction cost.}
+% 🚨 H5 CUT to a stated absence (R41.3). Its zero-shot arm does not exist: prompt_variant is
+% fixed at "fewshot_cot" in every generation stage. Named in Limitations rather than shown as
+% a placeholder.
+%
+% H6 is RETAINED and its instrument is being built (R39.4). The reduced version -- "ARC
+% generative shows no interaction" -- is weaker than it looks, because R29 established that
+% ARC-chat's extraction is carried entirely by positional fallback, so it is constrained in
+% its answer SPACE and not its extraction SURFACE, which is exactly the premise the control
+% needs and lacks.
+\todo{H6 --- the mode pairing on the same 500 items: 0-shot log-likelihood against 0-shot
+generative, 3 models x 3 arms. The gap between modes IS the extraction cost, measured
+directly. Report alongside the exactly-zero generative interaction and its \S9h bound
+($\pm$0.51 pp at $n$=1500), so the control rests on the pairing rather than on an easy task.}
 
 \subsection{Statistical resolution of published deltas (H7)}
 \label{sec:h7}
@@ -781,6 +807,19 @@ therefore report the point estimate and the Manski bounds together for every cel
 with the stratum size as a first-class number, rather than presenting a point
 estimate whose subgroup is too small to support it. Wide bounds are reported as
 wide. The decomposition is a supporting analysis in this paper, not a headline.
+
+\paragraph{Two registered hypotheses are not reported, and we name them rather than omit them.}
+Our pre-registration includes two hypotheses we do not report. H2, the rate at
+which a correct answer appears in a generation's trace without reaching final
+answer position, is implemented and its false-positive guard is registered, but it
+is only measurable on records produced after a mid-study change to where the
+terminator is applied, and we have not recomputed it. H5, the same
+precision-by-scoring interaction under zero-shot prompting, has no instrument: our
+generation stages are fixed to the few-shot variant. In both cases a partial
+number would have been available and we judged that reporting one would be worse
+than reporting none, because a half-measured hypothesis invites the reader to
+weight it as though it were measured. They remain in the pre-registration, which
+is the record that they were planned rather than added or dropped to suit a result.
 
 \paragraph{Scope deliberately excluded, and what that costs.}
 There is no factual-recall task: TriviaQA was cut, so every task here is a
