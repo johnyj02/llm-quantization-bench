@@ -85,7 +85,27 @@ Item Ordering Moves 4-Bit Accuracy and Leaves \texttt{bf16} Exactly Unchanged}
 \maketitle
 
 \begin{abstract}
-\todo{Abstract --- written in W5 (C7), after results freeze.}
+Reported quantization degradation is a difference between two measurements, and a
+difference inherits every property of the instrument that produced it. We evaluate
+three instruction-tuned models at five precisions on reasoning benchmarks,
+holding the engine, decoding configuration and prompts fixed, and vary properties
+of the evaluation apparatus that no protocol we are aware of reports. Submitting
+the same items in a different order changes 4-bit accuracy by up to
+\hEightWorstSDTen{} points of standard deviation across \hEightSDOrderings{}
+orderings while leaving \texttt{bf16} accuracy \emph{exactly} unchanged;
+disabling the quantized matrix-multiply kernels drives the variation to zero, so
+the mechanism is established by intervention. Generation is bitwise reproducible
+\emph{within} a process, with zero differing items across 42{,}380 paired
+comparisons, and is \emph{not} reproducible across processes, where the same
+configuration diverges on up to 45\% of items; the common practice of repeating a
+measurement in one process therefore cannot detect it. Under a fixed generation
+budget, arms differ by an order of magnitude in how many tokens their scored
+answer discards. We further show that the scoring rung interacts with precision
+\emph{heterogeneously} across tasks and quantization methods, established by
+pre-registered contrasts, so no single protocol-level correction restores
+comparability. We release 105{,}950 generations with per-item termination and
+length metadata, and an audit of our own extraction pipeline, which had silently
+degraded 2\% of that corpus until a census found it.
 \end{abstract}
 
 %---------------------------------------------------------------------------
@@ -634,9 +654,84 @@ a paired test", NEVER "the deltas are noise".}
 \label{sec:discussion}
 % C7, W5.
 
+\paragraph{What a reader should change, and it is not a threshold.}
+Our results do not license a rule of the form ``report accuracy to one decimal
+place'' or ``average over $k$ runs''. Averaging cannot help with a factor that is
+deterministic given a configuration, and precision is not the problem. What the
+results license is narrower and cheaper: three configuration choices currently go
+unreported, each of them moves the quantized arms and not the \texttt{bf16}
+baseline, and reporting them costs nothing. Item submission order, whether the
+compared arms were generated in the same process, and the generation budget with
+its truncation rate are the three. A protocol that reports them is comparable to
+another protocol that reports them; one that does not is not comparable to
+anything, including itself on a later day.
+
+\paragraph{Why repeating a measurement does not detect this.}
+The natural defence against measurement noise is to run it twice, and here that
+defence fails in a specific and instructive way. Within a single process,
+generation is bitwise reproducible: we observe zero differing items across
+42{,}380 paired comparisons. Across process boundaries, the same configuration on
+the same hardware diverges on up to 45\% of items for one model, and moves its
+accuracy by over a point. So a practitioner who repeats a measurement in one
+process obtains perfect agreement and concludes the pipeline is deterministic,
+which is exactly the wrong conclusion, reached by exactly the check a careful
+person would run. Reproducibility has to be assessed across job boundaries, and
+we know of no protocol that does so.
+
+\paragraph{The mechanism we did not find, and what we ruled out.}
+We report the cross-process effect without a mechanism, and we state what was
+eliminated so that the gap is bounded rather than open. Four candidates were
+tested and refuted. Differing KV-cache block counts from per-invocation memory
+profiling: refuted, because the engine-reported cache sizes are byte-identical
+between jobs, cell for cell. Batching scheduled by memory rather than by
+sequence count: refuted, because one arm is stable at a concurrency of
+$12.36\times$ while another diverges at $10.70\times$, so the two are not
+separable. Weight provenance, base repository against local checkpoint: refuted,
+because it predicts one model exactly and is contradicted by the other two.
+Sampling configuration, including a hidden repetition penalty read from each
+model's own generation config: refuted, because the model shipping the most
+aggressive defaults is the only one that is perfectly reproducible. What remains
+untested is state that is compiled or cached once per process, which is
+consistent with the within-process zero, and we identify it as the next
+hypothesis rather than claiming it.
+
+\paragraph{Heterogeneity is the result that matters practically.}
+Had the scoring interaction been uniform across arms and tasks, it would be a
+nuisance parameter with a correction. It is not: it differs across tasks with the
+arm held fixed, and across quantization methods with the task held fixed, both by
+pre-registered contrasts. A single adjustment therefore cannot restore
+comparability, and the sign of the effect depends on which method and which task
+a paper happened to use. That is why we frame the contribution as reporting
+rather than correcting.
+
+\paragraph{On auditing one's own instrument.}
+The largest single error we found was our own. An extraction rule we had added
+ahead of the harness's returned worse answers than the harness would have, on
+2{,}068 of 105{,}950 generations, and our unit tests passed throughout because no
+fixture exercised a generation that continued past its committed answer. Two of
+our interaction estimates changed conclusion when it was repaired and one changed
+sign. We report this because it is the same phenomenon as the rest of the paper
+observed from the inside, and because it suggests that a census over every item is
+worth more than a fixture set when the quantity of interest is a small
+differential.
+
 %---------------------------------------------------------------------------
 \section{Conclusion}
 \label{sec:conclusion}
+
+Reported quantization degradation is a difference between two measurements, and we
+show that three unreported properties of the measurement apparatus move that
+difference. Item submission order changes 4-bit accuracy while leaving
+\texttt{bf16} accuracy exactly unchanged, with the mechanism established by
+disabling a named kernel. Generation is bitwise reproducible within a process and
+not across processes, so the standard practice of repeating a run in one process
+cannot detect the variation that matters. And a fixed generation budget converts a
+difference in trace length into measured degradation at rates that differ by arm.
+The scoring rung interacts with precision heterogeneously across tasks and
+methods, so no single correction recovers comparability, and the remedy is to
+report the choices rather than to adjust for them. We release the full generation
+corpus so that any extraction rule can be re-evaluated without a GPU, including
+ours, which we found to be defective by auditing it.
 
 %---------------------------------------------------------------------------
 % 🚨 THE BODY ENDS HERE, and this label is what gate G6 measures against the
