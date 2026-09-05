@@ -106,6 +106,82 @@ Item Ordering Moves 4-Bit Accuracy and Leaves \texttt{bf16} Exactly Unchanged}
 %    over-credits too).
 %  - Kurtic et al. (ACL 2025) cited EARLY. Do not let a reviewer discover it.
 
+Reported quantization degradation is a difference between two measurements, and a
+difference inherits every property of the instrument that produced it. This paper
+asks which properties of the evaluation apparatus move that difference, and
+answers with three that are not reported by any protocol we are aware of.
+
+The framing matters because part of the answer is already known. \citet{kurtic2025bf16}
+showed that reported degradation had been overstated and attributed the excess to
+untuned quantization-side hyperparameters. We treat that as established and prior.
+Our concern is the residual that survives quantization-side tuning, and our
+mechanisms are orthogonal to theirs: they act on the evaluation, not on the
+quantized model.
+
+\paragraph{An artifact in a level is not an artifact in a difference.}
+That distinction organises the paper. It is well known that lenient answer
+extraction raises absolute scores \citep{jo2025finding,yu2025xfinder}, and that
+prompt formatting moves them substantially \citep{sclar2024formatspread}. What has
+not been established is whether such choices change the quantization
+\emph{delta}, which is the quantity papers actually report. A factor that shifts
+every arm equally is a nuisance; a factor that shifts arms \emph{differently} is a
+confound in every published comparison. We test for the second, and find it.
+
+\paragraph{Three protocol factors, one of which we can turn off.}
+Serving the same items through the same engine and varying only their submission
+order changes 4-bit accuracy by up to \hEightWorstSDTen{} points of standard
+deviation across \hEightSDOrderings{} orderings, while leaving \texttt{bf16}
+accuracy \emph{exactly} unchanged at both scoring rungs. Disabling the quantized
+matrix-multiply kernels drives that variation to zero on \hEightPinned{} arms, so
+the mechanism is established by intervention rather than inferred. Separately,
+generation is bitwise reproducible \emph{within} a job and is not reproducible
+\emph{across} jobs, which means the standard remedy of repeating a measurement in
+one process cannot detect it. And under a fixed generation budget, arms that emit
+longer traces lose answers to truncation at differing rates, converting a length
+difference into measured degradation.
+
+\paragraph{The effect reaches the reported quantity, and not uniformly.}
+The scoring rung interacts with precision, and the interaction is
+\emph{heterogeneous}: it differs across tasks and across quantization methods,
+both established by pre-registered contrasts rather than observed. The
+consequence is the practical one. If the interaction were uniform, a single
+correction would remove it. Because it is not, no protocol-level adjustment
+recovers a comparable number, and the only remedy is to report the choices.
+
+\paragraph{This is not an argument for scoring more permissively.}
+Two facts prevent it. \citet{ren2026shortcut} find that 8.2--44.1\% of answers
+graded correct are reached by shortcut hacking, so leniency over-credits. And we
+measure that lenient extraction also \emph{destroys} correct answers, at a small
+but non-zero rate, so it is not a monotone relaxation of strict extraction but a
+different selection rule with two-sided error. The contribution is to
+\emph{calibrate} extraction, not to loosen it.
+
+\paragraph{The literature's centre of gravity runs against us, and that belongs here.}
+The dominant finding in this area is that benchmarks \emph{understate}
+quantization damage: \citet{marchisio2024multilingual} report a 1.7\% automatic
+drop in Japanese corresponding to 16.0\% by human judgement, and
+\citet{dutta2024accuracy} show that models matched on accuracy still diverge
+behaviourally. We regard both directions as simultaneously true, because they are
+different quantities. An accuracy delta can over-penalise formatting
+\emph{and} under-detect behavioural change. Nothing here licenses a conclusion
+that quantization is benign; the claim is about the comparability of reported
+numbers, not about deployment risk.
+
+\paragraph{Contributions.}
+(i) Item ordering moves 4-bit accuracy and leaves \texttt{bf16} exactly
+unchanged, with the mechanism pinned to a named kernel by intervention, and four
+coverage gaps identified in a batch-invariant serving mode.
+(ii) Generation is reproducible within a job and not across jobs, so
+reproducibility must be measured across job boundaries; we report four candidate
+mechanisms we refuted and the measurements that refuted them.
+(iii) The precision-by-scoring interaction is real and heterogeneous across tasks
+and methods, so no single correction recovers comparability.
+(iv) A corpus of 105{,}950 generations with per-item termination and length
+metadata, released so that any extractor can be re-evaluated without a GPU.
+(v) An audit of our own extraction pipeline, which had silently degraded 2\% of
+that corpus until a census found it, offered as an instance of the effect we
+measure rather than as an aside.
+
 %---------------------------------------------------------------------------
 \section{Related Work}
 \label{sec:related}
