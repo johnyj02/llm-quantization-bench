@@ -34,11 +34,21 @@ LEDGER = REPO / "notes" / "planner-rulings.md"
 _ANSWER_NUMBER = re.compile(r"^R(\d+)[-.]")
 
 
+#: Below this many bytes an answer file is a question IN FLIGHT, not a ruling. `ask-planner`
+#: redirects into the file, so it exists and is empty from the moment the call starts, and a
+#: planner call at `--effort max` runs for well over ten minutes. Without this floor the suite
+#: goes red for the entire window between asking a question and recording its answer, which
+#: would train exactly the wrong reflex: the fix would look like "do not ask", or worse,
+#: "record the ruling before reading it".
+_MIN_ANSWER_BYTES = 400
+
+
 def ruling_numbers_with_raw_answers() -> set[int]:
     return {
         int(match.group(1))
         for path in ANSWERS.glob("R*.txt")
         if (match := _ANSWER_NUMBER.match(path.name))
+        and path.stat().st_size >= _MIN_ANSWER_BYTES
     }
 
 

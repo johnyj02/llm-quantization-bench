@@ -32,8 +32,22 @@
 % Never inline a number that lives here (R17.6.2).
 \input{tables/h8_macros}
 
+% 🚨 TITLE CHANGED 2026-09-05 (planner ruling R39.5). It was:
+%   "... Decomposing Accuracy Loss into Competence, Compliance, and Truncation"
+% which promised the decomposition as the deliverable. Under R39.2 the decomposition is the
+% THIRD contribution, behind the apparatus result and the scoring interaction, so the old
+% title advertised what the paper no longer leads with.
+%
+% The "leave bf16 unchanged" clause is deliberate: it is the single most striking
+% exactly-measured fact in the study (0.000 SD across ten orderings, 0.000% across 42,380
+% K=2 item-pairs), it is the control that makes every other number interpretable, and it
+% costs no hedging.
+%
+% ⚠️ DO NOT make this title assert that protocol moves accuracy MORE than bit width does.
+% R16.5 requires our own bit-width deltas on the same items for that comparison, and
+% cross-comparing to published figures commits the incomparability error the paper diagnoses.
 \title{How Much of Reported Quantization Degradation Is Measurement?\\
-Decomposing Accuracy Loss into Competence, Compliance, and Truncation}
+Evaluation-Protocol Factors That Move 4-Bit Accuracy and Leave \texttt{bf16} Unchanged}
 
 \author{Anonymous ARR submission}
 
@@ -581,6 +595,46 @@ failure and the grounds on which we proceeded.
 
 \section*{Ethics Statement}
 \label{sec:ethics}
+
+This work evaluates existing open-weight models on existing public benchmarks
+and introduces no new model, no new dataset of human origin, and no deployment.
+We see three ethical considerations worth stating.
+
+\paragraph{Licensing, and one model we can run but not redistribute.}
+Every model and dataset is used within its licence. Two cases need naming
+rather than assuming. Qwen2.5-3B-Instruct is released under the Qwen research
+licence rather than Apache-2.0, and we report it as such. Our primary judge is
+released under CC-BY-NC-ND-4.0, which permits us to run it and report numbers
+but forbids redistributing the weights or any derivative, so the artifact
+release contains our judging code and its outputs and not the model. We name a
+second, Apache-2.0 judge for exactly this reason, so that the reliability
+claim can be reproduced by someone unwilling to accept the first licence.
+
+\paragraph{Annotation was done by the authors, unpaid, and that has a cost.}
+The human labels used to validate the judge were produced by the authors rather
+than by recruited annotators. No payment question therefore arises, but neither
+does the independence that recruited annotation would provide: the annotators
+knew the study's hypotheses, which is why the condition column is omitted from
+the annotation file entirely rather than merely hidden, why shuffling is
+independent per annotator with published seeds, and why the adjudication rule
+was fixed in writing before any disagreement was seen. We report inter-annotator
+agreement alongside judge agreement precisely so that a reader can see the
+ceiling our own labels impose.
+
+\paragraph{What a paper about measurement error could be misused to argue.}
+Our findings show that reported quantization degradation is in part an artifact
+of evaluation protocol. That could be read as licence to dismiss reported
+degradation generally, and we do not support that reading. The dominant finding
+in this literature runs the other way, with automatic metrics \emph{understating}
+damage relative to human judgement, and our own results are about the
+\emph{difference} between arms under a fixed protocol rather than about whether
+quantization is safe to deploy. We also report that leniency in extraction has
+two-sided error, so nothing here argues for scoring more permissively as a
+general remedy. The actionable content is that unreported measurement choices
+should be reported, which raises the cost of a claim rather than lowering it.
+
+Compute is reported in full: every run, its duration and its cost are recorded
+in the released log, totalling roughly 35 GPU-hours on a single accelerator.
 
 \section*{Acknowledgments}
 \label{sec:ack}

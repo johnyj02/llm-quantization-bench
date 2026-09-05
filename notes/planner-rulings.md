@@ -2729,3 +2729,102 @@ independent estimates**, which does not hold within a task where arms share item
 anticonservative there. Indicative only, and say so.
 
 🚨 **Do not add a third contrast after seeing these two.**
+
+---
+
+## R39 — Apparatus-led, with H3 PROMOTED to co-equal second. Build both missing instruments
+
+Raw answer: `notes/planner-answers/R39-framing-contribution-vs-supporting.txt`. The framing
+question R37.5 raised and left to the user; the user asked for it to be argued rather than
+confirmed.
+
+### R39.1 The strongest argument AGAINST apparatus-led, which I had not made
+
+*"H8's findings are version-specific facts about one inference library — four BI coverage
+gaps in vLLM 0.26.0, Marlin's order sensitivity, an AWQ dtype incompatibility. A reviewer can
+say 'this is a bug report that will be stale in six months; where is the NLP contribution?'
+The decomposition question, by contrast, doesn't go stale. That objection is serious and it's
+the main risk of my R37.5 recommendation."*
+
+**Why apparatus still wins.** §7 names the related-work squeeze as the largest rejection risk,
+and the two framings sit very differently inside it. **Decomposition-led lands in a crowd**:
+Hua et al. already made the artifact move, 2608.03854 already said protocol dominates, Jo et
+al. own extraction sensitivity, and Kurtic already published that degradation was overstated.
+Our addition would be the quantization interaction, which is real but reads as incremental,
+and whose headline is a **heterogeneous, sign-disagreeing** estimate our own parser revised
+twice in one day. **Apparatus-led lands in an empty cell**: no cited paper reports item
+ordering, cross-job nondeterminism, or BI coverage gaps.
+
+🚨 **The staleness objection is answered by framing the PRACTICE claim rather than the VERSION
+claim.** *"Nobody reports item ordering, and it moves quantized accuracy while leaving bf16
+exactly unchanged"* survives any version bump, as does *"within-job reproducibility does not
+imply cross-job reproducibility, so K must be measured across job boundaries."* **The
+mechanism is version-specific; the practice failure is not.** Cite FormatSpread (ICLR 2024),
+xFinder (ICLR 2025) and *Lessons from the Trenches* as venue precedent for
+evaluation-methodology contributions.
+
+### R39.2 🔬 H3 IS NOT "SUPPORTING". It is the bridge between the two framings
+
+**The change from R37.5, and it is what the two pages of headroom are for.** *"The
+heterogeneity is the bridge between the two framings: it shows the apparatus problem is not
+confined to bitwise reproducibility but reaches the REPORTED ACCURACY DELTA, differently per
+method. That is what makes H8 matter to the literature rather than to engineers."*
+
+**The contribution order:**
+1. **H8** — the apparatus is not reproducibly evaluable, mechanism pinned by intervention.
+2. **H3** — and it reaches the reported quantity, **heterogeneously, so no single correction
+   works.**
+3. **H1** — and a fixed token budget converts a length difference into measured degradation.
+4. Reporting standards as the actionable payload; H4 compressed per R37.4; H6, H5, H7
+   honestly reduced.
+
+⚠️ **Why the methods-section version is weaker:** it buries the only findings in the empty
+cell inside a section reviewers skim, and against Kurtic specifically it invites *"you are
+Kurtic with a different mechanism."* Apparatus-led with a decomposition second *"invites
+nothing, because nobody holds the apparatus result."*
+
+### R39.3 Q2 — BUILD the sweep, and register a directional prediction FIRST
+
+H1 is never-cut and is the third contribution under any framing. **The length finding is
+OBSERVATIONAL; the budget sweep is INTERVENTIONAL, and interventional evidence is what
+licenses H1's causal claim.** R33's smoke already measured 37.5% budget truncation on
+`gsm8k_cot` at 1×, so there is real headroom and the sweep will produce signal.
+
+*"Not building it means correcting the prereg to downgrade a never-cut lead hypothesis. That
+is a far worse look than \$5."*
+
+🚨 **Register before running, which converts a measurement into a test:** the discard
+measurements are arm- and model-differential (llama `bnb-nf4` 63.9 tokens/generation against
+`gptq-4bit` 5.9; phi `gptq-4bit` 107.0; qwen 1.2–5.4), so **arms with larger discard should
+show larger budget-response.** The length finding stays alongside as the **mechanism**, not
+as a substitute.
+
+### R39.4 Q3 — BUILD H6's log-likelihood arms. R29 made the reduced version weaker than it looks
+
+The reduced H6 is *"ARC-generative shows no interaction"*, and a reviewer answers *"ARC-
+generative is an easy task, not a structurally constrained one."* 🚨 **R29 already established
+that ARC-chat's extraction is carried entirely by positional fallback**, so it is constrained
+in its answer **space** and not its extraction **surface** — which is precisely the premise
+the reduced control needs and does not have.
+
+**Build the R24.2 primary only: 0-shot log-likelihood against 0-shot generative on the same
+500 items, 3 models × 3 arms = 9 cells.** Log-likelihood needs no generation, so it is cheap.
+**Skip the few-shot generative variant**, which R24.2 already made droppable. Pair the H1 and
+H6 builds into one implementation push, then one or two jobs.
+
+### R39.5 Q4 — Change the title, and do not let it promise a magnitude we have not established
+
+The current title promises the decomposition as the deliverable and it is now third. Keep the
+question frame and make the subtitle name the **measured asymmetry**:
+
+> **How Much of Reported Quantization Degradation Is Measurement? Evaluation-Protocol Factors
+> That Move 4-Bit Accuracy and Leave bf16 Unchanged**
+
+*"The 'leave bf16 unchanged' clause is the single most striking exactly-measured fact in the
+study"* (0.000 SD across ten orderings, 0.000% across 42,380 K=2 item-pairs), it is the
+control that makes everything else interpretable, and it costs no hedging.
+
+🚨 **Avoid any title asserting protocol moves accuracy MORE than bit width does.** R16.5
+already ruled that comparison needs our own bit-width deltas on the same items, and
+cross-comparing to Kurtic's or Red Hat's published figures commits the incomparability error
+the paper diagnoses. Make that claim in the body, once, with our own numbers, or not at all.
