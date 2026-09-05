@@ -2429,3 +2429,303 @@ confirmatory-extension framing.
 *"Worth registering. Moving the terminator makes visible that the standard configuration destroys
 recoverable answers, at a rate that differs by arm, and no one has measured it — but it has to
 survive its own guard first."*
+
+---
+
+## R34 — Apply `until` at SCORING time. A 14 pp artifact ran toward our own hypothesis
+
+Raw answer: `notes/planner-answers/R34-llama-bbh-empty-arm-differential.txt`. Registered as
+prereg §5b. ⚠️ **Recorded late, on 2026-09-05**: the raw answer existed and other documents
+cited it by number, but this ledger had no entry. See the note at the end of R37.
+
+### R34.1 The fifth option neither of my four contained
+
+**Generate to EOS or the budget; apply the `until` strings when SCORING.** For greedy
+decoding this yields **byte-identical scored text**, because the prefix is the same whether
+the engine stops at token 2 or the scorer truncates there afterwards. So published semantics
+are preserved exactly, R19.1's constraint on terminator sets is respected, and G2 is
+untouched because it tests prompts rather than `generation_kwargs`.
+
+**What it buys:** the discarded continuation becomes **observable**, so whether an answer
+existed downstream of the `Q:` is answerable. It was not before, *"and that's the whole
+problem."*
+
+Cost ~900k extra tokens, which is trivial; the real price is that it bumps
+`decoding_fingerprint()` and invalidates cached cells.
+
+🔬 **And it is a generalisable recommendation for the paper**, alongside *report K* and
+*report item ordering*: **stop sequences destroy information irreversibly, while
+scoring-time application costs tokens and preserves everything.**
+
+### R34.2 An empty generation is NOT `ABSENT` compliance, and my "finding" framing failed
+
+*"ABSENT means the model produced no identifiable answer. Here the model was stopped before
+it could produce anything. Labelling it ABSENT records OUR CONFIGURATION as a model
+property"* — the same category error as calling `TRUNC_STOPSEQ` a competence failure.
+
+The underlying behaviour **is** a finding and should be reported as a rate: Llama under chat
+templating continues the few-shot transcript at a rate that **differs by arm** (bf16 17.5%,
+gptq-4bit 3.3%), plausibly because the more capable arm pattern-matches the transcript more
+faithfully.
+
+🚨 **But the measurement defect is intolerable for one specific reason: the 14 pp
+differential runs in the direction that FLATTERS OUR OWN HYPOTHESIS.** Same failure mode
+§4.0 exists to prevent, and same shape as R10's found/committed leak. *"We have already been
+wrong in this exact shape once."*
+
+### R34.3 Do NOT ship `main-v1` with it. Fix, re-smoke, then run
+
+*"Re-running main-v1 later costs 17 hours; fixing now costs $1."* My other three options were
+rejected: leaving it contaminates the deltas, a model-specific terminator is our own
+invention **and** introduces a model × terminator confound, and dropping BBH for Llama
+removes a third of the format gradient's model coverage on the power backbone.
+
+### R34.4 BRANCH 1 is STRENGTHENED by this, and my worry ran backwards
+
+If the empty-generation differential had driven the chat-level interaction, the sign should
+**change** when the artifact vanishes. At the `raw` level it is exactly 0.00% on all three
+arms, and the sign did **not** change. *"That's a free natural experiment supporting
+sign-invariance rather than undermining it."*
+
+Two requirements: report sign-invariance **split by whether the cell carries the artifact**,
+since if only one or two of the six are Llama BBH then the evidence is thinner than 6/6
+implies; and treat the **magnitude** comparison on affected cells as contaminated while the
+sign conclusion stands.
+
+### R34.5 Do not over-correct on completed artifacts
+
+Neither `pilot-v2` nor `template-v2` is re-run. The annotation pool's empty generations are
+**legitimate annotation items** (a human correctly labels them no-answer) and R11/O11 already
+established the pool need not match `main-v1`; `template-v2`'s sign conclusion survives per
+R34.4. **Record in `notes/decisions.md` that the four completed runs carry the artifact, with
+their rates**, so the artifact release documents it rather than a later reader discovering it.
+
+---
+
+## R36 — K=2 measured ZERO. The floor is CROSS-JOB, and the ×√2 credit never existed
+
+Raw answer: `notes/planner-answers/R36-k2-measured-zero.txt`. Folded into prereg §9f in
+place. ⚠️ **Recorded late, on 2026-09-05**, as with R34.
+
+### R36.1 The framing that settles it
+
+*"Within-job invocations being deterministic does not make the between-arm delta noise-free.
+It makes it FIXED GIVEN A JOB.* Cell X always yields `O_X` within this job, so the delta is
+deterministic, but re-run the job and you get `O'_X ≠ O_X` and the delta moves. **A
+scientific claim is a claim about what another run would find, not about what our job
+found."** So the class-3 floor must be the **cross-job** floor.
+
+**Measure at full n rather than extrapolating.** The 1/√n route extrapolates 15× (n=180 to
+n=2,719) from a law verified over a much narrower range, which is *"a real weakness a
+reviewer can push on"*. Report the extrapolation **alongside** as a validation of the law:
+agreement supports both, and disagreement is itself worth a sentence.
+
+**Three reasons the in-place correction is defensible**, all of which must be stated:
+1. §9f registered the **estimator**, and the registered measurement turned out
+   **degenerate** — the same situation as R25.1's zero-variance bound needing a documented
+   fallback.
+2. 🚨 **The correction moves the floor UP FROM ZERO, which makes every claim HARDER.** It
+   therefore cannot be a specification search in our favour, and saying so is what makes it
+   defensible.
+3. §9f's own design choice caused the degeneracy, and its reasoning (avoid drift) was sound.
+   The fix trades a small drift term for removing a 15× extrapolation.
+
+⚠️ **Driver and software drift is not purely a confound, it is part of what a third party
+faces**, so a floor excluding it is narrower than the claim we want. Record CUDA and driver
+versions on both sides.
+
+### R36.2 The zero is the DISCRIMINATING measurement, not a null result
+
+20 invocations, 42,380 item-pairs, zero differences. *"Divergence exists across jobs and is
+exactly absent within them"*, which rules out per-invocation randomness and GPU state and
+points at something **compiled or cached once per job**.
+
+🔬 **It upgrades the recommendation from vague to specific.** Before: *"run arms more than
+once."* Now: *within a single job generation is bitwise reproducible, across jobs it is not,
+so K must be measured across JOB boundaries rather than within them.* That warning has teeth
+*"because repeating inside one process is exactly what a careful person would do, and it is
+exactly what §9f did and what fooled us."*
+
+### R36.3 🚨 Q4: the ×√2 credit NEVER MATERIALISED, and I had missed it
+
+R23.1 justified K=2 partly on *"averaging the two invocations halves the invocation variance
+entering the interaction."* **Averaging two identical runs reduces nothing**, and the
+cross-job variance is untouched because both invocations sat in one job. So **H3 binds to the
+FULL cross-job floor with no discount**, and its resolution is worse than R23 projected.
+
+**Four dependents move, all of which were pointed at K=2:** §9f's class-2 floor, §9f's
+class-3 floor, R28's destruction-rate floor, and R22's between-arm accuracy floor. One
+correction, four dependents. §9g is unaffected but is *"now stated more strongly than the
+data requires."*
+
+---
+
+## R37 — main-v1 analysed: census not sample, prediction not supported, keep H4 restructured
+
+Raw answer: `notes/planner-answers/R37-main-v1-analysed.txt`.
+
+### R37.1 Q1 — census the violations, do not sample. And the taxonomy is superseded
+
+*"Write a classifier, run it on all 2,218, and hand-audit a random 100 with the seed
+published."* Full census, no selection bias, and **the unclassified residual is the number
+you actually want** — sampling a population whose taxonomy you are revising cannot show you
+the class you do not yet know about.
+
+**Done, and it found a class the planner's own leading hypothesis did not predict.** The
+planner proposed a first-vs-last asymmetry unique to `gsm8k_cot`. Verified from the config
+that both `gsm8k` arms share `strict_group_select` absent against
+`flexible_group_select: -1`, so the asymmetry is **not unique** to `gsm8k_cot`. The actual
+cause was a missing normalisation step in our own parser, at 93.2% of all violations. Full
+record: `scripts/census_monotonicity.py` and the entry for commit `b23dfaf`.
+
+§5a is rewritten **in place** per D16, keeping the six pilot cases as illustrations, taking
+the rates from the census, and stating that the taxonomy was derived on a corpus lacking the
+primary task. *"That audit trail is worth more than a tidy table."*
+
+### R37.2 Q2 — §5a's directional prediction is NOT SUPPORTED, and the subgroup rescue is refused
+
+Against the cross-job floor of roughly 0.5 pp: **AWQ-4bit is 1.73 pp BELOW the bf16 control
+and clears the floor, so the prediction is significantly REVERSED**, not merely absent;
+GPTQ-8bit at 0.36 pp is inside the floor and indistinguishable; GPTQ-4bit and NF4 are in the
+predicted direction and clear it.
+
+**Verdict to report:** *the registered prediction is not supported; one arm reverses it
+significantly, one is indistinguishable, two are in the predicted direction.*
+
+The over-generation observation may be **stated as an observation with its post-hoc status
+labelled and no test attached**, offered as a prediction for future work. *"A subgroup test
+on two arms selected after seeing which exceeded control is not"* legitimate, and my refusing
+it was right.
+
+### R37.3 Q3 — report the omnibus, but the per-arm estimates ARE the result
+
+*"An omnibus that averages +2.38 and −10.51 describes neither."* Report it because it was
+pre-specified, then report the eight estimates as the substantive result.
+
+🔬 **The heterogeneity is MORE on-thesis than a uniform effect would have been:** the scoring
+choice changes the apparent quantization effect **differently depending on the quantization
+method**, so **no single adjustment corrects for it.** Stronger and more useful than a
+uniform effect.
+
+⚠️ **Two gates before `−10.51` is reported as a finding.** A negative interaction means
+leniency recovers *less* for that arm than for bf16, i.e. its failures are **ABSENT rather
+than RECOVERABLE**, which is H4's compliance channel and not a competence result. And since
+96% of monotonicity violations sat on the task carrying the negative interactions, part of
+those estimates could be extraction artifact. **Q1's census gates Q3's interpretation.**
+
+### R37.4 Q4 — keep H4, restructured. It is the EXPLANATION for Q3, not a separate result
+
+Cutting it *"leaves H3's central finding unexplained"*, but the full form does not earn a
+page. **Lead with the compliance-transition matrix** (§4.0 part 2): it needs **no stratum**,
+is informative everywhere, and is what explains the negative interactions. Stratum-restricted
+competence contrast only where the stratum supports it, reported compactly. **Full Manski
+bounds table to supplementary**, with one in-text sentence naming the widest case honestly.
+Half a page instead of a page and a half.
+
+### R37.5 The framing call the planner raised and left to us
+
+*"This study has produced more than one paper's worth of results"*, and H8 alone is a
+standalone paper. With 20 days to the freeze the planner recommends the **apparatus and
+reproducibility paper**: H8 and H1 as the contributions, the reporting-standards findings as
+the actionable payload, and **H3/H4/H6 as supporting evidence** rather than co-equal claims,
+because that material is measured, clean, mechanistically pinned and least exposed to the
+extraction-artifact questions. Explicitly a framing call rather than a ruling, and it is the
+user's.
+
+---
+
+## ⚠️ Process note: this ledger has now drifted from `notes/planner-answers/` TWICE
+
+R21, R22 and R23 were missing once and were backfilled; **R34, R36 and R37 were missing
+again** and are backfilled above. Both times the raw answers were on disk and other
+documents cited the rulings by number, so nothing was lost, but `README.md` §0 names this
+file as the authoritative record and a reader of it alone would have acted on a superseded
+position: the first time on R22's classification that R23 reversed, the second time without
+R36's correction that moved a registered floor up from zero.
+
+**A test now enforces the correspondence** (`tests/test_planner_rulings.py`), because the
+second occurrence of a defect is the point at which noticing it stops being sufficient.
+
+---
+
+## R38 — D3 IS a defect after all, destruction is a paragraph, and the amendment mechanism is gone
+
+Raw answer: `notes/planner-answers/R38-fix-landed-and-heterogeneity.txt`.
+
+### R38.1 My boundary was right, but the ruling is that D3 is still a defect
+
+*"Your boundary is right: D1 was 'does the code do what A5 registers', D3 changes what
+'committed' MEANS, and that's load-bearing in three registered places. Correct call to stop."*
+
+🚨 **But §1.2's registered text already constrains it.** RECOVERABLE is defined as the
+permissive parser finding *"a committed final **answer**"*, and **a prose sentence is not an
+answer.** So the detector is not delivering what is already registered, which is the same
+shape as D1. What was genuinely the planner's is the specification of *answer-shaped*.
+
+**The registered specification.** `commitment_phrase` fires **only if the span following the
+phrase, within the same sentence, yields a candidate under the task's DECLARED answer type**:
+a numeric span for numeric tasks, a single option letter for multiple choice, the expected
+token shape for `word_sorting` and `dyck_languages`. If the phrase's sentence contains no
+answer-shaped candidate, the rule does not fire and the item falls through. Reuses the
+`tasks.yaml` answer-type machinery built for D1.
+
+🔬 **And this dissolves the rung-2a objection that made me reject fall-through.** *"If
+`commitment_phrase` doesn't fire, there is NO detected commitment, so 2a's pre-commitment
+span is the WHOLE generation, not empty. The span is defined relative to a detected
+commitment; no detection means no restriction."* One rule, both rungs, no special-casing. The
+CODE REVIEWER's objection was correct about the *previous* fall-through design and does not
+apply to this one.
+
+⚠️ **Direction check, to be stated in the note:** rejecting prose commitments moves items
+toward **ABSENT** and **shrinks the stratum**, making H4 **harder**. Not self-flattering.
+
+**Re-report §1.2's COMPLIANT/ABSENT rates and §1.1's stratum sizes after the fix.** My
+instinct that this is a **third** contaminated registered quantity was correct.
+
+### R38.2 Destruction is a PARAGRAPH, and the real finding is something else
+
+*"My R27 weighting was calibrated on a number that was 97% your own defect."*
+
+At 64 genuine cases, 0.40% of recovered, two-sided error in flexible extraction is **real and
+bounded**. Not a footnote either: it **replicates across two independent corpora** at 0.40%
+and 0.66%, which is a genuine replication of a rate, and the qualitative claim that leniency
+is not a monotone relaxation survives a small magnitude.
+
+**But the framing moves with the number.** §7's calibrate-not-loosen argument now rests on
+**over-crediting** (Ren et al.), with destruction as a bounded secondary: *"leniency's
+two-sided error is real but under 1%."* More useful than an unquantified warning, and it puts
+the argument where the evidence is.
+
+🔬 **The bigger finding from this episode is NOT the 64.** It is that **our own parser,
+ordered ahead of published practice, produced worse answers than the harness would have on
+2,068 items** — a well-intentioned extractor "improvement" silently degraded 2% of a
+106,000-generation corpus, and only a census caught it. *"That is a better instance of the
+paper's thesis than the destruction rate, it's more citable, and it's a methods cautionary
+note the field needs."* **Give it the paragraph and demote destruction to two sentences
+inside it.**
+
+### R38.3 The `## Amendments` instruction referenced machinery D16 removed. Conceded
+
+*"Concede: 'post-freeze addendum under `## Amendments`' named a mechanism that no longer
+exists. The placement was doing exactly one thing, making the ordering visible, and an
+in-place dated note plus git history does that at least as well."* Register the heterogeneity
+test in **§2** where H3's specification lives, dated 2026-09-05, stating it was added after
+the per-arm estimates existed and why. Substance intact.
+
+**The statistic, two contrasts named STRUCTURALLY so magnitude cannot have chosen them:**
+
+1. **Across tasks, arm fixed:** BBH `gptq-4bit` against `gsm8k_cot` `gptq-4bit`. **Unpaired**
+   (different items), so bootstrap each independently and combine.
+2. **Across arms, task fixed:** `gsm8k_cot` `gptq-4bit` against `gsm8k_cot` `awq-4bit`.
+   **Paired** (same items), so use the paired cluster bootstrap. GPTQ against AWQ at matched
+   bit width is a **structural** choice, not the extreme pair.
+
+Each is a **cluster-bootstrap CI on the difference between two interaction estimates**,
+Holm-corrected across the two. A CI excluding zero establishes heterogeneity directly, needs
+no new machinery, and is direction-neutral.
+
+**Report Cochran's Q and I² descriptively alongside, explicitly labelled as assuming
+independent estimates**, which does not hold within a task where arms share items, so Q is
+anticonservative there. Indicative only, and say so.
+
+🚨 **Do not add a third contrast after seeing these two.**

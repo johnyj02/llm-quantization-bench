@@ -381,11 +381,50 @@ def _extract_boxed(text: str) -> str | None:
     return best
 
 
-def _extract_after_commitment_phrase(text: str) -> str | None:
+def is_answer_shaped(candidate: str, *, numeric: bool, multiple_choice: bool) -> bool:
+    """Does `candidate` contain an answer of the task's DECLARED type? (R38.1)
+
+    🚨 **Why this gate exists.** §1.2 registers `RECOVERABLE` as the permissive parser
+    finding *"a committed final **answer**"*, and **a prose sentence is not an answer.**
+    Without this check, `commitment_phrase` matched *"The answer is derived by following the
+    order of operations and simplifying the expressions step by step"* and returned that
+    sentence as the extracted answer. Measured on `main-v1`: **30 such cases** after the unit
+    fix, and they were being counted as flexible extraction *destroying* a correct answer.
+
+    So this is not a new definition of commitment; it is the detector finally delivering the
+    one §1.2 already registers. Same shape as the unit-stripping gap, which A5 also already
+    registered.
+
+    ⚠️ **`committed` is load-bearing in three registered places** — §1.2's
+    COMPLIANT/RECOVERABLE/ABSENT transition matrix, §1.1's stratum membership, and rung 2a's
+    anchor — so the direction of this change is stated rather than left implicit:
+    **rejecting prose commitments moves items toward ABSENT and SHRINKS the stratum, making
+    H4 harder.** It is not self-flattering, which is what makes it admissible.
+
+    A free-form task (`word_sorting`, `dyck_languages`) declares neither type, so any
+    non-empty span is admitted: there is no shape to check against, and demanding one would
+    invent a constraint the registration does not contain.
+    """
+    text = candidate.strip()
+    if not text:
+        return False
+    if numeric:
+        return re.search(r"-?\d", text) is not None
+    if multiple_choice:
+        return _OPTION_LETTER_RE.search(text) is not None
+    return True
+
+
+def _extract_after_commitment_phrase(
+    text: str, *, numeric: bool = False, multiple_choice: bool = False
+) -> str | None:
     """Span after the LAST case-insensitive commitment phrase.
 
     Last rather than first: chain-of-thought output often restates the phrase,
     and the model's final commitment is the one being scored.
+
+    ⚠️ Returns None when the span is not answer-shaped for the declared type (R38.1), so the
+    caller falls through to the next rule exactly as if no phrase had matched.
     """
     lowered = text.lower()
     best_position = -1
@@ -402,7 +441,14 @@ def _extract_after_commitment_phrase(text: str) -> str | None:
     # Stop at the first sentence/line break -- the answer is the committed span,
     # not the rest of the generation.
     tail = re.split(r"[\n\r]|(?<=[0-9A-Za-z\)\}])\.(?:\s|$)", tail, maxsplit=1)[0]
-    return tail.strip() or None
+    tail = tail.strip()
+    if not tail:
+        return None
+    # R38.1: a phrase whose sentence carries no answer of the declared type is not a
+    # commitment. Not firing is the point -- see `is_answer_shaped`.
+    if not is_answer_shaped(tail, numeric=numeric, multiple_choice=multiple_choice):
+        return None
+    return tail
 
 
 def _extract_last_number(text: str) -> str | None:
@@ -424,7 +470,8 @@ def extract_permissive(
 
     rules: list[tuple[str, Callable[[str], str | None]]] = [
         ("boxed", _extract_boxed),
-        ("commitment_phrase", _extract_after_commitment_phrase),
+        ("commitment_phrase", lambda t: _extract_after_commitment_phrase(
+            t, numeric=is_numeric, multiple_choice=is_multiple_choice)),
         ("hash_marker", lambda t: _apply_harness_regex(r"####\s*(.+)", t, 0)),
     ]
     # Order matters: for a multiple-choice task a bare option letter is the
@@ -471,7 +518,9 @@ _ANCHOR_PHRASES: tuple[str, ...] = (
 )
 
 
-def _extract_after_first_commitment_phrase(text: str) -> str | None:
+def _extract_after_first_commitment_phrase(
+    text: str, *, numeric: bool = False, multiple_choice: bool = False
+) -> str | None:
     """Span after the FIRST commitment phrase, using rung 2a's own anchor set.
 
     The mirror image of `_extract_after_commitment_phrase`, which takes the LAST. Taking the
@@ -495,11 +544,36 @@ def _extract_after_first_commitment_phrase(text: str) -> str | None:
     if not tail:
         return None
     tail = re.split(r"[\n\r]|(?<=[0-9A-Za-z\)\}])\.(?:\s|$)", tail, maxsplit=1)[0]
-    return tail.strip() or None
+    tail = tail.strip()
+    if not tail:
+        return None
+    # R38.1, applied identically to rung 2's path so the two rungs stay comparable.
+    #
+    # 🚨 THIS IS ALSO WHAT DISSOLVES THE OBJECTION THAT MADE ME REJECT FALL-THROUGH. The CODE
+    # REVIEWER correctly warned that falling through breaks rung 2a, because R29 restricted
+    # 2a's positional fallback to the PRE-commitment span, which is empty when the phrase
+    # starts at position 0. That objection applied to a design where the phrase still counted
+    # as a detected commitment. Here it does not: if the span is not answer-shaped the rule
+    # does not fire, so there is NO detected commitment, and `_first_commitment_span` returns
+    # None, so the positional fallback covers the WHOLE generation rather than nothing. The
+    # span is defined relative to a detected commitment; no detection means no restriction.
+    if not is_answer_shaped(tail, numeric=numeric, multiple_choice=multiple_choice):
+        return None
+    return tail
 
 
-def _first_commitment_span(text: str) -> tuple[int, int] | None:
-    """`(start, end_of_phrase)` of the FIRST anchor phrase, or `None` if there is none."""
+def _first_commitment_span(
+    text: str, *, numeric: bool = False, multiple_choice: bool = False
+) -> tuple[int, int] | None:
+    """`(start, end_of_phrase)` of the FIRST anchor phrase, or `None` if there is none.
+
+    🚨 **Also `None` when the phrase's sentence is not answer-shaped** (R38.1), and that is
+    what keeps rung 2a coherent. This function defines what "a commitment exists" MEANS for
+    rung 2a: the positional fallback is restricted to the pre-commitment span when it returns
+    a span and covers the whole generation when it returns None. If a prose phrase produced a
+    span here while the extraction rule rejected it, 2a would restrict its fallback on account
+    of a commitment it had already declined to use, which is the worst of both.
+    """
     lowered = text.lower()
     best_position = len(text) + 1
     best_end = -1
@@ -511,7 +585,14 @@ def _first_commitment_span(text: str) -> tuple[int, int] | None:
                              or (position == best_position
                                  and position + len(phrase) > best_end)):
             best_position, best_end = position, position + len(phrase)
-    return None if best_end < 0 else (best_position, best_end)
+    if best_end < 0:
+        return None
+    tail = text[best_end:].strip()
+    if tail:
+        tail = re.split(r"[\n\r]|(?<=[0-9A-Za-z\)\}])\.(?:\s|$)", tail, maxsplit=1)[0].strip()
+    if not is_answer_shaped(tail, numeric=numeric, multiple_choice=multiple_choice):
+        return None
+    return (best_position, best_end)
 
 
 def extract_permissive_anchored(
@@ -558,7 +639,9 @@ def extract_permissive_anchored(
     """
     # Same declared-type scoping as rung 2, read from the config rather than retyped.
     is_numeric = _task_key(task, subtask) in NUMERIC_TASKS
-    span = _first_commitment_span(generation)
+    is_multiple_choice = _task_key(task, subtask) in MULTIPLE_CHOICE_TASKS
+    span = _first_commitment_span(
+        generation, numeric=is_numeric, multiple_choice=is_multiple_choice)
 
     # 1. The strongest marker first, and this ordering is load-bearing. For `gsm8k`, rung 1's
     #    pattern is applied with `group_select=0`, the FIRST `####`, and so is this one, which makes

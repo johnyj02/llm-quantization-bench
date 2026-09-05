@@ -528,12 +528,27 @@ TRAILING_CONTINUATION_FIXTURES = [
         "Final Answer: Jean can fill 14 bags of lollipops.\n#### 14",
         "14", "gsm8k", None, True, True,
     ),
+    # 🚨 RECLASSIFIED 2026-09-05 (R38.1). This was pinned as CLASS A genuine destruction with
+    # `rung2_destroys=True`. It is not destruction at all: it is class D3, a defect in OUR
+    # parser, and the fixture was asserting our own bug was a finding.
+    #
+    # The commitment phrase here is followed by *"in dollar format with two decimal points"*,
+    # which is prose describing a FORMAT and contains no number. §1.2 registers RECOVERABLE as
+    # the parser finding "a committed final ANSWER", so a phrase whose sentence carries no
+    # answer of the declared type must not fire. It now does not, the rule falls through to the
+    # hash marker, and rung 2 returns 1430 correctly.
+    #
+    # ⚠️ Kept rather than deleted, with `rung2_destroys=False`, because the case is exactly
+    # what the R38.1 gate exists to catch and deleting it would remove the regression guard.
+    # One of §5a's worked "destruction" cases being our own defect is itself recorded there.
     (
-        "A: hash marker then a formatting note",
+        "D3: hash marker then a formatting note (NOT destruction; parser defect, R38.1)",
         "1300+130=<<1300+130=1430>>1430.\n#### 1430\n\n"
         "Note: The answer is in dollar format with two decimal points, "
         "even if it represents a whole number.",
-        "1430", "gsm8k", None, True, True,
+        # rung2_destroys=False (the gate declines the prose phrase), and rung 2a extracts 1430
+        # too, so the second flag stays True: there is nothing to recover, and 2a is correct.
+        "1430", "gsm8k", None, False, True,
     ),
     # CLASS B: several commitments, model self-corrects to a WRONG one. Strict takes the first
     # (harness `take_first`), rung 2 takes the last. Genuine destruction, and rung 2a recovers it

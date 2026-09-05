@@ -1,0 +1,37 @@
+Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.
+## Q1 — Boundary confirmed, and it's a defect after all. Here's the specification, which is the part that's mine.
+
+Your boundary is right: D1 was "does the code do what A5 registers," D3 changes what "committed" *means*, and that's load-bearing in three registered places. Correct call to stop.
+
+**But the ruling is that it's a defect**, because §1.2's registered text already constrains it: RECOVERABLE is defined as the permissive parser finding "a committed final **answer**." A prose sentence is not an answer. So the detector isn't delivering what's already registered — same shape as D1. What's genuinely mine is the specification of "answer-shaped," so:
+
+**`commitment_phrase` fires only if the span following the phrase, within the same sentence, yields a candidate under the task's declared answer type.** Reuse the `tasks.yaml` answer-type machinery you just built for D1 — numeric span for numeric tasks, single option letter for MC, expected token shape for word_sorting/dyck. If the phrase's sentence contains no answer-shaped candidate, the rule does not fire and the item falls through.
+
+**That dissolves the rung-2a objection.** If `commitment_phrase` doesn't fire, there is **no detected commitment**, so 2a's pre-commitment span is the *whole generation*, not empty. The span is defined relative to a detected commitment; no detection means no restriction. One rule, both rungs, no special-casing.
+
+**Direction check, and state it in the note:** rejecting prose commitments moves items toward ABSENT and **shrinks** the stratum, making H4 harder. Not self-flattering.
+
+Re-report §1.2's COMPLIANT/ABSENT rates and §1.1's stratum sizes after the fix — your instinct that this is a third contaminated registered quantity is correct.
+
+## Q2 — A paragraph, not a headline. My R27 weighting was calibrated on a number that was 97% your own defect.
+
+At 64 genuine cases (0.40% of recovered), two-sided error in flexible extraction is real and bounded. Not a footnote either — it replicates across two independent corpora at 0.40% and 0.66%, which is a genuine replication of a rate, and the *qualitative* claim (leniency is not a monotone relaxation) survives a small magnitude.
+
+**But the framing has to move with the number.** §7's calibrate-not-loosen argument now rests on over-crediting (Ren et al.), with destruction as a bounded secondary: *"leniency's two-sided error is real but under 1%."* That's more useful than an unquantified warning, and it puts the argument where the evidence is.
+
+**And the bigger finding from this episode isn't the 64.** It's that **our own parser, ordered ahead of published practice, produced worse answers than the harness would have on 2,068 items** — a well-intentioned extractor "improvement" silently degraded 2% of a 106k-generation corpus, caught only by a census. That is a better instance of the paper's thesis than the destruction rate, it's more citable, and it's a methods cautionary note the field needs. Give it the paragraph and demote destruction to two sentences inside it.
+
+## Q3 — Your reading is right and my instruction referenced machinery D16 removed.
+
+Concede: "post-freeze addendum under `## Amendments`" named a mechanism that no longer exists. The placement was doing exactly one thing — making the ordering visible — and an in-place dated note plus git history does that at least as well. Register it in §2 where H3's specification lives, dated 2026-09-05, stating it was added after the per-arm estimates existed and why. Substance intact.
+
+**The statistic — two pre-specified contrasts, named structurally so magnitude can't have chosen them:**
+
+1. **Across tasks, arm fixed:** BBH gptq-4bit vs gsm8k_cot gptq-4bit. Unpaired (different items), so bootstrap each independently and combine.
+2. **Across arms, task fixed:** gsm8k_cot gptq-4bit vs gsm8k_cot awq-4bit. Paired (same items), so use the paired cluster bootstrap. GPTQ-versus-AWQ at matched bit width is a structural choice, not the extreme pair.
+
+Each is a **cluster-bootstrap CI on the difference between two interaction estimates**; Holm-correct across the two. A CI excluding zero establishes heterogeneity directly, needs no new machinery, and is direction-neutral.
+
+**Report Cochran's Q and I² descriptively alongside, explicitly labelled as assuming independent estimates** — they don't hold within a task, where arms share items, so Q is anticonservative there. Indicative only, and say so.
+
+Do not add a third contrast after seeing these two.
