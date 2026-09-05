@@ -328,3 +328,28 @@ corrections consistently tighten the standard is not one that needs a calendar t
 ~25%, and that risk is real because the bias §1 corrects points **toward** this paper's own
 hypothesis. Without a freeze, the defence is the inline provenance notes plus the git history
 rather than a single timestamp. I raised this once; the user's decision stands and this records it.
+
+**And REPEATING AN EXPERIMENT is acceptable, which is what makes the rest of this rule usable**
+(user, 2026-09-05: *"its fine if we need to repeat some experiments"*).
+
+This completes D16 rather than decorating it. The pressure that produces a hedged document is
+wanting to avoid a correction **because the correction would invalidate a run**. If a re-run is
+expensive or unwelcome, there is a standing incentive to write a claim loosely enough that no
+result can contradict it, and a loosely written claim is worth nothing to a reviewer. Because
+repeating an experiment is acceptable, a claim can be written **precisely** and corrected
+**precisely**, which is the only version of "not frozen" that is an improvement rather than a
+weakening.
+
+⚠️ **So the correct response to discovering a claim is wrong is never to soften the claim.** It is
+to correct the section, state what it used to say, and re-run whatever the correction invalidates.
+Three of the five corrections already recorded worked this way: R24.1 moved `max_num_seqs` 64 → 32
+and re-ran the template probe and the 10-ordering H8 measurement rather than reporting numbers from
+the abandoned setting, and R34 changed where `until` is applied and re-ran the reference rehearsal
+rather than reinterpreting records taken under the old semantics.
+
+⚠️ **What this does not license.** D10 still requires explicit confirmation for every billable job,
+`--smoke` still comes first, and **wall clock is still the binding constraint** with ARR on
+2026-10-12 and one shared queue slot. So a re-run is acceptable on *cost* grounds and still has to
+be justified on *schedule* grounds. A correction that forces a re-run of the reference condition
+late in September is a different proposition from one that forces a $2 probe, and the honest move is
+to say which it is when raising it.
