@@ -11293,11 +11293,11 @@
         "rejected": false
       },
       {
-        "adjusted_alpha": 0.0125,
+        "adjusted_alpha": 0.01,
         "family": "H3",
         "m": 8,
         "name": "H3_interaction_marginal[gptq-4bit vs bf16]",
-        "p_value": 0.0033411242493536658,
+        "p_value": 0.00228543573702406,
         "rejected": true
       },
       {
@@ -11305,23 +11305,23 @@
         "family": "H3",
         "m": 8,
         "name": "H3_interaction_marginal[awq-4bit vs bf16]",
-        "p_value": 1.992699934716383e-05,
+        "p_value": 1.2123623882889905e-05,
         "rejected": true
+      },
+      {
+        "adjusted_alpha": 0.0125,
+        "family": "H3",
+        "m": 8,
+        "name": "H3_interaction_marginal[bnb-nf4 vs bf16]",
+        "p_value": 0.1005215330945626,
+        "rejected": false
       },
       {
         "adjusted_alpha": 0.016666666666666666,
         "family": "H3",
         "m": 8,
-        "name": "H3_interaction_marginal[bnb-nf4 vs bf16]",
-        "p_value": 0.005156517216408084,
-        "rejected": true
-      },
-      {
-        "adjusted_alpha": 0.025,
-        "family": "H3",
-        "m": 8,
         "name": "H3_interaction_marginal[gptq-8bit vs bf16]",
-        "p_value": 0.5355264536321576,
+        "p_value": 0.2121444210527263,
         "rejected": false
       },
       {
@@ -11329,23 +11329,23 @@
         "family": "H3",
         "m": 8,
         "name": "H3_interaction_marginal[gptq-4bit vs bf16]",
-        "p_value": 4.360114968553106e-06,
+        "p_value": 1.236856072453809e-10,
         "rejected": true
       },
       {
-        "adjusted_alpha": 0.01,
+        "adjusted_alpha": 0.025,
         "family": "H3",
         "m": 8,
         "name": "H3_interaction_marginal[awq-4bit vs bf16]",
-        "p_value": 0.003210541640822786,
-        "rejected": true
+        "p_value": 0.9262414318158646,
+        "rejected": false
       },
       {
         "adjusted_alpha": 0.00625,
         "family": "H3",
         "m": 8,
         "name": "H3_interaction_marginal[bnb-nf4 vs bf16]",
-        "p_value": 9.085918042948349e-13,
+        "p_value": 1.081564805810681e-26,
         "rejected": true
       }
     ],
@@ -11528,17 +11528,17 @@
       "unit": "pp"
     },
     {
-      "ci_high": 2.3636363636363638,
-      "ci_low": 0.48484848484848486,
+      "ci_high": 2.4242424242424243,
+      "ci_low": 0.5454545454545455,
       "claimable": null,
       "context": {
         "estimator": "difference of differences, cluster bootstrap over items",
-        "gap_alt_pp": 5.484848484848487,
+        "gap_alt_pp": 5.545454545454548,
         "gap_reference_pp": 4.060606060606064,
         "max_abs_contribution": 2,
         "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
-        "n_changed_alt": 187,
+        "n_changed_alt": 189,
         "n_changed_reference": 140,
         "n_items_dropped_unpaired": 0,
         "n_rung_monotonicity_violations": 2,
@@ -11550,7 +11550,7 @@
         "task": "bbh",
         "zero_variance": false
       },
-      "estimate": 1.424242424242423,
+      "estimate": 1.4848484848484835,
       "excludes_null": true,
       "floor": null,
       "interval_method": "cluster bootstrap over items, 10000 percentile draws",
@@ -11558,22 +11558,22 @@
       "name": "H3_interaction_marginal[gptq-4bit vs bf16]",
       "noise_class": "compounding",
       "null_value": 0.0,
-      "p_value": 0.0033411242493536658,
+      "p_value": 0.00228543573702406,
       "test": "mcnemar_exact[interaction: arm contrast of rung-change indicator]",
       "unit": "pp"
     },
     {
-      "ci_high": 2.3333333333333335,
-      "ci_low": 0.45454545454545453,
+      "ci_high": 2.4545454545454546,
+      "ci_low": 0.5454545454545455,
       "claimable": null,
       "context": {
         "estimator": "difference of differences, cluster bootstrap over items",
-        "gap_alt_pp": 5.424242424242426,
+        "gap_alt_pp": 5.545454545454548,
         "gap_reference_pp": 4.060606060606064,
         "max_abs_contribution": 2,
         "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
-        "n_changed_alt": 209,
+        "n_changed_alt": 211,
         "n_changed_reference": 140,
         "n_items_dropped_unpaired": 0,
         "n_rung_monotonicity_violations": 0,
@@ -11585,7 +11585,7 @@
         "task": "bbh",
         "zero_variance": false
       },
-      "estimate": 1.3636363636363615,
+      "estimate": 1.4848484848484835,
       "excludes_null": true,
       "floor": null,
       "interval_method": "cluster bootstrap over items, 10000 percentile draws",
@@ -11593,22 +11593,22 @@
       "name": "H3_interaction_marginal[awq-4bit vs bf16]",
       "noise_class": "compounding",
       "null_value": 0.0,
-      "p_value": 1.992699934716383e-05,
+      "p_value": 1.2123623882889905e-05,
       "test": "mcnemar_exact[interaction: arm contrast of rung-change indicator]",
       "unit": "pp"
     },
     {
-      "ci_high": -0.7575757575757576,
-      "ci_low": -2.515151515151515,
+      "ci_high": 0.06060606060606061,
+      "ci_low": -1.7575757575757573,
       "claimable": null,
       "context": {
         "estimator": "difference of differences, cluster bootstrap over items",
-        "gap_alt_pp": 2.424242424242423,
+        "gap_alt_pp": 3.2121212121212164,
         "gap_reference_pp": 4.060606060606064,
         "max_abs_contribution": 2,
         "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
-        "n_changed_alt": 98,
+        "n_changed_alt": 114,
         "n_changed_reference": 140,
         "n_items_dropped_unpaired": 0,
         "n_rung_monotonicity_violations": 1,
@@ -11620,33 +11620,33 @@
         "task": "bbh",
         "zero_variance": false
       },
-      "estimate": -1.6363636363636411,
-      "excludes_null": true,
+      "estimate": -0.8484848484848477,
+      "excludes_null": false,
       "floor": null,
       "interval_method": "cluster bootstrap over items, 10000 percentile draws",
       "n": 3300,
       "name": "H3_interaction_marginal[bnb-nf4 vs bf16]",
       "noise_class": "compounding",
       "null_value": 0.0,
-      "p_value": 0.005156517216408084,
+      "p_value": 0.1005215330945626,
       "test": "mcnemar_exact[interaction: arm contrast of rung-change indicator]",
       "unit": "pp"
     },
     {
-      "ci_high": 1.8701036138488751,
-      "ci_low": -0.3032600454890068,
+      "ci_high": 1.4404852160727823,
+      "ci_low": -0.2779883750315896,
       "claimable": null,
       "context": {
         "estimator": "difference of differences, cluster bootstrap over items",
-        "gap_alt_pp": 24.917867071013394,
-        "gap_reference_pp": 24.13444528683346,
+        "gap_alt_pp": 32.22137983320697,
+        "gap_reference_pp": 31.64013141268638,
         "max_abs_contribution": 2,
         "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
-        "n_changed_alt": 1500,
-        "n_changed_reference": 1487,
+        "n_changed_alt": 1275,
+        "n_changed_reference": 1252,
         "n_items_dropped_unpaired": 0,
-        "n_rung_monotonicity_violations": 27,
+        "n_rung_monotonicity_violations": 0,
         "rungs": [
           "strict",
           "permissive"
@@ -11655,7 +11655,7 @@
         "task": "gsm8k_cot",
         "zero_variance": false
       },
-      "estimate": 0.7834217841799322,
+      "estimate": 0.5812484205205877,
       "excludes_null": false,
       "floor": null,
       "interval_method": "cluster bootstrap over items, 10000 percentile draws",
@@ -11663,25 +11663,25 @@
       "name": "H3_interaction_marginal[gptq-8bit vs bf16]",
       "noise_class": "compounding",
       "null_value": 0.0,
-      "p_value": 0.5355264536321576,
+      "p_value": 0.2121444210527263,
       "test": "mcnemar_exact[interaction: arm contrast of rung-change indicator]",
       "unit": "pp"
     },
     {
-      "ci_high": -4.094010614101592,
-      "ci_low": -7.8594895122567605,
+      "ci_high": -3.56330553449583,
+      "ci_low": -6.722264341672984,
       "claimable": null,
       "context": {
         "estimator": "difference of differences, cluster bootstrap over items",
-        "gap_alt_pp": 18.119787717968162,
-        "gap_reference_pp": 24.13444528683346,
+        "gap_alt_pp": 26.484710639373265,
+        "gap_reference_pp": 31.64013141268638,
         "max_abs_contribution": 2,
         "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
-        "n_changed_alt": 1331,
-        "n_changed_reference": 1487,
+        "n_changed_alt": 1048,
+        "n_changed_reference": 1252,
         "n_items_dropped_unpaired": 0,
-        "n_rung_monotonicity_violations": 72,
+        "n_rung_monotonicity_violations": 0,
         "rungs": [
           "strict",
           "permissive"
@@ -11690,7 +11690,7 @@
         "task": "gsm8k_cot",
         "zero_variance": false
       },
-      "estimate": -6.0146575688652995,
+      "estimate": -5.155420773313114,
       "excludes_null": true,
       "floor": null,
       "interval_method": "cluster bootstrap over items, 10000 percentile draws",
@@ -11698,25 +11698,25 @@
       "name": "H3_interaction_marginal[gptq-4bit vs bf16]",
       "noise_class": "compounding",
       "null_value": 0.0,
-      "p_value": 4.360114968553106e-06,
+      "p_value": 1.236856072453809e-10,
       "test": "mcnemar_exact[interaction: arm contrast of rung-change indicator]",
       "unit": "pp"
     },
     {
-      "ci_high": 4.245640636846096,
-      "ci_low": 0.429618397776093,
+      "ci_high": 0.6823351023502654,
+      "ci_low": -2.501895375284306,
       "claimable": null,
       "context": {
         "estimator": "difference of differences, cluster bootstrap over items",
-        "gap_alt_pp": 26.509982309830676,
-        "gap_reference_pp": 24.13444528683346,
+        "gap_alt_pp": 30.730351276219352,
+        "gap_reference_pp": 31.64013141268638,
         "max_abs_contribution": 2,
         "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
-        "n_changed_alt": 1385,
-        "n_changed_reference": 1487,
+        "n_changed_alt": 1248,
+        "n_changed_reference": 1252,
         "n_items_dropped_unpaired": 0,
-        "n_rung_monotonicity_violations": 82,
+        "n_rung_monotonicity_violations": 3,
         "rungs": [
           "strict",
           "permissive"
@@ -11725,33 +11725,33 @@
         "task": "gsm8k_cot",
         "zero_variance": false
       },
-      "estimate": 2.3755370229972144,
-      "excludes_null": true,
+      "estimate": -0.9097801364670275,
+      "excludes_null": false,
       "floor": null,
       "interval_method": "cluster bootstrap over items, 10000 percentile draws",
       "n": 3957,
       "name": "H3_interaction_marginal[awq-4bit vs bf16]",
       "noise_class": "compounding",
       "null_value": 0.0,
-      "p_value": 0.003210541640822786,
+      "p_value": 0.9262414318158646,
       "test": "mcnemar_exact[interaction: arm contrast of rung-change indicator]",
       "unit": "pp"
     },
     {
-      "ci_high": -8.617639625979278,
-      "ci_low": -12.408390194591863,
+      "ci_high": -6.873894364417488,
+      "ci_low": -9.855951478392722,
       "claimable": null,
       "context": {
         "estimator": "difference of differences, cluster bootstrap over items",
-        "gap_alt_pp": 13.621430376547893,
-        "gap_reference_pp": 24.13444528683346,
+        "gap_alt_pp": 23.24993682082386,
+        "gap_reference_pp": 31.64013141268638,
         "max_abs_contribution": 2,
         "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
-        "n_changed_alt": 1255,
-        "n_changed_reference": 1487,
+        "n_changed_alt": 924,
+        "n_changed_reference": 1252,
         "n_items_dropped_unpaired": 0,
-        "n_rung_monotonicity_violations": 125,
+        "n_rung_monotonicity_violations": 1,
         "rungs": [
           "strict",
           "permissive"
@@ -11760,7 +11760,7 @@
         "task": "gsm8k_cot",
         "zero_variance": false
       },
-      "estimate": -10.513014910285568,
+      "estimate": -8.390194591862521,
       "excludes_null": true,
       "floor": null,
       "interval_method": "cluster bootstrap over items, 10000 percentile draws",
@@ -11768,25 +11768,25 @@
       "name": "H3_interaction_marginal[bnb-nf4 vs bf16]",
       "noise_class": "compounding",
       "null_value": 0.0,
-      "p_value": 9.085918042948349e-13,
+      "p_value": 1.081564805810681e-26,
       "test": "mcnemar_exact[interaction: arm contrast of rung-change indicator]",
       "unit": "pp"
     }
   ],
   "h3_interaction_demonstration_only": [
     {
-      "ci_high": 0.9350518069244376,
-      "ci_low": -0.8845084660096033,
+      "ci_high": 0.960323477381855,
+      "ci_low": -0.859236795552186,
       "claimable": null,
       "context": {
         "estimator": "difference of differences, cluster bootstrap over items",
-        "gap_alt_pp": 53.37376800606519,
-        "gap_reference_pp": 53.348496335607784,
+        "gap_alt_pp": 53.67702805155421,
+        "gap_reference_pp": 53.626484710639374,
         "max_abs_contribution": 2,
         "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
-        "n_changed_alt": 2114,
-        "n_changed_reference": 2113,
+        "n_changed_alt": 2126,
+        "n_changed_reference": 2124,
         "n_items_dropped_unpaired": 0,
         "n_rung_monotonicity_violations": 0,
         "rungs": [
@@ -11797,7 +11797,7 @@
         "task": "gsm8k",
         "zero_variance": false
       },
-      "estimate": 0.02527167045740697,
+      "estimate": 0.050543340914835255,
       "excludes_null": false,
       "floor": null,
       "interval_method": "cluster bootstrap over items, 10000 percentile draws",
@@ -11805,25 +11805,25 @@
       "name": "H3_interaction_marginal[gptq-8bit vs bf16]",
       "noise_class": "compounding",
       "null_value": 0.0,
-      "p_value": 0.9999999999999998,
+      "p_value": 0.9565042035611699,
       "test": "mcnemar_exact[interaction: arm contrast of rung-change indicator]",
       "unit": "pp"
     },
     {
-      "ci_high": -11.675511751326763,
-      "ci_low": -14.91028556987617,
+      "ci_high": -11.573793277735668,
+      "ci_low": -14.783927217589083,
       "claimable": null,
       "context": {
         "estimator": "difference of differences, cluster bootstrap over items",
-        "gap_alt_pp": 40.05559767500632,
-        "gap_reference_pp": 53.348496335607784,
+        "gap_alt_pp": 40.459944402324986,
+        "gap_reference_pp": 53.626484710639374,
         "max_abs_contribution": 2,
         "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
-        "n_changed_alt": 1595,
-        "n_changed_reference": 2113,
+        "n_changed_alt": 1603,
+        "n_changed_reference": 2124,
         "n_items_dropped_unpaired": 0,
-        "n_rung_monotonicity_violations": 4,
+        "n_rung_monotonicity_violations": 2,
         "rungs": [
           "strict",
           "permissive"
@@ -11832,7 +11832,7 @@
         "task": "gsm8k",
         "zero_variance": false
       },
-      "estimate": -13.292898660601466,
+      "estimate": -13.166540308314389,
       "excludes_null": true,
       "floor": null,
       "interval_method": "cluster bootstrap over items, 10000 percentile draws",
@@ -11840,58 +11840,23 @@
       "name": "H3_interaction_marginal[gptq-4bit vs bf16]",
       "noise_class": "compounding",
       "null_value": 0.0,
-      "p_value": 7.4309093540006615e-56,
+      "p_value": 3.8328863276042774e-56,
       "test": "mcnemar_exact[interaction: arm contrast of rung-change indicator]",
       "unit": "pp"
     },
     {
-      "ci_high": -6.595905989385899,
-      "ci_low": -9.855951478392722,
+      "ci_high": -6.267374273439474,
+      "ci_low": -9.552691432903714,
       "claimable": null,
       "context": {
         "estimator": "difference of differences, cluster bootstrap over items",
-        "gap_alt_pp": 45.10993176648977,
-        "gap_reference_pp": 53.348496335607784,
+        "gap_alt_pp": 45.71645185746778,
+        "gap_reference_pp": 53.626484710639374,
         "max_abs_contribution": 2,
         "max_abs_contribution_source": "study_wide",
         "n_boot": 10000,
-        "n_changed_alt": 1807,
-        "n_changed_reference": 2113,
-        "n_items_dropped_unpaired": 0,
-        "n_rung_monotonicity_violations": 4,
-        "rungs": [
-          "strict",
-          "permissive"
-        ],
-        "seed": 20260901,
-        "task": "gsm8k",
-        "zero_variance": false
-      },
-      "estimate": -8.238564569118012,
-      "excludes_null": true,
-      "floor": null,
-      "interval_method": "cluster bootstrap over items, 10000 percentile draws",
-      "n": 3957,
-      "name": "H3_interaction_marginal[awq-4bit vs bf16]",
-      "noise_class": "compounding",
-      "null_value": 0.0,
-      "p_value": 3.4297284181772164e-20,
-      "test": "mcnemar_exact[interaction: arm contrast of rung-change indicator]",
-      "unit": "pp"
-    },
-    {
-      "ci_high": -3.436947182208744,
-      "ci_low": -6.621177659843315,
-      "claimable": null,
-      "context": {
-        "estimator": "difference of differences, cluster bootstrap over items",
-        "gap_alt_pp": 48.34470558503917,
-        "gap_reference_pp": 53.348496335607784,
-        "max_abs_contribution": 2,
-        "max_abs_contribution_source": "study_wide",
-        "n_boot": 10000,
-        "n_changed_alt": 1925,
-        "n_changed_reference": 2113,
+        "n_changed_alt": 1825,
+        "n_changed_reference": 2124,
         "n_items_dropped_unpaired": 0,
         "n_rung_monotonicity_violations": 3,
         "rungs": [
@@ -11902,7 +11867,42 @@
         "task": "gsm8k",
         "zero_variance": false
       },
-      "estimate": -5.003790750568612,
+      "estimate": -7.910032853171593,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "cluster bootstrap over items, 10000 percentile draws",
+      "n": 3957,
+      "name": "H3_interaction_marginal[awq-4bit vs bf16]",
+      "noise_class": "compounding",
+      "null_value": 0.0,
+      "p_value": 3.4407624859845913e-19,
+      "test": "mcnemar_exact[interaction: arm contrast of rung-change indicator]",
+      "unit": "pp"
+    },
+    {
+      "ci_high": -3.133687136719737,
+      "ci_low": -6.317917614354308,
+      "claimable": null,
+      "context": {
+        "estimator": "difference of differences, cluster bootstrap over items",
+        "gap_alt_pp": 48.90068233510234,
+        "gap_reference_pp": 53.626484710639374,
+        "max_abs_contribution": 2,
+        "max_abs_contribution_source": "study_wide",
+        "n_boot": 10000,
+        "n_changed_alt": 1937,
+        "n_changed_reference": 2124,
+        "n_items_dropped_unpaired": 0,
+        "n_rung_monotonicity_violations": 0,
+        "rungs": [
+          "strict",
+          "permissive"
+        ],
+        "seed": 20260901,
+        "task": "gsm8k",
+        "zero_variance": false
+      },
+      "estimate": -4.725802375537036,
       "excludes_null": true,
       "floor": null,
       "interval_method": "cluster bootstrap over items, 10000 percentile draws",
@@ -11910,7 +11910,7 @@
       "name": "H3_interaction_marginal[bnb-nf4 vs bf16]",
       "noise_class": "compounding",
       "null_value": 0.0,
-      "p_value": 3.752711470993233e-09,
+      "p_value": 5.31978399323981e-09,
       "test": "mcnemar_exact[interaction: arm contrast of rung-change indicator]",
       "unit": "pp"
     }
@@ -12052,13 +12052,13 @@
       "unit": "pp"
     },
     {
-      "ci_high": 5.776341946953279,
-      "ci_low": 4.876344545124482,
+      "ci_high": 5.883297816524283,
+      "ci_low": 5.00930099111519,
       "claimable": null,
       "context": {
         "arm": "awq-4bit",
-        "n_lost_by_permissive": 15,
-        "n_recovered_by_permissive": 194,
+        "n_lost_by_permissive": 14,
+        "n_recovered_by_permissive": 197,
         "registered_in": "\u00a72 companion test",
         "rungs": [
           "strict",
@@ -12066,7 +12066,7 @@
         ],
         "task": "bbh"
       },
-      "estimate": 5.424242424242425,
+      "estimate": 5.545454545454546,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson on the discordant split, rescaled to the net rate (conditional-on-discordants McNemar interval)",
@@ -12074,7 +12074,7 @@
       "name": "rung_gap[awq-4bit]",
       "noise_class": "partially_cancelling",
       "null_value": 0.0,
-      "p_value": 7.631163520320112e-41,
+      "p_value": 1.6729224355531104e-42,
       "test": "mcnemar_exact[registered companion: strict vs permissive, within arm]",
       "unit": "pp"
     },
@@ -12106,13 +12106,13 @@
       "unit": "pp"
     },
     {
-      "ci_high": 2.6782555706504754,
-      "ci_low": 1.9873444772444062,
+      "ci_high": 3.3596978605616536,
+      "ci_low": 2.8551236775694253,
       "claimable": null,
       "context": {
         "arm": "bnb-nf4",
-        "n_lost_by_permissive": 9,
-        "n_recovered_by_permissive": 89,
+        "n_lost_by_permissive": 4,
+        "n_recovered_by_permissive": 110,
         "registered_in": "\u00a72 companion test",
         "rungs": [
           "strict",
@@ -12120,7 +12120,7 @@
         ],
         "task": "bbh"
       },
-      "estimate": 2.4242424242424243,
+      "estimate": 3.212121212121212,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson on the discordant split, rescaled to the net rate (conditional-on-discordants McNemar interval)",
@@ -12128,18 +12128,18 @@
       "name": "rung_gap[bnb-nf4]",
       "noise_class": "partially_cancelling",
       "null_value": 0.0,
-      "p_value": 1.10187438523874e-17,
+      "p_value": 6.663617459222729e-28,
       "test": "mcnemar_exact[registered companion: strict vs permissive, within arm]",
       "unit": "pp"
     },
     {
-      "ci_high": 5.604664985982647,
-      "ci_low": 5.1442223156003495,
+      "ci_high": 5.665272824853445,
+      "ci_low": 5.204702080962159,
       "claimable": null,
       "context": {
         "arm": "gptq-4bit",
         "n_lost_by_permissive": 3,
-        "n_recovered_by_permissive": 184,
+        "n_recovered_by_permissive": 186,
         "registered_in": "\u00a72 companion test",
         "rungs": [
           "strict",
@@ -12147,7 +12147,7 @@
         ],
         "task": "bbh"
       },
-      "estimate": 5.484848484848484,
+      "estimate": 5.545454545454546,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson on the discordant split, rescaled to the net rate (conditional-on-discordants McNemar interval)",
@@ -12155,7 +12155,7 @@
       "name": "rung_gap[gptq-4bit]",
       "noise_class": "partially_cancelling",
       "null_value": 0.0,
-      "p_value": 1.1113653870977537e-50,
+      "p_value": 2.8685085504498045e-51,
       "test": "mcnemar_exact[registered companion: strict vs permissive, within arm]",
       "unit": "pp"
     },
@@ -12187,13 +12187,13 @@
       "unit": "pp"
     },
     {
-      "ci_high": 45.355149479569626,
-      "ci_low": 44.67332463669295,
+      "ci_high": 45.91575678535449,
+      "ci_low": 45.325093248392164,
       "claimable": null,
       "context": {
         "arm": "awq-4bit",
-        "n_lost_by_permissive": 11,
-        "n_recovered_by_permissive": 1796,
+        "n_lost_by_permissive": 8,
+        "n_recovered_by_permissive": 1817,
         "registered_in": "\u00a72 companion test",
         "rungs": [
           "strict",
@@ -12201,7 +12201,7 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 45.109931766489765,
+      "estimate": 45.716451857467774,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson on the discordant split, rescaled to the net rate (conditional-on-discordants McNemar interval)",
@@ -12214,13 +12214,13 @@
       "unit": "pp"
     },
     {
-      "ci_high": 53.390117013996466,
-      "ci_low": 53.11325128259698,
+      "ci_high": 53.66810539173054,
+      "ci_low": 53.39123688513804,
       "claimable": null,
       "context": {
         "arm": "bf16",
         "n_lost_by_permissive": 1,
-        "n_recovered_by_permissive": 2112,
+        "n_recovered_by_permissive": 2123,
         "registered_in": "\u00a72 companion test",
         "rungs": [
           "strict",
@@ -12228,7 +12228,7 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 53.348496335607784,
+      "estimate": 53.626484710639374,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson on the discordant split, rescaled to the net rate (conditional-on-discordants McNemar interval)",
@@ -12241,13 +12241,13 @@
       "unit": "pp"
     },
     {
-      "ci_high": 48.508904994004844,
-      "ci_low": 47.98794063902096,
+      "ci_high": 48.942302966076085,
+      "ci_low": 48.66548591601838,
       "claimable": null,
       "context": {
         "arm": "bnb-nf4",
-        "n_lost_by_permissive": 6,
-        "n_recovered_by_permissive": 1919,
+        "n_lost_by_permissive": 1,
+        "n_recovered_by_permissive": 1936,
         "registered_in": "\u00a72 companion test",
         "rungs": [
           "strict",
@@ -12255,7 +12255,7 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 48.34470558503917,
+      "estimate": 48.90068233510235,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson on the discordant split, rescaled to the net rate (conditional-on-discordants McNemar interval)",
@@ -12268,13 +12268,13 @@
       "unit": "pp"
     },
     {
-      "ci_high": 40.2003108210378,
-      "ci_low": 39.71840524573141,
+      "ci_high": 40.501564914685936,
+      "ci_low": 40.22486957067711,
       "claimable": null,
       "context": {
         "arm": "gptq-4bit",
-        "n_lost_by_permissive": 5,
-        "n_recovered_by_permissive": 1590,
+        "n_lost_by_permissive": 1,
+        "n_recovered_by_permissive": 1602,
         "registered_in": "\u00a72 companion test",
         "rungs": [
           "strict",
@@ -12282,7 +12282,7 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 40.05559767500632,
+      "estimate": 40.45994440232499,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson on the discordant split, rescaled to the net rate (conditional-on-discordants McNemar interval)",
@@ -12295,13 +12295,13 @@
       "unit": "pp"
     },
     {
-      "ci_high": 53.4153886847007,
-      "ci_low": 53.138522699819674,
+      "ci_high": 53.71864873313376,
+      "ci_low": 53.44177972504054,
       "claimable": null,
       "context": {
         "arm": "gptq-8bit",
         "n_lost_by_permissive": 1,
-        "n_recovered_by_permissive": 2113,
+        "n_recovered_by_permissive": 2125,
         "registered_in": "\u00a72 companion test",
         "rungs": [
           "strict",
@@ -12309,7 +12309,7 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 53.373768006065205,
+      "estimate": 53.67702805155421,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson on the discordant split, rescaled to the net rate (conditional-on-discordants McNemar interval)",
@@ -12322,13 +12322,13 @@
       "unit": "pp"
     },
     {
-      "ci_high": 27.640839559511452,
-      "ci_low": 25.232474764345778,
+      "ci_high": 31.040303061369098,
+      "ci_low": 30.23179832573632,
       "claimable": null,
       "context": {
         "arm": "awq-4bit",
-        "n_lost_by_permissive": 168,
-        "n_recovered_by_permissive": 1217,
+        "n_lost_by_permissive": 16,
+        "n_recovered_by_permissive": 1232,
         "registered_in": "\u00a72 companion test",
         "rungs": [
           "strict",
@@ -12336,7 +12336,7 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 26.509982309830683,
+      "estimate": 30.73035127621936,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson on the discordant split, rescaled to the net rate (conditional-on-discordants McNemar interval)",
@@ -12344,18 +12344,18 @@
       "name": "rung_gap[awq-4bit]",
       "noise_class": "partially_cancelling",
       "null_value": 0.0,
-      "p_value": 1.6305273028776043e-196,
+      "p_value": 0.0,
       "test": "mcnemar_exact[registered companion: strict vs permissive, within arm]",
       "unit": "pp"
     },
     {
-      "ci_high": 25.53573998243863,
-      "ci_low": 22.608775893729597,
+      "ci_high": 31.64013141268638,
+      "ci_low": 31.446565161071597,
       "claimable": null,
       "context": {
         "arm": "bf16",
-        "n_lost_by_permissive": 266,
-        "n_recovered_by_permissive": 1221,
+        "n_lost_by_permissive": 0,
+        "n_recovered_by_permissive": 1252,
         "registered_in": "\u00a72 companion test",
         "rungs": [
           "strict",
@@ -12363,7 +12363,7 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 24.134445286833458,
+      "estimate": 31.64013141268638,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson on the discordant split, rescaled to the net rate (conditional-on-discordants McNemar interval)",
@@ -12371,18 +12371,18 @@
       "name": "rung_gap[bf16]",
       "noise_class": "partially_cancelling",
       "null_value": 0.0,
-      "p_value": 3.4283193719503556e-146,
+      "p_value": 0.0,
       "test": "mcnemar_exact[registered companion: strict vs permissive, within arm]",
       "unit": "pp"
     },
     {
-      "ci_high": 15.162619836388572,
-      "ci_low": 11.997107074071485,
+      "ci_high": 23.323292509477323,
+      "ci_low": 22.98406187355814,
       "claimable": null,
       "context": {
         "arm": "bnb-nf4",
-        "n_lost_by_permissive": 358,
-        "n_recovered_by_permissive": 897,
+        "n_lost_by_permissive": 2,
+        "n_recovered_by_permissive": 922,
         "registered_in": "\u00a72 companion test",
         "rungs": [
           "strict",
@@ -12390,7 +12390,7 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 13.621430376547892,
+      "estimate": 23.24993682082386,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson on the discordant split, rescaled to the net rate (conditional-on-discordants McNemar interval)",
@@ -12398,18 +12398,18 @@
       "name": "rung_gap[bnb-nf4]",
       "noise_class": "partially_cancelling",
       "null_value": 0.0,
-      "p_value": 9.511381959381304e-54,
+      "p_value": 6.026965794689147e-273,
       "test": "mcnemar_exact[registered companion: strict vs permissive, within arm]",
       "unit": "pp"
     },
     {
-      "ci_high": 19.588790657865342,
-      "ci_low": 16.546493114220823,
+      "ci_high": 26.48471063937325,
+      "ci_low": 26.291259574203753,
       "claimable": null,
       "context": {
         "arm": "gptq-4bit",
-        "n_lost_by_permissive": 307,
-        "n_recovered_by_permissive": 1024,
+        "n_lost_by_permissive": 0,
+        "n_recovered_by_permissive": 1048,
         "registered_in": "\u00a72 companion test",
         "rungs": [
           "strict",
@@ -12417,7 +12417,7 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 18.11978771796816,
+      "estimate": 26.48471063937326,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson on the discordant split, rescaled to the net rate (conditional-on-discordants McNemar interval)",
@@ -12425,18 +12425,18 @@
       "name": "rung_gap[gptq-4bit]",
       "noise_class": "partially_cancelling",
       "null_value": 0.0,
-      "p_value": 2.4037007522844745e-90,
+      "p_value": 6.63123685e-316,
       "test": "mcnemar_exact[registered companion: strict vs permissive, within arm]",
       "unit": "pp"
     },
     {
-      "ci_high": 26.299438727801363,
-      "ci_low": 23.408993483970235,
+      "ci_high": 32.22137983320697,
+      "ci_low": 32.027802900082904,
       "claimable": null,
       "context": {
         "arm": "gptq-8bit",
-        "n_lost_by_permissive": 257,
-        "n_recovered_by_permissive": 1243,
+        "n_lost_by_permissive": 0,
+        "n_recovered_by_permissive": 1275,
         "registered_in": "\u00a72 companion test",
         "rungs": [
           "strict",
@@ -12444,7 +12444,7 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 24.917867071013394,
+      "estimate": 32.221379833206974,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson on the discordant split, rescaled to the net rate (conditional-on-discordants McNemar interval)",
@@ -12452,7 +12452,7 @@
       "name": "rung_gap[gptq-8bit]",
       "noise_class": "partially_cancelling",
       "null_value": 0.0,
-      "p_value": 4.461417246408728e-155,
+      "p_value": 0.0,
       "test": "mcnemar_exact[registered companion: strict vs permissive, within arm]",
       "unit": "pp"
     }
@@ -14528,8 +14528,8 @@
   ],
   "math_verify_available": true,
   "n_rows": 105950,
-  "n_rung_monotonicity_violations": 2218,
-  "n_rung_monotonicity_violations_anchored": 2128,
+  "n_rung_monotonicity_violations": 101,
+  "n_rung_monotonicity_violations_anchored": 23,
   "run_id": "main-v1",
   "rung_gap_decomposition": [
     {
@@ -14843,16 +14843,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 6.733823215489271,
-      "ci_low": 5.126354208416593,
+      "ci_high": 6.830395734333276,
+      "ci_low": 5.211388466858495,
       "claimable": null,
       "context": {
         "arm": "awq-4bit",
-        "count": 194,
+        "count": 197,
         "direction": "recovered",
-        "n_destroyed": 15,
-        "n_recovered": 194,
-        "net_pp": 5.424242424242425,
+        "n_destroyed": 14,
+        "n_recovered": 197,
+        "net_pp": 5.545454545454546,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -14861,7 +14861,7 @@
         ],
         "task": "bbh"
       },
-      "estimate": 5.878787878787879,
+      "estimate": 5.96969696969697,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -14874,16 +14874,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 0.7486474850440742,
-      "ci_low": 0.2756588941359314,
+      "ci_high": 0.7108857579053227,
+      "ci_low": 0.25288502884604697,
       "claimable": null,
       "context": {
         "arm": "awq-4bit",
-        "count": 15,
+        "count": 14,
         "direction": "destroyed",
-        "n_destroyed": 15,
-        "n_recovered": 194,
-        "net_pp": 5.424242424242425,
+        "n_destroyed": 14,
+        "n_recovered": 197,
+        "net_pp": 5.545454545454546,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -14892,7 +14892,7 @@
         ],
         "task": "bbh"
       },
-      "estimate": 0.45454545454545453,
+      "estimate": 0.4242424242424243,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -14967,16 +14967,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 3.3070837788195897,
-      "ci_low": 2.1968564400794865,
+      "ci_high": 4.002085499110043,
+      "ci_low": 2.7731021607903905,
       "claimable": null,
       "context": {
         "arm": "bnb-nf4",
-        "count": 89,
+        "count": 110,
         "direction": "recovered",
-        "n_destroyed": 9,
-        "n_recovered": 89,
-        "net_pp": 2.4242424242424243,
+        "n_destroyed": 4,
+        "n_recovered": 110,
+        "net_pp": 3.212121212121212,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -14985,7 +14985,7 @@
         ],
         "task": "bbh"
       },
-      "estimate": 2.696969696969697,
+      "estimate": 3.3333333333333335,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -14998,16 +14998,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 0.5175417306148641,
-      "ci_low": 0.14355109399332508,
+      "ci_high": 0.31126805471557734,
+      "ci_low": 0.04714680774943138,
       "claimable": null,
       "context": {
         "arm": "bnb-nf4",
-        "count": 9,
+        "count": 4,
         "direction": "destroyed",
-        "n_destroyed": 9,
-        "n_recovered": 89,
-        "net_pp": 2.4242424242424243,
+        "n_destroyed": 4,
+        "n_recovered": 110,
+        "net_pp": 3.212121212121212,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15016,7 +15016,7 @@
         ],
         "task": "bbh"
       },
-      "estimate": 0.27272727272727276,
+      "estimate": 0.12121212121212122,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -15029,16 +15029,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 6.411519953349551,
-      "ci_low": 4.843301546269952,
+      "ci_high": 6.476030530778602,
+      "ci_low": 4.899862153698174,
       "claimable": null,
       "context": {
         "arm": "gptq-4bit",
-        "count": 184,
+        "count": 186,
         "direction": "recovered",
         "n_destroyed": 3,
-        "n_recovered": 184,
-        "net_pp": 5.484848484848484,
+        "n_recovered": 186,
+        "net_pp": 5.545454545454546,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15047,7 +15047,7 @@
         ],
         "task": "bbh"
       },
-      "estimate": 5.575757575757575,
+      "estimate": 5.636363636363637,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -15068,8 +15068,8 @@
         "count": 3,
         "direction": "destroyed",
         "n_destroyed": 3,
-        "n_recovered": 184,
-        "net_pp": 5.484848484848484,
+        "n_recovered": 186,
+        "net_pp": 5.545454545454546,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15153,16 +15153,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 46.942889273770504,
-      "ci_low": 43.84189714611624,
+      "ci_high": 47.4745205331704,
+      "ci_low": 44.37064662744171,
       "claimable": null,
       "context": {
         "arm": "awq-4bit",
-        "count": 1796,
+        "count": 1817,
         "direction": "recovered",
-        "n_destroyed": 11,
-        "n_recovered": 1796,
-        "net_pp": 45.109931766489765,
+        "n_destroyed": 8,
+        "n_recovered": 1817,
+        "net_pp": 45.716451857467774,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15171,7 +15171,7 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 45.387920141521356,
+      "estimate": 45.918625221127115,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -15184,16 +15184,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 0.4971254614353706,
-      "ci_low": 0.15529799679585565,
+      "ci_high": 0.39845983534994905,
+      "ci_low": 0.10248065992051153,
       "claimable": null,
       "context": {
         "arm": "awq-4bit",
-        "count": 11,
+        "count": 8,
         "direction": "destroyed",
-        "n_destroyed": 11,
-        "n_recovered": 1796,
-        "net_pp": 45.109931766489765,
+        "n_destroyed": 8,
+        "n_recovered": 1817,
+        "net_pp": 45.716451857467774,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15202,7 +15202,7 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 0.2779883750315896,
+      "estimate": 0.20217336365933786,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -15215,16 +15215,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 54.924078769317894,
-      "ci_low": 51.81691308243618,
+      "ci_high": 55.20118839991935,
+      "ci_low": 52.09524098269086,
       "claimable": null,
       "context": {
         "arm": "bf16",
-        "count": 2112,
+        "count": 2123,
         "direction": "recovered",
         "n_destroyed": 1,
-        "n_recovered": 2112,
-        "net_pp": 53.348496335607784,
+        "n_recovered": 2123,
+        "net_pp": 53.626484710639374,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15233,7 +15233,7 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 53.373768006065205,
+      "estimate": 53.651756381096796,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -15254,8 +15254,8 @@
         "count": 1,
         "direction": "destroyed",
         "n_destroyed": 1,
-        "n_recovered": 2112,
-        "net_pp": 53.348496335607784,
+        "n_recovered": 2123,
+        "net_pp": 53.626484710639374,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15277,16 +15277,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 50.05421852411435,
-      "ci_low": 46.94136937716378,
+      "ci_high": 50.48376491826819,
+      "ci_low": 47.37022643978762,
       "claimable": null,
       "context": {
         "arm": "bnb-nf4",
-        "count": 1919,
+        "count": 1936,
         "direction": "recovered",
-        "n_destroyed": 6,
-        "n_recovered": 1919,
-        "net_pp": 48.34470558503917,
+        "n_destroyed": 1,
+        "n_recovered": 1936,
+        "net_pp": 48.90068233510235,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15295,7 +15295,7 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 48.49633560778368,
+      "estimate": 48.92595400555977,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -15308,16 +15308,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 0.33044050467508174,
-      "ci_low": 0.06951134862153527,
+      "ci_high": 0.1430190386806811,
+      "ci_low": 0.004461209681326527,
       "claimable": null,
       "context": {
         "arm": "bnb-nf4",
-        "count": 6,
+        "count": 1,
         "direction": "destroyed",
-        "n_destroyed": 6,
-        "n_recovered": 1919,
-        "net_pp": 48.34470558503917,
+        "n_destroyed": 1,
+        "n_recovered": 1936,
+        "net_pp": 48.90068233510235,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15326,7 +15326,7 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 0.1516300227445034,
+      "estimate": 0.025271670457417232,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -15339,16 +15339,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 41.71832137943866,
-      "ci_low": 38.66463491714217,
+      "ci_high": 42.02314643265369,
+      "ci_low": 38.96574171577022,
       "claimable": null,
       "context": {
         "arm": "gptq-4bit",
-        "count": 1590,
+        "count": 1602,
         "direction": "recovered",
-        "n_destroyed": 5,
-        "n_recovered": 1590,
-        "net_pp": 40.05559767500632,
+        "n_destroyed": 1,
+        "n_recovered": 1602,
+        "net_pp": 40.45994440232499,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15357,7 +15357,7 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 40.1819560272934,
+      "estimate": 40.48521607278241,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -15370,16 +15370,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 0.29547309820645445,
-      "ci_low": 0.05398443410324066,
+      "ci_high": 0.1430190386806811,
+      "ci_low": 0.004461209681326527,
       "claimable": null,
       "context": {
         "arm": "gptq-4bit",
-        "count": 5,
+        "count": 1,
         "direction": "destroyed",
-        "n_destroyed": 5,
-        "n_recovered": 1590,
-        "net_pp": 40.05559767500632,
+        "n_destroyed": 1,
+        "n_recovered": 1602,
+        "net_pp": 40.45994440232499,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15388,7 +15388,7 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 0.1263583522870862,
+      "estimate": 0.025271670457417232,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -15401,16 +15401,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 54.94927255540527,
-      "ci_low": 51.842213617335716,
+      "ci_high": 55.25156676301381,
+      "ci_low": 52.14585126157023,
       "claimable": null,
       "context": {
         "arm": "gptq-8bit",
-        "count": 2113,
+        "count": 2125,
         "direction": "recovered",
         "n_destroyed": 1,
-        "n_recovered": 2113,
-        "net_pp": 53.373768006065205,
+        "n_recovered": 2125,
+        "net_pp": 53.67702805155421,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15419,7 +15419,7 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 53.39903967652262,
+      "estimate": 53.702299722011624,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -15440,8 +15440,8 @@
         "count": 1,
         "direction": "destroyed",
         "n_destroyed": 1,
-        "n_recovered": 2113,
-        "net_pp": 53.373768006065205,
+        "n_recovered": 2125,
+        "net_pp": 53.67702805155421,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15463,16 +15463,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 32.211580919002266,
-      "ci_low": 29.336993649456726,
+      "ci_high": 32.595149470687964,
+      "ci_low": 29.710839912574862,
       "claimable": null,
       "context": {
         "arm": "awq-4bit",
-        "count": 1217,
+        "count": 1232,
         "direction": "recovered",
-        "n_destroyed": 168,
-        "n_recovered": 1217,
-        "net_pp": 26.509982309830683,
+        "n_destroyed": 16,
+        "n_recovered": 1232,
+        "net_pp": 30.73035127621936,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15481,7 +15481,7 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 30.755622946676773,
+      "estimate": 31.134698003538038,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -15494,16 +15494,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 4.919503334705224,
-      "ci_low": 3.660528518472734,
+      "ci_high": 0.6558463057226621,
+      "ci_low": 0.2490487574431733,
       "claimable": null,
       "context": {
         "arm": "awq-4bit",
-        "count": 168,
+        "count": 16,
         "direction": "destroyed",
-        "n_destroyed": 168,
-        "n_recovered": 1217,
-        "net_pp": 26.509982309830683,
+        "n_destroyed": 16,
+        "n_recovered": 1232,
+        "net_pp": 30.73035127621936,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15512,7 +15512,7 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 4.245640636846096,
+      "estimate": 0.4043467273186757,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -15525,16 +15525,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 32.313876935466155,
-      "ci_low": 29.436674916940518,
+      "ci_high": 33.10639931306459,
+      "ci_low": 30.20947648993666,
       "claimable": null,
       "context": {
         "arm": "bf16",
-        "count": 1221,
+        "count": 1252,
         "direction": "recovered",
-        "n_destroyed": 266,
-        "n_recovered": 1221,
-        "net_pp": 24.134445286833458,
+        "n_destroyed": 0,
+        "n_recovered": 1252,
+        "net_pp": 31.64013141268638,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15543,7 +15543,7 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 30.856709628506447,
+      "estimate": 31.64013141268638,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -15556,16 +15556,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 7.545198593009479,
-      "ci_low": 5.983276716886823,
+      "ci_high": 0.0969859273750858,
+      "ci_low": 0.0,
       "claimable": null,
       "context": {
         "arm": "bf16",
-        "count": 266,
+        "count": 0,
         "direction": "destroyed",
-        "n_destroyed": 266,
-        "n_recovered": 1221,
-        "net_pp": 24.134445286833458,
+        "n_destroyed": 0,
+        "n_recovered": 1252,
+        "net_pp": 31.64013141268638,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15574,8 +15574,8 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 6.722264341672984,
-      "excludes_null": true,
+      "estimate": 0.0,
+      "excludes_null": false,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
       "n": 3957,
@@ -15587,16 +15587,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 23.999368223205167,
-      "ci_low": 21.39102362943883,
+      "ci_high": 24.64316672697224,
+      "ci_low": 22.0095831503448,
       "claimable": null,
       "context": {
         "arm": "bnb-nf4",
-        "count": 897,
+        "count": 922,
         "direction": "recovered",
-        "n_destroyed": 358,
-        "n_recovered": 897,
-        "net_pp": 13.621430376547892,
+        "n_destroyed": 2,
+        "n_recovered": 922,
+        "net_pp": 23.24993682082386,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15605,7 +15605,7 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 22.66868840030326,
+      "estimate": 23.30048016173869,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -15618,16 +15618,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 9.981207088628452,
-      "ci_low": 8.19274575206466,
+      "ci_high": 0.1841126677709211,
+      "ci_low": 0.013861901578008436,
       "claimable": null,
       "context": {
         "arm": "bnb-nf4",
-        "count": 358,
+        "count": 2,
         "direction": "destroyed",
-        "n_destroyed": 358,
-        "n_recovered": 897,
-        "net_pp": 13.621430376547892,
+        "n_destroyed": 2,
+        "n_recovered": 922,
+        "net_pp": 23.24993682082386,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15636,7 +15636,7 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 9.04725802375537,
+      "estimate": 0.050543340914834464,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -15649,16 +15649,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 27.265722964043576,
-      "ci_low": 24.53744765393949,
+      "ci_high": 27.881877510352,
+      "ci_low": 25.133156811317196,
       "claimable": null,
       "context": {
         "arm": "gptq-4bit",
-        "count": 1024,
+        "count": 1048,
         "direction": "recovered",
-        "n_destroyed": 307,
-        "n_recovered": 1024,
-        "net_pp": 18.11978771796816,
+        "n_destroyed": 0,
+        "n_recovered": 1048,
+        "net_pp": 26.48471063937326,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15667,7 +15667,7 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 25.878190548395246,
+      "estimate": 26.48471063937326,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -15680,16 +15680,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 8.633490977369782,
-      "ci_low": 6.9652514929903155,
+      "ci_high": 0.0969859273750858,
+      "ci_low": 0.0,
       "claimable": null,
       "context": {
         "arm": "gptq-4bit",
-        "count": 307,
+        "count": 0,
         "direction": "destroyed",
-        "n_destroyed": 307,
-        "n_recovered": 1024,
-        "net_pp": 18.11978771796816,
+        "n_destroyed": 0,
+        "n_recovered": 1048,
+        "net_pp": 26.48471063937326,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15698,8 +15698,8 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 7.758402830427091,
-      "excludes_null": true,
+      "estimate": 0.0,
+      "excludes_null": false,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
       "n": 3957,
@@ -15711,16 +15711,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 32.87636147727977,
-      "ci_low": 29.985065436839182,
+      "ci_high": 33.694092627860385,
+      "ci_low": 30.783152557840076,
       "claimable": null,
       "context": {
         "arm": "gptq-8bit",
-        "count": 1243,
+        "count": 1275,
         "direction": "recovered",
-        "n_destroyed": 257,
-        "n_recovered": 1243,
-        "net_pp": 24.917867071013394,
+        "n_destroyed": 0,
+        "n_recovered": 1275,
+        "net_pp": 32.221379833206974,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15729,7 +15729,7 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 31.41268637856962,
+      "estimate": 32.221379833206974,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -15742,16 +15742,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 7.305632191427024,
-      "ci_low": 5.76839422958698,
+      "ci_high": 0.0969859273750858,
+      "ci_low": 0.0,
       "claimable": null,
       "context": {
         "arm": "gptq-8bit",
-        "count": 257,
+        "count": 0,
         "direction": "destroyed",
-        "n_destroyed": 257,
-        "n_recovered": 1243,
-        "net_pp": 24.917867071013394,
+        "n_destroyed": 0,
+        "n_recovered": 1275,
+        "net_pp": 32.221379833206974,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -15760,8 +15760,8 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 6.494819307556229,
-      "excludes_null": true,
+      "estimate": 0.0,
+      "excludes_null": false,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
       "n": 3957,
@@ -16085,16 +16085,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 6.508276295139172,
-      "ci_low": 4.92815198176624,
+      "ci_high": 6.604976058385084,
+      "ci_low": 5.013058995806237,
       "claimable": null,
       "context": {
         "arm": "awq-4bit",
-        "count": 187,
+        "count": 190,
         "direction": "recovered",
         "n_destroyed": 5,
-        "n_recovered": 187,
-        "net_pp": 5.515151515151516,
+        "n_recovered": 190,
+        "net_pp": 5.606060606060606,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16103,7 +16103,7 @@
         ],
         "task": "bbh"
       },
-      "estimate": 5.666666666666666,
+      "estimate": 5.757575757575758,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -16124,8 +16124,8 @@
         "count": 5,
         "direction": "destroyed",
         "n_destroyed": 5,
-        "n_recovered": 187,
-        "net_pp": 5.515151515151516,
+        "n_recovered": 190,
+        "net_pp": 5.606060606060606,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16209,16 +16209,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 3.2738079525018184,
-      "ci_low": 2.1695966739686217,
+      "ci_high": 3.969138303717825,
+      "ci_low": 2.745513763753973,
       "claimable": null,
       "context": {
         "arm": "bnb-nf4",
-        "count": 88,
+        "count": 109,
         "direction": "recovered",
         "n_destroyed": 1,
-        "n_recovered": 88,
-        "net_pp": 2.6363636363636362,
+        "n_recovered": 109,
+        "net_pp": 3.272727272727273,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16227,7 +16227,7 @@
         ],
         "task": "bbh"
       },
-      "estimate": 2.666666666666667,
+      "estimate": 3.3030303030303028,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -16248,8 +16248,8 @@
         "count": 1,
         "direction": "destroyed",
         "n_destroyed": 1,
-        "n_recovered": 88,
-        "net_pp": 2.6363636363636362,
+        "n_recovered": 109,
+        "net_pp": 3.272727272727273,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16271,16 +16271,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 6.346983653847355,
-      "ci_low": 4.786766660914878,
+      "ci_high": 6.411519953349551,
+      "ci_low": 4.843301546269952,
       "claimable": null,
       "context": {
         "arm": "gptq-4bit",
-        "count": 182,
+        "count": 184,
         "direction": "recovered",
         "n_destroyed": 4,
-        "n_recovered": 182,
-        "net_pp": 5.393939393939394,
+        "n_recovered": 184,
+        "net_pp": 5.454545454545454,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16289,7 +16289,7 @@
         ],
         "task": "bbh"
       },
-      "estimate": 5.515151515151516,
+      "estimate": 5.575757575757575,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -16310,8 +16310,8 @@
         "count": 4,
         "direction": "destroyed",
         "n_destroyed": 4,
-        "n_recovered": 182,
-        "net_pp": 5.393939393939394,
+        "n_recovered": 184,
+        "net_pp": 5.454545454545454,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16395,16 +16395,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 47.14543637151117,
-      "ci_low": 44.04330461627096,
+      "ci_high": 47.601073295245754,
+      "ci_low": 44.496565470300965,
       "claimable": null,
       "context": {
         "arm": "awq-4bit",
-        "count": 1804,
+        "count": 1822,
         "direction": "recovered",
-        "n_destroyed": 1,
-        "n_recovered": 1804,
-        "net_pp": 45.564821834723276,
+        "n_destroyed": 0,
+        "n_recovered": 1822,
+        "net_pp": 46.04498357341421,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16413,7 +16413,7 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 45.59009350518069,
+      "estimate": 46.04498357341421,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -16426,16 +16426,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 0.1430190386806811,
-      "ci_low": 0.004461209681326527,
+      "ci_high": 0.0969859273750858,
+      "ci_low": 0.0,
       "claimable": null,
       "context": {
         "arm": "awq-4bit",
-        "count": 1,
+        "count": 0,
         "direction": "destroyed",
-        "n_destroyed": 1,
-        "n_recovered": 1804,
-        "net_pp": 45.564821834723276,
+        "n_destroyed": 0,
+        "n_recovered": 1822,
+        "net_pp": 46.04498357341421,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16444,8 +16444,8 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 0.025271670457417232,
-      "excludes_null": true,
+      "estimate": 0.0,
+      "excludes_null": false,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
       "n": 3957,
@@ -16457,16 +16457,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 55.02485151247556,
-      "ci_low": 51.9181176232262,
+      "ci_high": 55.22637778178927,
+      "ci_low": 52.12054592180786,
       "claimable": null,
       "context": {
         "arm": "bf16",
-        "count": 2116,
+        "count": 2124,
         "direction": "recovered",
         "n_destroyed": 0,
-        "n_recovered": 2116,
-        "net_pp": 53.47485468789487,
+        "n_recovered": 2124,
+        "net_pp": 53.67702805155421,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16475,7 +16475,7 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 53.47485468789487,
+      "estimate": 53.67702805155421,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -16496,8 +16496,8 @@
         "count": 0,
         "direction": "destroyed",
         "n_destroyed": 0,
-        "n_recovered": 2116,
-        "net_pp": 53.47485468789487,
+        "n_recovered": 2124,
+        "net_pp": 53.67702805155421,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16519,16 +16519,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 50.104759361545185,
-      "ci_low": 46.99181718170679,
+      "ci_high": 50.5090287734353,
+      "ci_low": 47.39545690560744,
       "claimable": null,
       "context": {
         "arm": "bnb-nf4",
-        "count": 1921,
+        "count": 1937,
         "direction": "recovered",
-        "n_destroyed": 6,
-        "n_recovered": 1921,
-        "net_pp": 48.39524892595401,
+        "n_destroyed": 0,
+        "n_recovered": 1937,
+        "net_pp": 48.95122567601719,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16537,7 +16537,7 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 48.546878948698506,
+      "estimate": 48.95122567601719,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -16550,16 +16550,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 0.33044050467508174,
-      "ci_low": 0.06951134862153527,
+      "ci_high": 0.0969859273750858,
+      "ci_low": 0.0,
       "claimable": null,
       "context": {
         "arm": "bnb-nf4",
-        "count": 6,
+        "count": 0,
         "direction": "destroyed",
-        "n_destroyed": 6,
-        "n_recovered": 1921,
-        "net_pp": 48.39524892595401,
+        "n_destroyed": 0,
+        "n_recovered": 1937,
+        "net_pp": 48.95122567601719,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16568,8 +16568,8 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 0.1516300227445034,
-      "excludes_null": true,
+      "estimate": 0.0,
+      "excludes_null": false,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
       "n": 3957,
@@ -16581,16 +16581,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 41.845339182121386,
-      "ci_low": 38.79008871939406,
+      "ci_high": 42.07394472246174,
+      "ci_low": 39.01593206793601,
       "claimable": null,
       "context": {
         "arm": "gptq-4bit",
-        "count": 1595,
+        "count": 1604,
         "direction": "recovered",
-        "n_destroyed": 1,
-        "n_recovered": 1595,
-        "net_pp": 40.28304270912307,
+        "n_destroyed": 0,
+        "n_recovered": 1604,
+        "net_pp": 40.53575941369725,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16599,7 +16599,7 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 40.30831437958049,
+      "estimate": 40.53575941369725,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -16612,16 +16612,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 0.1430190386806811,
-      "ci_low": 0.004461209681326527,
+      "ci_high": 0.0969859273750858,
+      "ci_low": 0.0,
       "claimable": null,
       "context": {
         "arm": "gptq-4bit",
-        "count": 1,
+        "count": 0,
         "direction": "destroyed",
-        "n_destroyed": 1,
-        "n_recovered": 1595,
-        "net_pp": 40.28304270912307,
+        "n_destroyed": 0,
+        "n_recovered": 1604,
+        "net_pp": 40.53575941369725,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16630,8 +16630,8 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 0.025271670457417232,
-      "excludes_null": true,
+      "estimate": 0.0,
+      "excludes_null": false,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
       "n": 3957,
@@ -16643,16 +16643,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 55.02485151247556,
-      "ci_low": 51.9181176232262,
+      "ci_high": 55.22637778178927,
+      "ci_low": 52.12054592180786,
       "claimable": null,
       "context": {
         "arm": "gptq-8bit",
-        "count": 2116,
+        "count": 2124,
         "direction": "recovered",
         "n_destroyed": 0,
-        "n_recovered": 2116,
-        "net_pp": 53.47485468789487,
+        "n_recovered": 2124,
+        "net_pp": 53.67702805155421,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16661,7 +16661,7 @@
         ],
         "task": "gsm8k"
       },
-      "estimate": 53.47485468789487,
+      "estimate": 53.67702805155421,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -16682,8 +16682,8 @@
         "count": 0,
         "direction": "destroyed",
         "n_destroyed": 0,
-        "n_recovered": 2116,
-        "net_pp": 53.47485468789487,
+        "n_recovered": 2124,
+        "net_pp": 53.67702805155421,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16705,16 +16705,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 32.23715568023762,
-      "ci_low": 29.36191320920829,
+      "ci_high": 32.620716693080595,
+      "ci_low": 29.735767011169145,
       "claimable": null,
       "context": {
         "arm": "awq-4bit",
-        "count": 1218,
+        "count": 1233,
         "direction": "recovered",
-        "n_destroyed": 154,
-        "n_recovered": 1218,
-        "net_pp": 26.889057366691937,
+        "n_destroyed": 0,
+        "n_recovered": 1233,
+        "net_pp": 31.15996967399545,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16723,7 +16723,7 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 30.78089461713419,
+      "estimate": 31.15996967399545,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -16736,16 +16736,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 4.54051205978412,
-      "ci_low": 3.3325992995769327,
+      "ci_high": 0.0969859273750858,
+      "ci_low": 0.0,
       "claimable": null,
       "context": {
         "arm": "awq-4bit",
-        "count": 154,
+        "count": 0,
         "direction": "destroyed",
-        "n_destroyed": 154,
-        "n_recovered": 1218,
-        "net_pp": 26.889057366691937,
+        "n_destroyed": 0,
+        "n_recovered": 1233,
+        "net_pp": 31.15996967399545,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16754,8 +16754,8 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 3.8918372504422547,
-      "excludes_null": true,
+      "estimate": 0.0,
+      "excludes_null": false,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
       "n": 3957,
@@ -16767,16 +16767,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 32.313876935466155,
-      "ci_low": 29.436674916940518,
+      "ci_high": 33.10639931306459,
+      "ci_low": 30.20947648993666,
       "claimable": null,
       "context": {
         "arm": "bf16",
-        "count": 1221,
+        "count": 1252,
         "direction": "recovered",
-        "n_destroyed": 266,
-        "n_recovered": 1221,
-        "net_pp": 24.134445286833458,
+        "n_destroyed": 0,
+        "n_recovered": 1252,
+        "net_pp": 31.64013141268638,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16785,7 +16785,7 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 30.856709628506447,
+      "estimate": 31.64013141268638,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -16798,16 +16798,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 7.545198593009479,
-      "ci_low": 5.983276716886823,
+      "ci_high": 0.0969859273750858,
+      "ci_low": 0.0,
       "claimable": null,
       "context": {
         "arm": "bf16",
-        "count": 266,
+        "count": 0,
         "direction": "destroyed",
-        "n_destroyed": 266,
-        "n_recovered": 1221,
-        "net_pp": 24.134445286833458,
+        "n_destroyed": 0,
+        "n_recovered": 1252,
+        "net_pp": 31.64013141268638,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16816,8 +16816,8 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 6.722264341672984,
-      "excludes_null": true,
+      "estimate": 0.0,
+      "excludes_null": false,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
       "n": 3957,
@@ -16829,16 +16829,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 23.999368223205167,
-      "ci_low": 21.39102362943883,
+      "ci_high": 24.64316672697224,
+      "ci_low": 22.0095831503448,
       "claimable": null,
       "context": {
         "arm": "bnb-nf4",
-        "count": 897,
+        "count": 922,
         "direction": "recovered",
-        "n_destroyed": 356,
-        "n_recovered": 897,
-        "net_pp": 13.671973717462723,
+        "n_destroyed": 0,
+        "n_recovered": 922,
+        "net_pp": 23.30048016173869,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16847,7 +16847,7 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 22.66868840030326,
+      "estimate": 23.30048016173869,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -16860,16 +16860,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 9.928465790878034,
-      "ci_low": 8.144498407841235,
+      "ci_high": 0.0969859273750858,
+      "ci_low": 0.0,
       "claimable": null,
       "context": {
         "arm": "bnb-nf4",
-        "count": 356,
+        "count": 0,
         "direction": "destroyed",
-        "n_destroyed": 356,
-        "n_recovered": 897,
-        "net_pp": 13.671973717462723,
+        "n_destroyed": 0,
+        "n_recovered": 922,
+        "net_pp": 23.30048016173869,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16878,8 +16878,8 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 8.996714682840535,
-      "excludes_null": true,
+      "estimate": 0.0,
+      "excludes_null": false,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
       "n": 3957,
@@ -16891,16 +16891,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 27.265722964043576,
-      "ci_low": 24.53744765393949,
+      "ci_high": 27.881877510352,
+      "ci_low": 25.133156811317196,
       "claimable": null,
       "context": {
         "arm": "gptq-4bit",
-        "count": 1024,
+        "count": 1048,
         "direction": "recovered",
-        "n_destroyed": 307,
-        "n_recovered": 1024,
-        "net_pp": 18.11978771796816,
+        "n_destroyed": 0,
+        "n_recovered": 1048,
+        "net_pp": 26.48471063937326,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16909,7 +16909,7 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 25.878190548395246,
+      "estimate": 26.48471063937326,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -16922,16 +16922,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 8.633490977369782,
-      "ci_low": 6.9652514929903155,
+      "ci_high": 0.0969859273750858,
+      "ci_low": 0.0,
       "claimable": null,
       "context": {
         "arm": "gptq-4bit",
-        "count": 307,
+        "count": 0,
         "direction": "destroyed",
-        "n_destroyed": 307,
-        "n_recovered": 1024,
-        "net_pp": 18.11978771796816,
+        "n_destroyed": 0,
+        "n_recovered": 1048,
+        "net_pp": 26.48471063937326,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16940,8 +16940,8 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 7.758402830427091,
-      "excludes_null": true,
+      "estimate": 0.0,
+      "excludes_null": false,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
       "n": 3957,
@@ -16953,16 +16953,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 32.87636147727977,
-      "ci_low": 29.985065436839182,
+      "ci_high": 33.694092627860385,
+      "ci_low": 30.783152557840076,
       "claimable": null,
       "context": {
         "arm": "gptq-8bit",
-        "count": 1243,
+        "count": 1275,
         "direction": "recovered",
-        "n_destroyed": 257,
-        "n_recovered": 1243,
-        "net_pp": 24.917867071013394,
+        "n_destroyed": 0,
+        "n_recovered": 1275,
+        "net_pp": 32.221379833206974,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -16971,7 +16971,7 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 31.41268637856962,
+      "estimate": 32.221379833206974,
       "excludes_null": true,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
@@ -16984,16 +16984,16 @@
       "unit": "pp"
     },
     {
-      "ci_high": 7.305632191427024,
-      "ci_low": 5.76839422958698,
+      "ci_high": 0.0969859273750858,
+      "ci_low": 0.0,
       "claimable": null,
       "context": {
         "arm": "gptq-8bit",
-        "count": 257,
+        "count": 0,
         "direction": "destroyed",
-        "n_destroyed": 257,
-        "n_recovered": 1243,
-        "net_pp": 24.917867071013394,
+        "n_destroyed": 0,
+        "n_recovered": 1275,
+        "net_pp": 32.221379833206974,
         "note": "recovered = low wrong -> high right; destroyed = low RIGHT -> high wrong. Reporting only the net hides the destruction rate, which nobody reports for flexible extraction.",
         "registered_in": "R27.1",
         "rungs": [
@@ -17002,8 +17002,8 @@
         ],
         "task": "gsm8k_cot"
       },
-      "estimate": 6.494819307556229,
-      "excludes_null": true,
+      "estimate": 0.0,
+      "excludes_null": false,
       "floor": null,
       "interval_method": "Wilson interval on a single proportion",
       "n": 3957,
@@ -17017,352 +17017,352 @@
   ],
   "rung_monotonicity_violations": [
     {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-16",
+      "arm": "bf16",
+      "item_key": "llama-3.1-8b|bbh|dyck_languages|idx-81",
       "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "dyck_languages",
+      "task": "bbh"
+    },
+    {
+      "arm": "bf16",
+      "item_key": "llama-3.1-8b|bbh|dyck_languages|idx-81",
+      "repeat_idx": 1,
+      "subtask": "dyck_languages",
+      "task": "bbh"
+    },
+    {
+      "arm": "bnb-nf4",
+      "item_key": "llama-3.1-8b|bbh|dyck_languages|idx-0",
+      "repeat_idx": 0,
+      "subtask": "dyck_languages",
+      "task": "bbh"
+    },
+    {
+      "arm": "gptq-4bit",
+      "item_key": "llama-3.1-8b|bbh|dyck_languages|idx-0",
+      "repeat_idx": 0,
+      "subtask": "dyck_languages",
+      "task": "bbh"
+    },
+    {
+      "arm": "gptq-4bit",
+      "item_key": "llama-3.1-8b|bbh|dyck_languages|idx-0",
+      "repeat_idx": 1,
+      "subtask": "dyck_languages",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-19",
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-40",
       "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "boolean_expressions",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-38",
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-148",
       "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "boolean_expressions",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-43",
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-151",
       "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "boolean_expressions",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-138",
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-193",
       "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "boolean_expressions",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-151",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-40",
+      "repeat_idx": 1,
+      "subtask": "boolean_expressions",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-174",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-148",
+      "repeat_idx": 1,
+      "subtask": "boolean_expressions",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-207",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-151",
+      "repeat_idx": 1,
+      "subtask": "boolean_expressions",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-228",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-193",
+      "repeat_idx": 1,
+      "subtask": "boolean_expressions",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-277",
+      "item_key": "phi-3.5-mini|bbh|logical_deduction_five_objects|idx-95",
       "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "logical_deduction_five_objects",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-289",
+      "item_key": "phi-3.5-mini|bbh|logical_deduction_five_objects|idx-122",
       "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "logical_deduction_five_objects",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-363",
+      "item_key": "phi-3.5-mini|bbh|logical_deduction_five_objects|idx-193",
       "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "logical_deduction_five_objects",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-390",
+      "item_key": "phi-3.5-mini|bbh|logical_deduction_five_objects|idx-245",
       "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "logical_deduction_five_objects",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-466",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "item_key": "phi-3.5-mini|bbh|logical_deduction_five_objects|idx-95",
+      "repeat_idx": 1,
+      "subtask": "logical_deduction_five_objects",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-490",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "item_key": "phi-3.5-mini|bbh|logical_deduction_five_objects|idx-122",
+      "repeat_idx": 1,
+      "subtask": "logical_deduction_five_objects",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-519",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "item_key": "phi-3.5-mini|bbh|logical_deduction_five_objects|idx-193",
+      "repeat_idx": 1,
+      "subtask": "logical_deduction_five_objects",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-596",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "item_key": "phi-3.5-mini|bbh|logical_deduction_five_objects|idx-245",
+      "repeat_idx": 1,
+      "subtask": "logical_deduction_five_objects",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-606",
+      "item_key": "phi-3.5-mini|bbh|multistep_arithmetic_two|idx-40",
       "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "multistep_arithmetic_two",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-628",
+      "item_key": "phi-3.5-mini|bbh|multistep_arithmetic_two|idx-81",
       "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "multistep_arithmetic_two",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-633",
+      "item_key": "phi-3.5-mini|bbh|multistep_arithmetic_two|idx-102",
       "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "multistep_arithmetic_two",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-639",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "item_key": "phi-3.5-mini|bbh|multistep_arithmetic_two|idx-40",
+      "repeat_idx": 1,
+      "subtask": "multistep_arithmetic_two",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-670",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "item_key": "phi-3.5-mini|bbh|multistep_arithmetic_two|idx-81",
+      "repeat_idx": 1,
+      "subtask": "multistep_arithmetic_two",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-683",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "item_key": "phi-3.5-mini|bbh|multistep_arithmetic_two|idx-102",
+      "repeat_idx": 1,
+      "subtask": "multistep_arithmetic_two",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-719",
+      "item_key": "phi-3.5-mini|bbh|object_counting|idx-20",
       "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "object_counting",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-853",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "item_key": "phi-3.5-mini|bbh|object_counting|idx-20",
+      "repeat_idx": 1,
+      "subtask": "object_counting",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-945",
+      "item_key": "phi-3.5-mini|bbh|word_sorting|idx-98",
       "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "word_sorting",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-974",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "item_key": "phi-3.5-mini|bbh|word_sorting|idx-98",
+      "repeat_idx": 1,
+      "subtask": "word_sorting",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-994",
+      "item_key": "phi-3.5-mini|gsm8k|None|idx-0",
       "repeat_idx": 0,
       "subtask": null,
-      "task": "gsm8k_cot"
+      "task": "gsm8k"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-1013",
+      "item_key": "phi-3.5-mini|gsm8k|None|idx-55",
       "repeat_idx": 0,
       "subtask": null,
-      "task": "gsm8k_cot"
+      "task": "gsm8k"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-1099",
+      "item_key": "phi-3.5-mini|gsm8k|None|idx-640",
       "repeat_idx": 0,
       "subtask": null,
-      "task": "gsm8k_cot"
+      "task": "gsm8k"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-1100",
+      "item_key": "phi-3.5-mini|gsm8k|None|idx-914",
       "repeat_idx": 0,
       "subtask": null,
-      "task": "gsm8k_cot"
+      "task": "gsm8k"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-1187",
+      "item_key": "phi-3.5-mini|gsm8k|None|idx-1027",
       "repeat_idx": 0,
       "subtask": null,
-      "task": "gsm8k_cot"
+      "task": "gsm8k"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-1199",
+      "item_key": "phi-3.5-mini|gsm8k|None|idx-1098",
       "repeat_idx": 0,
       "subtask": null,
-      "task": "gsm8k_cot"
+      "task": "gsm8k"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-1275",
+      "item_key": "phi-3.5-mini|gsm8k|None|idx-1282",
       "repeat_idx": 0,
       "subtask": null,
-      "task": "gsm8k_cot"
+      "task": "gsm8k"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-1286",
+      "item_key": "phi-3.5-mini|gsm8k|None|idx-1295",
       "repeat_idx": 0,
       "subtask": null,
-      "task": "gsm8k_cot"
+      "task": "gsm8k"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-1288",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-1292",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-16",
+      "item_key": "phi-3.5-mini|gsm8k|None|idx-0",
       "repeat_idx": 1,
       "subtask": null,
-      "task": "gsm8k_cot"
+      "task": "gsm8k"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-19",
+      "item_key": "phi-3.5-mini|gsm8k|None|idx-55",
       "repeat_idx": 1,
+      "subtask": null,
+      "task": "gsm8k"
+    },
+    {
+      "arm": "awq-4bit",
+      "item_key": "phi-3.5-mini|gsm8k|None|idx-640",
+      "repeat_idx": 1,
+      "subtask": null,
+      "task": "gsm8k"
+    },
+    {
+      "arm": "awq-4bit",
+      "item_key": "phi-3.5-mini|gsm8k|None|idx-914",
+      "repeat_idx": 1,
+      "subtask": null,
+      "task": "gsm8k"
+    },
+    {
+      "arm": "awq-4bit",
+      "item_key": "phi-3.5-mini|gsm8k|None|idx-1027",
+      "repeat_idx": 1,
+      "subtask": null,
+      "task": "gsm8k"
+    },
+    {
+      "arm": "awq-4bit",
+      "item_key": "phi-3.5-mini|gsm8k|None|idx-1098",
+      "repeat_idx": 1,
+      "subtask": null,
+      "task": "gsm8k"
+    },
+    {
+      "arm": "awq-4bit",
+      "item_key": "phi-3.5-mini|gsm8k|None|idx-1282",
+      "repeat_idx": 1,
+      "subtask": null,
+      "task": "gsm8k"
+    },
+    {
+      "arm": "awq-4bit",
+      "item_key": "phi-3.5-mini|gsm8k|None|idx-1295",
+      "repeat_idx": 1,
+      "subtask": null,
+      "task": "gsm8k"
+    },
+    {
+      "arm": "awq-4bit",
+      "item_key": "phi-3.5-mini|gsm8k_cot|None|idx-179",
+      "repeat_idx": 0,
       "subtask": null,
       "task": "gsm8k_cot"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-38",
-      "repeat_idx": 1,
+      "item_key": "phi-3.5-mini|gsm8k_cot|None|idx-220",
+      "repeat_idx": 0,
       "subtask": null,
       "task": "gsm8k_cot"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-43",
-      "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-138",
-      "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-151",
-      "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-174",
-      "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-207",
-      "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-228",
-      "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-277",
-      "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-289",
-      "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-363",
-      "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-390",
-      "repeat_idx": 1,
+      "item_key": "phi-3.5-mini|gsm8k_cot|None|idx-360",
+      "repeat_idx": 0,
       "subtask": null,
       "task": "gsm8k_cot"
     }
@@ -17383,340 +17383,151 @@
       "task": "bbh"
     },
     {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-16",
+      "arm": "gptq-4bit",
+      "item_key": "llama-3.1-8b|bbh|dyck_languages|idx-0",
       "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "dyck_languages",
+      "task": "bbh"
     },
     {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-19",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-38",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-43",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-138",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-151",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-174",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-207",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-228",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-277",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-289",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-363",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-390",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-466",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-490",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-519",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-596",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-606",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-628",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-633",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-639",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-670",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-683",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-719",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-853",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-945",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-974",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-994",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-1013",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-1099",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-1100",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-1187",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-1199",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-1275",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-1286",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-1288",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-1292",
-      "repeat_idx": 0,
-      "subtask": null,
-      "task": "gsm8k_cot"
-    },
-    {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-16",
+      "arm": "gptq-4bit",
+      "item_key": "llama-3.1-8b|bbh|dyck_languages|idx-0",
       "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "dyck_languages",
+      "task": "bbh"
+    },
+    {
+      "arm": "gptq-4bit",
+      "item_key": "llama-3.1-8b|bbh|logical_deduction_five_objects|idx-122",
+      "repeat_idx": 0,
+      "subtask": "logical_deduction_five_objects",
+      "task": "bbh"
+    },
+    {
+      "arm": "gptq-4bit",
+      "item_key": "llama-3.1-8b|bbh|logical_deduction_five_objects|idx-122",
+      "repeat_idx": 1,
+      "subtask": "logical_deduction_five_objects",
+      "task": "bbh"
+    },
+    {
+      "arm": "gptq-8bit",
+      "item_key": "llama-3.1-8b|bbh|logical_deduction_five_objects|idx-210",
+      "repeat_idx": 0,
+      "subtask": "logical_deduction_five_objects",
+      "task": "bbh"
+    },
+    {
+      "arm": "gptq-8bit",
+      "item_key": "llama-3.1-8b|bbh|logical_deduction_five_objects|idx-210",
+      "repeat_idx": 1,
+      "subtask": "logical_deduction_five_objects",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-19",
-      "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-9",
+      "repeat_idx": 0,
+      "subtask": "boolean_expressions",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-38",
-      "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-65",
+      "repeat_idx": 0,
+      "subtask": "boolean_expressions",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-43",
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-9",
       "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "boolean_expressions",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-138",
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-65",
       "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "boolean_expressions",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-151",
-      "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "item_key": "phi-3.5-mini|bbh|logical_deduction_five_objects|idx-72",
+      "repeat_idx": 0,
+      "subtask": "logical_deduction_five_objects",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-174",
-      "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "item_key": "phi-3.5-mini|bbh|logical_deduction_five_objects|idx-217",
+      "repeat_idx": 0,
+      "subtask": "logical_deduction_five_objects",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-207",
+      "item_key": "phi-3.5-mini|bbh|logical_deduction_five_objects|idx-72",
       "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "logical_deduction_five_objects",
+      "task": "bbh"
     },
     {
       "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-228",
+      "item_key": "phi-3.5-mini|bbh|logical_deduction_five_objects|idx-217",
       "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "logical_deduction_five_objects",
+      "task": "bbh"
     },
     {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-277",
-      "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "arm": "bf16",
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-197",
+      "repeat_idx": 0,
+      "subtask": "boolean_expressions",
+      "task": "bbh"
     },
     {
-      "arm": "awq-4bit",
-      "item_key": "llama-3.1-8b|gsm8k_cot|None|idx-289",
+      "arm": "bf16",
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-197",
       "repeat_idx": 1,
-      "subtask": null,
-      "task": "gsm8k_cot"
+      "subtask": "boolean_expressions",
+      "task": "bbh"
+    },
+    {
+      "arm": "bnb-nf4",
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-43",
+      "repeat_idx": 0,
+      "subtask": "boolean_expressions",
+      "task": "bbh"
+    },
+    {
+      "arm": "gptq-4bit",
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-56",
+      "repeat_idx": 0,
+      "subtask": "boolean_expressions",
+      "task": "bbh"
+    },
+    {
+      "arm": "gptq-4bit",
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-137",
+      "repeat_idx": 0,
+      "subtask": "boolean_expressions",
+      "task": "bbh"
+    },
+    {
+      "arm": "gptq-4bit",
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-56",
+      "repeat_idx": 1,
+      "subtask": "boolean_expressions",
+      "task": "bbh"
+    },
+    {
+      "arm": "gptq-4bit",
+      "item_key": "phi-3.5-mini|bbh|boolean_expressions|idx-137",
+      "repeat_idx": 1,
+      "subtask": "boolean_expressions",
+      "task": "bbh"
     }
   ],
   "rungs": [

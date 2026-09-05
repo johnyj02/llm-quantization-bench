@@ -31,9 +31,15 @@ import re
 import signal
 import threading
 from collections.abc import Callable, Sequence
+from pathlib import Path
 from typing import Literal
 
-EXTRACT_VERSION = "1.1.0"   # 1.1.0: added rung 1b (strict_last), planner ruling R1.4
+EXTRACT_VERSION = "1.2.0"   # 1.1.0: added rung 1b (strict_last), planner ruling R1.4
+#                           # 1.2.0: A5's registered UNIT stripping, absent on every
+#                           #        non-LaTeX path. 93.2% of main-v1's rung-monotonicity
+#                           #        violations were this gap. A16/A17 requires the version
+#                           #        bump so re-scored outputs are never confused with the
+#                           #        pre-fix ones.
 
 # ---------------------------------------------------------------------------
 # Rung 1 -- harness regexes, verbatim from vendor/lm-eval-configs/ (v0.4.12).
@@ -57,9 +63,40 @@ STRICT_PATTERNS: dict[str, str] = {
 # gsm8k / gsm8k_cot flexible-extract, shared. group_select=-1.
 FLEXIBLE_PATTERN = r"(-?[$0-9.,]{2,})|(-?[0-9]+)"
 
-NUMERIC_TASKS = frozenset(
-    {"gsm8k", "gsm8k_cot", "bbh:multistep_arithmetic_two", "bbh:object_counting"}
-)
+def _numeric_tasks_from_config() -> frozenset[str]:
+    """Task keys whose `answer_type` is `numeric`, READ from `configs/tasks.yaml`.
+
+    🚨 Deliberately read rather than retyped. A hardcoded frozenset here disagreed with the
+    config it duplicates: it omitted `gsm8k_cot_hashmarker`, which `tasks.yaml` declares
+    `answer_type: numeric`. That arm has not run yet so no number was wrong, but it is the
+    same shape as `HARNESS_UNTIL`, which drifted from its config and became a CRITICAL that
+    reported `TRUNC_STOPSEQ` as 0.0% for BBH in every arm for weeks. The rule this project
+    keeps relearning is that a value declared in a config and retyped in code will drift.
+
+    Falls back to the previously hardcoded set if the config cannot be read, because a
+    scorer must remain importable without the repo layout; the fallback is a superset-safe
+    subset and is flagged in the module's own tests.
+    """
+    try:
+        import yaml  # noqa: PLC0415 - only needed to read the declaration
+
+        configs = Path(__file__).resolve().parents[3] / "configs" / "tasks.yaml"
+        tasks = yaml.safe_load(configs.read_text())["tasks"]
+    except Exception:  # noqa: BLE001 - see the docstring; importability wins here
+        return frozenset(
+            {"gsm8k", "gsm8k_cot", "bbh:multistep_arithmetic_two", "bbh:object_counting"}
+        )
+    keys: set[str] = set()
+    for name, config in tasks.items():
+        if config.get("answer_type") == "numeric":
+            keys.add(name)
+        for subtask in config.get("subtasks") or ():
+            if subtask.get("answer_type") == "numeric":
+                keys.add(f"{name}:{subtask['name']}")
+    return frozenset(keys)
+
+
+NUMERIC_TASKS = _numeric_tasks_from_config()
 
 # Rung-2 rules split by what they EVIDENCE, which is not the same as whether
 # they yield a string.
@@ -406,7 +443,7 @@ def extract_permissive(
         raw = rule(generation)
         if raw is None:
             continue
-        value = normalise_answer(raw)
+        value = normalise_answer(raw, numeric=is_numeric)
         if value:
             return Extraction(value=value, rung="permissive", rule=rule_name)
 
@@ -519,6 +556,8 @@ def extract_permissive_anchored(
     **extraction surface**. §1.3 justified it assuming the latter. It does not weaken H6's test, but
     it is stated because a reviewer reading the filter list will notice.
     """
+    # Same declared-type scoping as rung 2, read from the config rather than retyped.
+    is_numeric = _task_key(task, subtask) in NUMERIC_TASKS
     span = _first_commitment_span(generation)
 
     # 1. The strongest marker first, and this ordering is load-bearing. For `gsm8k`, rung 1's
@@ -527,13 +566,13 @@ def extract_permissive_anchored(
     #    monotonicity property rung 2a exists to have.
     raw = _apply_harness_regex(r"####\s*(.+)", generation, 0)
     if raw is not None:
-        value = normalise_answer(raw)
+        value = normalise_answer(raw, numeric=is_numeric)
         if value:
             return Extraction(value=value, rung="permissive_anchored", rule="hash_marker")
 
     raw = _extract_boxed(generation)
     if raw is not None:
-        value = normalise_answer(raw)
+        value = normalise_answer(raw, numeric=is_numeric)
         if value:
             return Extraction(value=value, rung="permissive_anchored", rule="boxed")
 
@@ -542,7 +581,7 @@ def extract_permissive_anchored(
         tail = generation[span[1]:].strip()
         if tail:
             tail = re.split(r"[\n\r]|(?<=[0-9A-Za-z\)\}])\.(?:\s|$)", tail, maxsplit=1)[0]
-            value = normalise_answer(tail.strip())
+            value = normalise_answer(tail.strip(), numeric=is_numeric)
             if value:
                 return Extraction(value=value, rung="permissive_anchored",
                                   rule="first_commitment_phrase")
@@ -560,7 +599,7 @@ def extract_permissive_anchored(
         raw = rule(scope)
         if raw is None:
             continue
-        value = normalise_answer(raw)
+        value = normalise_answer(raw, numeric=is_numeric)
         if value:
             return Extraction(value=value, rung="permissive_anchored", rule=rule_name)
 
@@ -578,10 +617,50 @@ _TEXT_WRAPPER_RE = re.compile(r"\\(?:text|mathrm|mbox)\s*\{([^}]*)\}")
 _CURRENCY_CHARS = "$€£%"
 
 
-def normalise_answer(candidate: str) -> str:
+#: A numeric answer followed by ANY non-digit continuation, whether space-separated
+#: (`"5 days"`, `"84 grains"`) or attached (`"48g"`, `"50%"`, `"6th place"`, `"2:00 pm"`).
+#:
+#: ⚠️ The first version required whitespace and so missed 41 of the 2,109 cases, all of them
+#: attached suffixes. Measured, not guessed: the census was re-run against the fix.
+#:
+#: The number must be the FIRST thing in the value, which is what makes this safe. It cannot
+#: rewrite `"a, b"`, a word-list answer or a boolean, and it cannot pick a number out of
+#: prose. First-match is also the right selection for a COMMITTED span: the number the model
+#: committed to is the one it wrote first, so `"2:00 pm"` is 2 rather than 0. Applying the
+#: harness's own `group_select=-1` to the span would return `"00"` here, which is why the
+#: harness rule is right for a whole generation and wrong for an already-extracted answer.
+_NUMBER_THEN_TEXT = re.compile(r"^(-?\d[\d,.]*)(?=\D).*$", re.DOTALL)
+
+
+def normalise_answer(candidate: str, *, numeric: bool = False) -> str:
     """Pre-registered normalisation. Order is fixed by the pre-registration.
 
     Returns "" when nothing survives, which callers treat as "no candidate".
+
+    ``numeric`` selects the UNIT-STRIPPING branch, and is passed by callers that know the
+    task's declared `answer_type`. It defaults to False so no existing caller changes
+    behaviour by accident.
+
+    🚨 **Why the numeric branch exists.** `EXECUTOR-TASKS.md` A5 registers rung 2 as doing
+    *"comma/currency/unit stripping"*. Comma and currency stripping were implemented; unit
+    stripping existed only as `_MINERVA_REMOVE_UNITS`, which matches units inside a
+    `\text{...}` LaTeX wrapper. A plain-prose `"5 days"` has no wrapper, so one third of a
+    registered triple was absent on every non-LaTeX path.
+
+    The cost was measured by census over all 105,950 `main-v1` records
+    (`scripts/census_monotonicity.py`): **2,068 of 2,218 rung-monotonicity violations,
+    93.2%,** were this gap. `commitment_phrase` returned the correct number with its unit
+    attached, the match then failed, and the study recorded it as flexible extraction
+    *destroying* a correct answer.
+
+    ⚠️ **This does NOT change rung 2's registered semantics, and that distinction is the
+    reason the fix is admissible.** R27.1 established that rung 2's last-candidate rule IS
+    lm-eval's `flexible-extract`, and that replacing it would destroy the thing being
+    measured. But lm-eval's regex is `(-?[$0-9.,]{2,})|(-?[0-9]+)`, which admits no letter,
+    so it cannot return `"5 days"` and never did: verified by execution that the harness rule
+    alone returns `5`, `84` and `230` on the three traced texts. The unit-suffixed value came
+    from `commitment_phrase`, which is OUR addition ordered ahead of the harness rule. So this
+    repair moves rung 2 back **toward** published practice rather than away from it.
     """
     text = candidate.strip()
 
@@ -598,6 +677,17 @@ def normalise_answer(candidate: str) -> str:
     text = re.sub(r"\.$", "", text.strip())
     text = _minerva_normalize(text)
     text = re.sub(r"\s+", " ", text).strip()
+
+    # A5's unit stripping, applied only where the task DECLARES a numeric answer. Scoped by
+    # declared type rather than by inspecting the value, so extraction stays a pure,
+    # gold-blind function of the generation: conditioning control flow on "did this parse as
+    # a number" is one step from conditioning on the gold, which is what SS4.0 exists to stop.
+    if numeric:
+        match = _NUMBER_THEN_TEXT.match(text)
+        if match:
+            text = match.group(1)
+            text = re.sub(r"(?<=\d)[,_](?=\d\d\d\b)", "", text)
+            text = re.sub(r"\.$", "", text)
     return text
 
 

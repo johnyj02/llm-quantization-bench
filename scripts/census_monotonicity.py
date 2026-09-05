@@ -20,27 +20,40 @@ subsample**, explicitly not a sample: sampling a population whose taxonomy you a
 revising cannot show you the class you do not yet know about, and the *unclassified
 residual* is the number that matters.
 
-🚨 **WHAT THE CENSUS FOUND, AND IT REVERSES THE REGISTERED READING.** Two of the four
-classes are **defects in our own rung-2 parser**, not properties of published practice:
+🚨 **WHAT THE CENSUS FOUND, AND IT REVERSED THE REGISTERED READING.**
 
-| class | what | count | share | whose |
+**Corrected in place on 2026-09-05 (D16), because the fix this census motivated has landed
+and the numbers below moved.** This section previously reported the pre-fix census as the
+finding; it is now reported as the *before* column, because the before/after pair is the
+evidence that the defect was real.
+
+| class | what | BEFORE | AFTER | whose |
 |---|---|---|---|---|
-| `D1_unit_attached` | permissive returned the RIGHT answer with a unit or trailing text (`'5 days'` for gold `'5'`) and failed the match | 2,068 | 93.2% | **ours** |
-| `D3_prose_captured` | `commitment_phrase` matched *"The answer is derived by following the order of operations…"* and captured the sentence | 36 | 1.6% | **ours** |
-| `B_number` | the model committed several times; permissive took a later, wrong NUMBER | 35 | 1.6% | genuine |
-| `B_token` | same, for a short non-numeric answer (`'True'` for gold `'False'`) | 79 | 3.6% | genuine |
+| `D1_unit_attached` | permissive returned the RIGHT answer with a unit attached (`'5 days'`, `'48g'`, `'2:00 pm'`) and failed the match | **2,068** | **2** | **ours** |
+| `D3_prose_captured` | `commitment_phrase` matched *"The answer is derived by following the order of operations…"* and captured the sentence | 36 | **30** | **ours, UNFIXED** |
+| `B_number` | the model committed several times; permissive took a later, wrong NUMBER | 35 | 35 | genuine |
+| `B_token` | same, for a short non-numeric answer (`'True'` for gold `'False'`) | 79 | 29 | genuine |
+| `C_strict_accidentally_right` | R27's class C: rung 1 right ONLY because BBH's regex drops the final character | (miscounted as D1) | 5 | neither |
+| **total** | | **2,218** | **101** | |
 
-⇒ **Genuine destruction is 114, not 2,218.** Against ~15,873 recovered that is 0.72%, and
-`pilot-v2` measured 6 against 914, or 0.66%. **The pilot's RATE was correct; the apparent
-20-fold inflation at reference n was entirely our own parser.**
+⇒ **Genuine destruction is 64, not 2,218.** The registered *rate* was never wrong: 64 over
+~15,873 recovered is 0.40%, and `pilot-v2` measured 6 over 914, or 0.66%. **The pilot's rate
+was right and the apparent twenty-fold inflation at reference n was entirely our own
+parser.** What changed is the count and therefore the weight the finding can carry.
 
 ⚠️ **The two defect classes cannot come from lm-eval's flexible-extract.** Its regex is
-`(-?[$0-9.,]{2,})|(-?[0-9]+)`, which admits no letter, so it cannot return `'5 days'`.
-Both come from `commitment_phrase`, which is **our addition**, ordered ahead of the harness
-rule, and which therefore returns a strictly worse answer than published practice would on
-this population. That is why repairing it moves rung 2 **toward** the harness rather than
-away from it, and so does not run into R27.1's prohibition on changing rung 2's
-last-candidate semantics.
+`(-?[$0-9.,]{2,})|(-?[0-9]+)`, which admits no letter, so it cannot return `'5 days'`. Both
+come from `commitment_phrase`, which is **our addition**, ordered ahead of the harness rule,
+returning a strictly worse answer than published practice would on this population. Verified
+by execution that the harness rule alone returns the gold on the traced texts. So repairing
+`D1` moved rung 2 **toward** the harness and did not touch R27.1's last-candidate semantics.
+
+🚨 **`D3` IS LEFT UNFIXED ON PURPOSE, and the reason is a boundary rather than effort.**
+Repairing `D1` restored a normalisation step `A5` already registers, so it needed no ruling.
+Rejecting a commitment phrase whose continuation is prose is not a restoration of anything
+registered: it decides what counts as a commitment, which is what rung 2 *is*. That is the
+planner's. Until it is ruled on, 30 of the 101 violations are known to be ours and are
+reported as such rather than counted as destruction.
 
 ⚠️ **Run this again after any change to `extract.py`.** The counts above are what a
 registered number was restated on, so a silent drift here is a silent drift in §5a.
@@ -65,6 +78,10 @@ from quantartifact.scoring import extract  # noqa: E402
 #: A value that is only digits, separators and an optional sign. Anything else on a numeric
 #: task means the extractor kept text it should have stripped.
 _NUMERIC_ONLY = re.compile(r"^\s*-?[\d,.]+\s*$")
+
+#: A value made only of bracket/paren tokens and whitespace, which is what BBH's
+#: `dyck_languages` answers are. Used to separate R27's class C from a unit-attached defect.
+_CLASS_C_TASKS_RE = re.compile(r"^[\[\]\(\)\{\}<>\s]+$")
 
 #: Above this many whitespace-separated words, a permissive value is prose rather than an
 #: answer. Deliberately generous: `word_sorting` golds are genuine multi-word lists, so a
@@ -108,6 +125,17 @@ def classify(strict: str, permissive: str) -> str:
     """
     if not permissive:
         return "E_permissive_empty"
+    # 🚨 R27's class C BEFORE the prefix test, or it is swallowed by it. On BBH's free-form
+    # subtasks the model writes `] ] ]` (WRONG) and rung 1 extracts `] ]` (right) only
+    # because BBH's regex drops the final character, a harness defect already pinned under
+    # G3. So rung 1 is ACCIDENTALLY correct and rung 2 reports faithfully what the model
+    # said. `'] ] ]'.startswith('] ]')` is true, so a bare prefix test calls this a
+    # unit-attached defect of ours, which is wrong in both directions: it is neither our
+    # parser's fault nor leniency destroying anything.
+    if strict and permissive.strip().startswith(strict.strip()) and _CLASS_C_TASKS_RE.match(
+        permissive.strip()
+    ):
+        return "C_strict_accidentally_right"
     if strict and permissive.strip().startswith(strict.strip()) and not _NUMERIC_ONLY.match(
         permissive
     ):
@@ -121,6 +149,10 @@ def classify(strict: str, permissive: str) -> str:
 
 #: Which classes are defects in our own parser rather than properties of published practice.
 OURS = {"D1_unit_attached", "D3_prose_captured"}
+
+#: Neither our defect nor destruction: rung 1 is accidentally correct via a harness defect
+#: (R27's class C), so it is reported separately rather than folded into either total.
+NEITHER = {"C_strict_accidentally_right"}
 
 
 def main() -> int:
@@ -170,14 +202,16 @@ def main() -> int:
 
     total = sum(by_class.values())
     ours = sum(n for k, n in by_class.items() if k in OURS)
-    genuine = total - ours
+    neither = sum(n for k, n in by_class.items() if k in NEITHER)
+    genuine = total - ours - neither
 
     print(f"\n{'class':30} {'n':>6} {'share':>8}  owner")
     print("-" * 60)
     for klass, n in by_class.most_common():
         print(f"  {klass:28} {n:>6} {n / total:>7.1%}  "
-              f"{'OURS (parser defect)' if klass in OURS else 'genuine'}")
+              f"{'OURS (parser defect)' if klass in OURS else ('neither' if klass in NEITHER else 'genuine')}")
     print(f"\n  OUR PARSER DEFECTS : {ours:>6} {ours / total:>7.1%}")
+    print(f"  NEITHER (class C)  : {neither:>6} {neither / total:>7.1%}")
     print(f"  GENUINE destruction: {genuine:>6} {genuine / total:>7.1%}")
 
     # 🚨 The audit subsample R37.Q1 requires, so classifier error is BOUNDED rather than
@@ -195,6 +229,7 @@ def main() -> int:
         "n_violations": total,
         "by_class": dict(by_class),
         "n_ours": ours,
+        "n_neither": neither,
         "n_genuine": genuine,
         "our_classes": sorted(OURS),
         "by_class_task": {f"{t}|{s}|{c}": n for (t, s, c), n in sorted(by_class_task.items())},
