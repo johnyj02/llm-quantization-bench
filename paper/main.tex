@@ -670,10 +670,26 @@ generative, 3 models x 3 arms. The gap between modes IS the extraction cost, mea
 directly. Report alongside the exactly-zero generative interaction and its \S9h bound
 ($\pm$0.51 pp at $n$=1500), so the control rests on the pairing rather than on an easy task.}
 
-\subsection{Statistical resolution of published deltas (H7)}
-\label{sec:h7}
-\todo{H7 --- scrupulously neutral: "many papers report aggregate deltas without
-a paired test", NEVER "the deltas are noise".}
+% 🚨 H7's COUNTED AUDIT IS CUT (R41.3), and the reasoning is worth keeping because the
+% temptation was to report it partially.
+%
+% R41.3 was explicit: finish all ~14 cited papers reporting a delta in one sitting, or cut it.
+% "Four of fourteen is not an audit and invites 'why these four?'" -- and the honest answer to
+% that question would be "those are the four whose sources were easiest to verify", which is a
+% selection rule nobody should accept. No middle option was offered and none is taken.
+%
+% We cannot complete it to a standard we would defend, so the COUNTED claim is dropped. The
+% GENERAL claim survives on stronger evidence than ours would have been: R19.3 already directs
+% us to cite Pape et al., whose survey of 35,000 publications finds only 36% of papers without
+% released code name even their inference backend. That is a field-level claim with a field-level
+% sample, and substituting our own N-of-14 for it would have been weaker, not stronger.
+%
+% What the four verified papers ARE used for, in Related Work rather than as a counted survey:
+% Kurtic reports neither the chat-template setting nor the extraction mode and released no eval
+% code; Red Hat documents both fully AND records a revision "after Meta modified the chat
+% template", which is third-party evidence that the template moves published numbers. Those are
+% cited as instances, never as a rate.
+
 
 %---------------------------------------------------------------------------
 \section{Discussion}
@@ -807,6 +823,17 @@ therefore report the point estimate and the Manski bounds together for every cel
 with the stratum size as a first-class number, rather than presenting a point
 estimate whose subgroup is too small to support it. Wide bounds are reported as
 wide. The decomposition is a supporting analysis in this paper, not a headline.
+
+\paragraph{We do not report a counted survey of protocol reporting.}
+Our pre-registration includes an audit computing, for each published degradation
+figure we cite, the confidence interval implied by that paper's own evaluation
+size. We verified four sources and stopped. Reporting four of fourteen would
+invite the question of why those four, and the honest answer would be that they
+were the four easiest to verify, which is not a selection rule a reader should
+accept. We therefore make the general claim on \citet{pape2026silent}'s survey of
+35{,}000 publications, which finds that only 36\% of papers without released code
+name even their inference backend, and we cite our four verified cases as
+instances rather than as a rate.
 
 \paragraph{Two registered hypotheses are not reported, and we name them rather than omit them.}
 Our pre-registration includes two hypotheses we do not report. H2, the rate at
