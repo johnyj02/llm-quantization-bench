@@ -1748,4 +1748,81 @@ defensible research practice rather than a concealed one.
 
 ## Amendments
 
-*(none — append dated entries below the freeze commit only)*
+### A1 — 2026-09-05 · §9f's registered invocation floor measured DEGENERATE. Estimator moved to a cross-job measurement
+
+**Planner ruling R36.** Amends §9f's estimator and three dependents. ⚠️ Written **after** the
+freeze, which is why the justification is given in full rather than asserted.
+
+**What was registered.** §9f made the class-3 floor *"the per-arm invocation SD, estimated from
+the **K=2 cells at reference n**, pooled across cells"*, and specified those repeats **inside**
+`main-v1` so the two invocations would be contemporaneous, on the reasoning that *"days-apart
+reruns would add driver and software drift as a confound"*.
+
+**What was measured.** `main-v1` ran all 10 registered K=2 cells. The two invocations have
+different pids, are separate engine loads, and ran up to **4 hours apart** inside the job. Text
+divergence: **0 of 4,238 items on every cell** — 20 invocations, **42,380 item-pairs, zero
+differences**, including `llama-3.1-8b|bf16`, the cell that diverged on **41–45%** of items
+*between* `pilot-v1` and `pilot-v2`.
+
+⇒ **Within-job invocations are bitwise reproducible. The nondeterminism is CROSS-JOB only.**
+So the registered estimator returns **0.000 pp**.
+
+🚨 **Why 0.000 is the wrong floor, and this is the crux.** Within-job determinism does not make
+the between-arm delta noise-free; it makes it **fixed given a job**. Cell X always yields `O_X`
+within this job, so the delta is deterministic here — but re-run the job and `O'_X ≠ O_X`, and the
+delta moves. **A scientific claim is a claim about what another run would find, not about what our
+job found.** The floor must therefore be the **cross-job** floor.
+
+**Amended estimator.** The class-3 floor is the **cross-job** per-arm invocation SD, measured at
+reference n from a dedicated job re-running `llama-3.1-8b|bf16`, `llama-3.1-8b|gptq-4bit` and
+`qwen2.5-3b|bf16` under `main-v1`'s exact image, config and instance type, so the **only**
+difference is the job boundary. Driver and CUDA versions are recorded on both sides.
+
+- The 1/√n extrapolation from the `pilot-v1`-vs-`pilot-v2` figures (0.36 pp per arm, 0.51 pp
+  class-3) is reported **alongside, as a validation of the scaling law**, not as the estimate.
+  Agreement supports both; disagreement is itself reportable, and it is why the direct measurement
+  is preferred: the extrapolation spans 15× (n=180 → 2,719) on a law verified over a much
+  narrower range.
+- ⚠️ **Driver and software drift is not purely a confound.** It is part of what a third party
+  faces, so a reproducibility floor excluding it is narrower than the claim we want. Within days
+  on one ECR image and instance type it is small. The amendment therefore trades a small drift
+  term for removing a 15× extrapolation, and says so.
+
+**🚨 Three reasons this is defensible after the freeze, stated so a reviewer need not infer them:**
+
+1. §9f registered the **estimator**, and the registered measurement turned out **degenerate**.
+   This is the same situation as §9h's zero-variance bound (R25.1), which likewise required a
+   documented fallback when the registered construction returned nothing.
+2. **The amendment moves the floor from 0 UPWARD, which makes every claim HARDER.** It cannot be
+   a specification search in our own favour, and that asymmetry is the point.
+3. **§9f's own design choice caused the degeneracy**, and its reasoning was sound. Recording that
+   is more honest than presenting the cross-job design as what we meant all along.
+
+**🚨 AND THE √2 CREDIT IS WITHDRAWN.** R23.1 justified K=2 partly as *"we can average the two
+invocations per arm, which halves the invocation variance entering the interaction."* **Averaging
+two identical runs reduces nothing**, and the cross-job variance is untouched because both
+invocations sat in one job. So **H3 binds to the FULL cross-job floor with no √2 discount**, and
+its expected resolution is worse than R23 projected. §9f's preliminary table (0.25 pp after K=2
+averaging) is void in its K=2 column.
+
+**Four dependents, all of which pointed at K=2 and all of which take the cross-job estimate:**
+
+| dependent | was | now |
+|---|---|---|
+| §9f class-3 floor (between-arm, H4, §1.1, §1.3) | K=2 SD | cross-job SD at reference n |
+| §9f class-2 floor (within-arm rung gap) | K=2 SD | cross-job SD at reference n |
+| R28 destruction-rate floor (§5a) | *"measured directly from the K=2 cells"* | cross-job SD at reference n |
+| R22 invocation floor for between-arm accuracy claims | K=2 SD | cross-job SD at reference n |
+
+**§9g is UNAFFECTED** — the stratum defined over *all invocations of all contrasted arms* is,
+with zero within-job divergence, identical to the single-invocation stratum. ⚠️ Noted because it is
+now **stated more strongly than the data requires**, which is harmless but should not be mistaken
+for evidence.
+
+**What K=2 DID deliver, and it is worth more than the floor it failed to give.** *"Within a single
+job, generation is bitwise reproducible; across jobs it is not, so K must be measured across job
+boundaries, not within them."* That warning has teeth precisely because repeating inside one
+process is what a careful person would do, and it is what §9f did and what this amendment exists
+to correct. It also **localises the mechanism**: divergence that is absent within a job and present
+across them rules out per-invocation randomness and GPU state, and points at something compiled or
+cached once per job.

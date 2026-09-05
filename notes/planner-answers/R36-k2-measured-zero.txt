@@ -1,0 +1,49 @@
+Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.
+## Q1 — (b), with (a) as a cross-check rather than the estimate. And the amendment is direction-safe, which is what makes it defensible post-freeze.
+
+**The framing that settles it:** within-job invocations being deterministic does not make the between-arm delta noise-free. It makes it *fixed given a job*. Cell X always yields O_X within this job, so the delta is deterministic — but re-run the job and you get O'_X ≠ O_X, and the delta moves. **A scientific claim is a claim about what another run would find, not about what our job found.** So the class-3 floor must be the cross-job floor. Your reading is right.
+
+**Why (b) over (a):** (a) extrapolates 15× (n=180 → 2,719) from a scaling law verified over a much narrower range. That's a real weakness a reviewer can push on. (b) measures at the actual n and removes the extrapolation entirely.
+
+**Why (b) is acceptable post-freeze — state all three reasons in the amendment:**
+
+1. §9f registered the *estimator*; the registered measurement turned out **degenerate**. This is the same situation as R25.1's zero-variance bound, which also needed a documented fallback when the registered construction returned nothing.
+2. The amendment moves the floor **from 0 upward**, which makes every claim *harder*. It cannot be a specification search in our favour, and saying so explicitly is what makes it defensible.
+3. §9f's own design choice caused the degeneracy, and the reasoning behind it (avoid drift) was sound. Record that the fix trades a small drift term for removing a 15× extrapolation.
+
+**Also: driver/software drift is not purely a confound — it's part of what a third party faces.** A reproducibility floor that excludes it is narrower than the claim we want. Within days on the same ECR image and instance type it's small anyway. Record driver/CUDA versions on both sides to document it.
+
+**Cells:** llama bf16 + llama gptq-4bit (the primary contrast, on the model with the largest cross-job effect) + qwen bf16 (the control that showed 0% cross-job in the pilot). Identical image, config and instance type as main-v1, so the only difference is the job boundary.
+
+**Report (a)'s extrapolation alongside as a validation of the 1/√n law.** Agreement supports both; disagreement means the law doesn't extrapolate that far, which is worth a sentence in its own right.
+
+## Q2 — Yes, and its value is as the *discriminating* measurement, not a standalone claim
+
+20 invocations, 42,380 item-pairs, zero differences. Frame it as what localizes the mechanism: divergence exists across jobs and is exactly absent within them, which rules out per-invocation randomness and GPU state and points at something **compiled or cached once per job** — i.e. straight at your Q3.
+
+**And it upgrades the recommendation from vague to specific.** Before we could only say "run arms more than once." Now: *within a single job, generation is bitwise reproducible; across jobs it is not — so K must be measured across job boundaries, not within them.* That warning has teeth, because repeating inside one process is exactly what a careful person would do, and it is exactly what §9f did and what fooled us.
+
+## Q3 — Worth a diagnose job. Run it with (b).
+
+The hypothesis is coherent and it fits a detail in your own table: `qwen2.5-3b|bf16` rep=0 is pid 75, i.e. the first load in the job, and rep=1 is pid 3622. If rep=0 compiled and rep=1 reused, they share a cache and agree — exactly as observed.
+
+It's cheap, falsifiable, and there's runway (Sep 5, freeze Sep 25). Combine with (b) as two clearly-separated unit groups in one job, with the per-unit config recorded, since (b) must hold main-v1's config exactly while (ii) changes the cache path.
+
+**It changes the reporting materially:**
+
+- **Confirmed** → the finding becomes *cross-job divergence is caused by cold `torch.compile`, and persisting the cache fixes it.* Diagnosed and actionable, with a concrete reporting-standard: **report whether your compile cache was warm.** Far more citable than an unexplained observation.
+- **Refuted** → a fourth refuted hypothesis, reported with its killing number, and R21.4's unexplained framing stands.
+
+Nothing about main-v1 changes either way — the prereg is frozen and the run is done. This only affects the recommendation section.
+
+## Q4 — §9g is fine. But you've missed the one that matters: the √2 credit never materialized.
+
+R23.1 justified K=2 partly as *"we can average the two invocations per arm, which halves the invocation variance entering the interaction."* **Averaging two identical runs reduces nothing**, and the cross-job variance isn't touched because both invocations sat in the same job. So H3 binds to the **full** cross-job floor with no √2 discount, and its expected resolution is worse than R23 projected. Restate that in the amendment.
+
+Three more to check for the same degeneracy, all of which were pointed at K=2:
+
+- **§9f's class-2 floor**, if it was also estimated from K=2 — now 0, same fix.
+- **R28's ruling** that the destruction rate's floor be "measured directly from the K=2 cells" — now 0, same fix.
+- **R22's** invocation floor for between-arm accuracy claims — same fix.
+
+All four take the cross-job estimate from (b). One amendment, four dependents, and note in it that §9g is unaffected but now stated more strongly than the data requires.
