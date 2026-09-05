@@ -659,3 +659,185 @@ def rung_gap_decomposition(
                                   "rate, which nobody reports for flexible extraction.")},
             ))
     return effects
+
+
+#: R38.3's two heterogeneity contrasts, named STRUCTURALLY so magnitude cannot have chosen
+#: them. Each is a difference between two interaction estimates, and the pair is fixed here
+#: rather than passed in, because a caller free to choose the arms would be free to choose the
+#: extreme pair after seeing the estimates.
+#:
+#: 1. ACROSS TASKS with the arm fixed. UNPAIRED, because BBH and gsm8k_cot are different
+#:    items, so the two estimates are independent and their variances add.
+#: 2. ACROSS ARMS with the task fixed. PAIRED, because both arms are scored on the same items,
+#:    so the bootstrap must resample items once and recompute both estimates on the resample.
+#:    GPTQ against AWQ at matched bit width is a structural choice rather than the widest gap.
+HETEROGENEITY_CONTRASTS: tuple[dict, ...] = (
+    {
+        "name": "across_tasks[gptq-4bit: bbh vs gsm8k_cot]",
+        "kind": "unpaired",
+        "arm": "gptq-4bit",
+        "tasks": ("bbh", "gsm8k_cot"),
+    },
+    {
+        "name": "across_arms[gsm8k_cot: gptq-4bit vs awq-4bit]",
+        "kind": "paired",
+        "task": "gsm8k_cot",
+        "arms": ("gptq-4bit", "awq-4bit"),
+    },
+)
+
+
+def contrast_null(contrast: dict) -> float:
+    """The null for a heterogeneity contrast: no difference between the two estimates.
+
+    A named function rather than a literal `0.0`, so the null is stated once and cannot drift
+    between the interval and the p-value. Both must test the same hypothesis or the reported
+    pair is incoherent.
+    """
+    return 0.0
+
+def _interaction_contributions(
+    rows: list[dict], *, task: str, alt_arm: str, reference_arm: str,
+    rungs: tuple[str, str],
+) -> tuple[list[str], dict[str, float]]:
+    """Per-item interaction contributions, keyed by item. The bootstrap's raw material.
+
+    Factored out so the heterogeneity contrasts resample exactly what `interaction_marginal`
+    resamples. Recomputing the estimand here would let the two disagree, which is the defect
+    shape this project has paid for repeatedly.
+    """
+    cells = _collect(rows, task, rungs)
+    for arm in (reference_arm, alt_arm):
+        if arm not in cells:
+            raise InteractionError(f"{task}: arm {arm!r} has no rows")
+    ref, alt = cells[reference_arm], cells[alt_arm]
+    shared = sorted(ref.items & alt.items)
+    if not shared:
+        raise InteractionError(f"{task}: {alt_arm} and {reference_arm} share no items")
+    contrib = {
+        i: float((int(alt.high[i]) - int(alt.low[i])) - (int(ref.high[i]) - int(ref.low[i])))
+        for i in shared
+    }
+    return shared, contrib
+
+
+def heterogeneity_contrast(
+    rows: list[dict],
+    contrast: dict,
+    *,
+    reference_arm: str = "bf16",
+    rungs: tuple[str, str] = HEADLINE_RUNGS,
+    n_boot: int = 10_000,
+    seed: int = 20260905,
+) -> Effect:
+    """Is H3's interaction the SAME across two cells? Registered by R38.3 / prereg §2.
+
+    🚨 **Why this exists, and why it is a test rather than a description.** H3's eight
+    registered estimates disagree in SIGN: BBH `gptq-4bit` is +1.73 while `gsm8k_cot`
+    `gptq-4bit` is −5.21. R37.3 ruled that the per-arm estimates are the substantive result and
+    that the heterogeneity is *more* on-thesis than a uniform effect would be, because the
+    scoring choice changes the apparent quantization effect **differently depending on the
+    method**, so no single correction works.
+
+    But an observed sign disagreement is not a tested one. R41.4 was explicit: the sign
+    disagreement is an asset **only if this test is computed**, and unrun it is *"an unstable
+    result our own parser moved twice"*. That is what this function is for.
+
+    ⚠️ **Direction-neutral by construction.** A CI on the difference between two interaction
+    estimates excludes zero, or it does not; nothing here can be tuned toward heterogeneity or
+    away from it. The two contrasts are fixed in `HETEROGENEITY_CONTRASTS` and named
+    structurally, so magnitude cannot have selected them.
+
+    ⚠️ **Paired and unpaired are handled differently and that difference is load-bearing.**
+    Across tasks the two estimates come from different items, so they are independent and the
+    bootstrap resamples each task's items separately. Across arms they come from the *same*
+    items, so a single resample must recompute both estimates, or the shared-item correlation
+    is discarded and the interval is too wide.
+    """
+    import numpy as np  # noqa: PLC0415
+
+    rng = np.random.default_rng(seed)
+
+    if contrast["kind"] == "unpaired":
+        arm = contrast["arm"]
+        task_a, task_b = contrast["tasks"]
+        items_a, contrib_a = _interaction_contributions(
+            rows, task=task_a, alt_arm=arm, reference_arm=reference_arm, rungs=rungs)
+        items_b, contrib_b = _interaction_contributions(
+            rows, task=task_b, alt_arm=arm, reference_arm=reference_arm, rungs=rungs)
+        vec_a = np.array([contrib_a[i] for i in items_a])
+        vec_b = np.array([contrib_b[i] for i in items_b])
+        point = (vec_a.mean() - vec_b.mean()) * 100.0
+        draws = np.empty(n_boot)
+        for b in range(n_boot):
+            ra = rng.integers(0, len(vec_a), len(vec_a))
+            rb = rng.integers(0, len(vec_b), len(vec_b))
+            draws[b] = (vec_a[ra].mean() - vec_b[rb].mean()) * 100.0
+        n = len(vec_a) + len(vec_b)
+        context = {
+            "kind": "unpaired", "arm": arm, "tasks": [task_a, task_b],
+            "estimate_a_pp": vec_a.mean() * 100.0, "estimate_b_pp": vec_b.mean() * 100.0,
+            "n_items_a": len(vec_a), "n_items_b": len(vec_b),
+            "note": "different items, so the two estimates are independent and each task's "
+                    "items are resampled separately",
+        }
+    else:
+        task = contrast["task"]
+        arm_a, arm_b = contrast["arms"]
+        items_a, contrib_a = _interaction_contributions(
+            rows, task=task, alt_arm=arm_a, reference_arm=reference_arm, rungs=rungs)
+        items_b, contrib_b = _interaction_contributions(
+            rows, task=task, alt_arm=arm_b, reference_arm=reference_arm, rungs=rungs)
+        # 🚨 The SHARED item set, and the count dropped is reported. Two estimates computed over
+        # different item sets are not comparable, which is the same trap `interaction_marginal`
+        # guards with its four-way restriction.
+        shared = sorted(set(items_a) & set(items_b))
+        if not shared:
+            raise InteractionError(f"{task}: {arm_a} and {arm_b} share no items")
+        dropped = len((set(items_a) | set(items_b)) - set(shared))
+        vec_a = np.array([contrib_a[i] for i in shared])
+        vec_b = np.array([contrib_b[i] for i in shared])
+        diff = vec_a - vec_b
+        point = diff.mean() * 100.0
+        draws = np.empty(n_boot)
+        for b in range(n_boot):
+            r = rng.integers(0, len(diff), len(diff))
+            draws[b] = diff[r].mean() * 100.0
+        n = len(shared)
+        context = {
+            "kind": "paired", "task": task, "arms": [arm_a, arm_b],
+            "estimate_a_pp": vec_a.mean() * 100.0, "estimate_b_pp": vec_b.mean() * 100.0,
+            "n_items": n, "n_items_dropped_unpaired": dropped,
+            "note": "SAME items, so one resample recomputes both estimates; resampling them "
+                    "independently would discard the correlation and overstate the interval",
+        }
+
+    low, high = (float(x) for x in np.percentile(draws, [2.5, 97.5]))
+
+    # A two-sided bootstrap p-value, so R38.3's "Holm-correct across the two" is actually
+    # computable. A percentile CI alone gives no p-value, and Holm needs one; without this the
+    # registered multiplicity correction would have been un-runnable and quietly skipped.
+    #
+    # 2 x the smaller tail mass on either side of the null, clamped to [0, 1]. Floored at
+    # 1/n_boot rather than reported as 0.0, because a bootstrap cannot resolve a p-value below
+    # its own resolution and printing 0.0 would claim precision the method does not have.
+    below = float((draws <= contrast_null(contrast)).mean())
+    above = float((draws >= contrast_null(contrast)).mean())
+    p_value = min(1.0, max(1.0 / n_boot, 2.0 * min(below, above)))
+
+    return Effect(
+        name=f"H3_heterogeneity[{contrast['name']}]",
+        estimate=float(point), ci_low=low, ci_high=high, n=n, unit="pp",
+        null_value=0.0, p_value=p_value,
+        test="cluster bootstrap on the difference between two interaction estimates",
+        interval_method=f"percentile cluster bootstrap, {n_boot} draws, seed {seed}",
+        # COMPOUNDING: a difference of two interactions contrasts arms, so independent
+        # invocation noises enter and their variances add (§9f class 3).
+        noise_class=NoiseClass.COMPOUNDING,
+        context={
+            **context, "n_boot": n_boot, "seed": seed, "rungs": list(rungs),
+            "registered": "R38.3 / prereg §2, added 2026-09-05 AFTER the per-arm estimates "
+                          "existed; the contrasts are named structurally so magnitude could "
+                          "not have chosen them",
+        },
+    )

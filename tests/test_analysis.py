@@ -24,6 +24,7 @@ import math
 import pytest
 
 from quantartifact.analysis import (
+    HETEROGENEITY_CONTRASTS,
     Effect,
     NoiseClass,
     StratumError,
@@ -32,6 +33,7 @@ from quantartifact.analysis import (
     compute_bounds,
     compute_stratum,
     decompose,
+    heterogeneity_contrast,
     holm_bonferroni,
     interaction_glmm,
     interaction_marginal,
@@ -885,3 +887,108 @@ class TestReviewRegressions20260902Round3:
             for e in effects:
                 assert math.isfinite(e.estimate)
                 assert math.isfinite(e.ci_low) and math.isfinite(e.ci_high)
+
+
+class TestHeterogeneityContrast:
+    """§2a / R38.3. H3's sign disagreement is an asset only if it is TESTED.
+
+    R41.4: unrun, the disagreement is *"an unstable result our own parser moved twice"*. These
+    pin the properties that make it a test rather than a description.
+    """
+
+    @staticmethod
+    def _rows(spec):
+        """Rows for (task, arm) -> list of (strict_correct, permissive_correct) per item."""
+        rows = []
+        for (task, arm), pairs in spec.items():
+            for i, (lo, hi) in enumerate(pairs):
+                rows.append({
+                    "model_key": "m", "arm": arm, "task": task, "subtask": None,
+                    "item_id": f"i{i}", "budget_level": "1x", "prompt_variant": "fewshot_cot",
+                    "repeat_idx": 0,
+                    # `correct` is a dict keyed by RUNG, matching what `_collect` reads. A flat
+                    # correct_strict/correct_permissive pair looks equivalent and raises.
+                    "correct": {"strict": lo, "permissive": hi},
+                })
+        return rows
+
+    def test_the_registered_pair_is_exactly_two_and_named_structurally(self):
+        """🚨 R38.3 forbids adding a third contrast after seeing the first two.
+
+        Pinned as a test rather than a comment because the temptation is specific and
+        directional: a third contrast would be chosen after the estimates existed, which is the
+        one thing the structural naming exists to prevent.
+        """
+        assert len(HETEROGENEITY_CONTRASTS) == 2
+        kinds = {c["kind"] for c in HETEROGENEITY_CONTRASTS}
+        assert kinds == {"unpaired", "paired"}, (
+            "one contrast must hold the arm fixed across tasks (unpaired) and one hold the task "
+            "fixed across arms (paired); losing either loses a dimension of the claim"
+        )
+        across_arms = next(c for c in HETEROGENEITY_CONTRASTS if c["kind"] == "paired")
+        assert set(across_arms["arms"]) == {"gptq-4bit", "awq-4bit"}, (
+            "the across-arms contrast is GPTQ against AWQ at MATCHED BIT WIDTH, which is a "
+            "structural choice; substituting the widest observed gap would let magnitude pick it"
+        )
+
+    def test_identical_interactions_give_an_interval_covering_zero(self):
+        """The null case. If two cells behave identically the test must not find heterogeneity."""
+        same = [(False, True)] * 40 + [(False, False)] * 40
+        rows = self._rows({
+            ("bbh", "bf16"): [(False, False)] * 80,
+            ("bbh", "gptq-4bit"): same,
+            ("gsm8k_cot", "bf16"): [(False, False)] * 80,
+            ("gsm8k_cot", "gptq-4bit"): same,
+        })
+        effect = heterogeneity_contrast(
+            rows, HETEROGENEITY_CONTRASTS[0], n_boot=400, seed=7)
+        assert effect.ci_low <= 0.0 <= effect.ci_high, (
+            f"identical cells must not read as heterogeneous, got "
+            f"[{effect.ci_low}, {effect.ci_high}]"
+        )
+
+    def test_opposite_interactions_are_detected(self):
+        """The signal case, and the one the paper's claim rests on."""
+        rows = self._rows({
+            ("bbh", "bf16"): [(False, False)] * 60,
+            ("bbh", "gptq-4bit"): [(False, True)] * 60,       # leniency helps the alt arm
+            ("gsm8k_cot", "bf16"): [(False, True)] * 60,      # leniency helps bf16 instead
+            ("gsm8k_cot", "gptq-4bit"): [(False, False)] * 60,
+        })
+        effect = heterogeneity_contrast(
+            rows, HETEROGENEITY_CONTRASTS[0], n_boot=400, seed=7)
+        assert effect.excludes_null, "opposite-signed interactions must be detected"
+        assert effect.estimate > 0
+
+    def test_the_paired_contrast_uses_shared_items_and_reports_drops(self):
+        """⚠️ Two estimates over different item sets are not comparable.
+
+        Same trap `interaction_marginal` guards with its four-way restriction, and the paired
+        contrast has to guard it again because it intersects two already-restricted sets.
+        """
+        rows = self._rows({
+            ("gsm8k_cot", "bf16"): [(False, False)] * 30,
+            ("gsm8k_cot", "gptq-4bit"): [(False, True)] * 30,
+            ("gsm8k_cot", "awq-4bit"): [(False, False)] * 30,
+        })
+        effect = heterogeneity_contrast(
+            rows, HETEROGENEITY_CONTRASTS[1], n_boot=200, seed=7)
+        assert "n_items_dropped_unpaired" in effect.context
+        assert effect.context["kind"] == "paired"
+
+    def test_a_p_value_is_reported_and_floored(self):
+        """Holm needs a p-value, and a bootstrap cannot resolve below its own resolution.
+
+        Reporting 0.0 would claim precision the method does not have, so the floor is 1/n_boot.
+        """
+        rows = self._rows({
+            ("bbh", "bf16"): [(False, False)] * 60,
+            ("bbh", "gptq-4bit"): [(False, True)] * 60,
+            ("gsm8k_cot", "bf16"): [(False, True)] * 60,
+            ("gsm8k_cot", "gptq-4bit"): [(False, False)] * 60,
+        })
+        effect = heterogeneity_contrast(
+            rows, HETEROGENEITY_CONTRASTS[0], n_boot=200, seed=7)
+        assert effect.p_value is not None
+        assert effect.p_value >= 1.0 / 200, "a bootstrap p-value must be floored at 1/n_boot"
+        assert effect.test, "Effect refuses a p-value with no named test beside it"

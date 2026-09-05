@@ -11248,6 +11248,103 @@
   "h3_excluded_tasks": [
     "gsm8k"
   ],
+  "h3_heterogeneity": [
+    {
+      "ci_high": 8.76206147908195,
+      "ci_low": 5.088629471362603,
+      "claimable": null,
+      "context": {
+        "arm": "gptq-4bit",
+        "estimate_a_pp": 1.7272727272727273,
+        "estimate_b_pp": -5.2059641142279505,
+        "kind": "unpaired",
+        "n_boot": 10000,
+        "n_items_a": 3300,
+        "n_items_b": 3957,
+        "note": "different items, so the two estimates are independent and each task's items are resampled separately",
+        "registered": "R38.3 / prereg \u00a72, added 2026-09-05 AFTER the per-arm estimates existed; the contrasts are named structurally so magnitude could not have chosen them",
+        "rungs": [
+          "strict",
+          "permissive"
+        ],
+        "seed": 20260905,
+        "tasks": [
+          "bbh",
+          "gsm8k_cot"
+        ]
+      },
+      "estimate": 6.933236841500678,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "percentile cluster bootstrap, 10000 draws, seed 20260905",
+      "n": 7257,
+      "name": "H3_heterogeneity[across_tasks[gptq-4bit: bbh vs gsm8k_cot]]",
+      "noise_class": "compounding",
+      "null_value": 0.0,
+      "p_value": 0.0001,
+      "test": "cluster bootstrap on the difference between two interaction estimates",
+      "unit": "pp"
+    },
+    {
+      "ci_high": -2.7546120798584783,
+      "ci_low": -5.837755875663381,
+      "claimable": null,
+      "context": {
+        "arms": [
+          "gptq-4bit",
+          "awq-4bit"
+        ],
+        "estimate_a_pp": -5.2059641142279505,
+        "estimate_b_pp": -0.9097801364670205,
+        "kind": "paired",
+        "n_boot": 10000,
+        "n_items": 3957,
+        "n_items_dropped_unpaired": 0,
+        "note": "SAME items, so one resample recomputes both estimates; resampling them independently would discard the correlation and overstate the interval",
+        "registered": "R38.3 / prereg \u00a72, added 2026-09-05 AFTER the per-arm estimates existed; the contrasts are named structurally so magnitude could not have chosen them",
+        "rungs": [
+          "strict",
+          "permissive"
+        ],
+        "seed": 20260905,
+        "task": "gsm8k_cot"
+      },
+      "estimate": -4.29618397776093,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "percentile cluster bootstrap, 10000 draws, seed 20260905",
+      "n": 3957,
+      "name": "H3_heterogeneity[across_arms[gsm8k_cot: gptq-4bit vs awq-4bit]]",
+      "noise_class": "compounding",
+      "null_value": 0.0,
+      "p_value": 0.0001,
+      "test": "cluster bootstrap on the difference between two interaction estimates",
+      "unit": "pp"
+    }
+  ],
+  "h3_heterogeneity_holm": {
+    "family": "H3_heterogeneity",
+    "m": 2,
+    "rows": [
+      {
+        "adjusted_alpha": 0.025,
+        "family": "H3_heterogeneity",
+        "m": 2,
+        "name": "H3_heterogeneity[across_tasks[gptq-4bit: bbh vs gsm8k_cot]]",
+        "p_value": 0.0001,
+        "rejected": true
+      },
+      {
+        "adjusted_alpha": 0.05,
+        "family": "H3_heterogeneity",
+        "m": 2,
+        "name": "H3_heterogeneity[across_arms[gsm8k_cot: gptq-4bit vs awq-4bit]]",
+        "p_value": 0.0001,
+        "rejected": true
+      }
+    ],
+    "status": "corrected"
+  },
   "h3_holm": {
     "family": "H3",
     "m": 8,

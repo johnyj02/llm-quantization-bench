@@ -33,7 +33,9 @@ from .decompose import (
 from .interaction import (
     EXCLUDED_FROM_H3_INTERACTION,
     HEADLINE_RUNGS,
+    HETEROGENEITY_CONTRASTS,
     InteractionError,
+    heterogeneity_contrast,
     interaction_glmm,
     interaction_marginal,
     rung_gap_decomposition,
@@ -62,7 +64,9 @@ __all__ = [
     "DifferenceBounds", "Effect", "InteractionError", "NoiseClass",
     "StratumError", "StratumResult", "TransitionError", "TransitionTable",
     "bounds_effects", "build_transitions", "compute_bounds", "compute_stratum",
-    "decompose", "holm_bonferroni", "interaction_glmm", "interaction_marginal",
+    "decompose", "holm_bonferroni", "interaction_glmm", "HETEROGENEITY_CONTRASTS",
+    "heterogeneity_contrast",
+    "interaction_marginal",
     "mcnemar_exact", "rung_gap_decomposition", "rung_mcnemar", "stopseq_differential", "study_wide_magnitude",
     "transition_effects",
 ]

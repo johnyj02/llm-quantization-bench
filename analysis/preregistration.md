@@ -293,6 +293,57 @@ correct ~ precision * scoring + model + (1 | item)
 
 ---
 
+### 2a. Heterogeneity of the interaction — ADDED 2026-09-05, after the estimates existed
+
+Registered per planner ruling R38.3. 🚨 **Added after the eight per-arm estimates were computed,
+and that is stated rather than concealed.** The provenance is the point: an interaction that
+disagrees in sign across cells was *observed* first, and this test is the pre-specified way to
+establish that the disagreement is real rather than sampling variation. R41.4 was explicit that
+the sign disagreement is an asset only if this test is computed, and that unrun it is *"an
+unstable result our own parser moved twice"*.
+
+**Why a test is needed at all.** §2's omnibus averages estimates that run from **+1.73 pp** to
+**−8.44 pp**, so it *"describes neither"* (R37.3). The per-arm estimates are the substantive
+result, and the claim that carries the paper is that **the scoring choice changes the apparent
+quantization effect differently depending on the method, so no single correction works.** That
+claim is about heterogeneity, and heterogeneity has to be tested.
+
+**The estimand.** The difference between two interaction estimates, in accuracy points, with a
+percentile cluster bootstrap over items (10,000 draws, seed 20260905).
+
+🚨 **Exactly TWO contrasts, named STRUCTURALLY so magnitude cannot have chosen them**, and no
+third may be added after seeing these two (R38.3):
+
+| # | contrast | pairing | why this pair |
+|---|---|---|---|
+| 1 | **across tasks, arm fixed:** BBH `gptq-4bit` against `gsm8k_cot` `gptq-4bit` | **unpaired** — different items, so the estimates are independent and each task's items are resampled separately | holds the arm fixed, so any difference is attributable to the task |
+| 2 | **across arms, task fixed:** `gsm8k_cot` `gptq-4bit` against `gsm8k_cot` `awq-4bit` | **paired** — the SAME items, so one resample recomputes both estimates; resampling independently would discard the correlation and overstate the interval | GPTQ against AWQ **at matched bit width**, which is a structural choice rather than the widest observed gap |
+
+- **Direction-neutral by construction.** A CI on a difference either excludes zero or does not;
+  nothing here can be tuned toward heterogeneity or away from it.
+- **Holm-Bonferroni across the two**, as its **own family**, separate from the per-arm
+  interaction family. Pooling them would be wrong: the per-arm tests ask *is this interaction
+  non-zero*, these ask *do two interactions differ*, which is a different hypothesis over
+  different quantities.
+- A two-sided **bootstrap p-value** (twice the smaller tail mass about the null) is reported so
+  the Holm correction is computable at all, floored at `1/n_boot` rather than printed as zero,
+  since a bootstrap cannot resolve below its own resolution.
+
+**Reported alongside, and explicitly labelled as indicative only:** Cochran's Q and I². They
+assume the estimates are independent, which is **false within a task** where arms share items,
+so Q is anticonservative there. Descriptive, never inferential.
+
+**Measured on `main-v1`** (105,950 records), and both contrasts survive the correction:
+
+| contrast | estimate A | estimate B | difference | 95% CI | p | Holm |
+|---|---|---|---|---|---|---|
+| across tasks | +1.73 | −5.21 | **+6.93** | [+5.09, +8.76] | 0.0001 | **rejected** at α/2 |
+| across arms | −5.21 | −0.91 | **−4.30** | [−5.84, −2.75] | 0.0001 | **rejected** at α |
+
+⇒ **The interaction is heterogeneous both across tasks and across quantization methods**, and
+neither result is marginal. The registered omnibus is still reported because it was
+pre-specified, and the per-arm estimates plus this test are the substantive result.
+
 ## 3. Frozen token-budget levels (H1)
 
 **Frozen as absolute integers before any results exist.** Verified against

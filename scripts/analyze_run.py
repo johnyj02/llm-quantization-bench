@@ -62,11 +62,14 @@ sys.path.insert(0, str(REPO / "scripts"))
 from quantartifact.analysis import (  # noqa: E402
     EXCLUDED_FROM_H3_INTERACTION,
     EXCLUDED_FROM_H4_PRIMARY,
+    HETEROGENEITY_CONTRASTS,
+    InteractionError,
     bounds_effects,
     build_transitions,
     compute_bounds,
     compute_stratum,
     decompose,
+    heterogeneity_contrast,
     holm_bonferroni,
     interaction_marginal,
     rung_gap_decomposition,
@@ -161,6 +164,9 @@ HOLM_STATUS: frozenset[str] = frozenset({
     "no H3 interaction resolved: a task had no bf16 or no alt arm",
     "no stopseq test resolved: no cell had both bf16 and an alt arm",
     "H4's registered tests are not yet implemented as hypothesis tests",
+    # §2 / R38.3 fixed EXACTLY TWO heterogeneity contrasts, so an absent family means neither
+    # was estimable, which is a data problem worth naming rather than a design state.
+    "neither registered heterogeneity contrast was estimable",
 })
 
 
@@ -360,6 +366,25 @@ def main() -> int:
     report["h3_rung_companion"] = [e.as_dict() for e in companions]
     report["rung_gap_decomposition"] = [e.as_dict() for e in gap_parts]
     report["rung_gap_decomposition_anchored"] = [e.as_dict() for e in gap_parts_2a]
+    # §2 / R38.3: the heterogeneity test. Its OWN Holm family, deliberately separate from the
+    # per-arm interaction family, because pooling two unrelated sets of tests into one
+    # correction is what `holm_bonferroni`'s keyword-only `family` exists to prevent. The
+    # per-arm estimates ask "is this interaction non-zero"; these ask "do two interactions
+    # differ", which is a different hypothesis over different quantities.
+    heterogeneity: list = []
+    for contrast in HETEROGENEITY_CONTRASTS:
+        try:
+            heterogeneity.append(heterogeneity_contrast(rows, contrast))
+        except InteractionError as exc:
+            # Loud, and named. A contrast the data cannot support must not vanish: R38.3 fixed
+            # exactly two, so a silently absent one turns a registered pair into a single test
+            # and the correction into a no-op.
+            print(f"   ⚠️ heterogeneity contrast {contrast['name']} NOT estimable: {exc}")
+    report["h3_heterogeneity"] = [e.as_dict() for e in heterogeneity]
+    report["h3_heterogeneity_holm"] = holm_block(
+        heterogeneity, family="H3_heterogeneity",
+        absent_reason="neither registered heterogeneity contrast was estimable")
+
     # §9: Holm-Bonferroni within the H3 family only, and the demonstration arm is not in it.
     report["h3_holm"] = holm_block(
         h3, family="H3",
