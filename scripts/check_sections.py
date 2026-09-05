@@ -43,7 +43,12 @@ REQUIRED = (
 _STRUCTURAL = re.compile(
     r"\\(label|todo|input|begin|end|centering|small|footnotesize|caption|"
     r"toprule|midrule|bottomrule|cmidrule|newcommand|multicolumn|hline|"
-    r"section|subsection|paragraph)\b"
+    r"section|subsection|paragraph|"
+    # ⚠️ Counter machinery is markup, not prose. The `end-of-body` marker that G6's page
+    # count reads sits between Conclusion and Limitations, so it falls inside Conclusion's
+    # span; without these two, an EMPTY Conclusion reported "ok (2 prose lines)" and the
+    # desk-reject guard gave a false pass on the section it exists to protect.
+    r"newcounter|refstepcounter|phantomsection|setcounter|addtocounter)\b"
 )
 
 # `\section{X}` and `\section*{X}`, plus subsections so a parent section counts the

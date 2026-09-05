@@ -502,6 +502,19 @@ a paired test", NEVER "the deltas are noise".}
 \label{sec:conclusion}
 
 %---------------------------------------------------------------------------
+% 🚨 THE BODY ENDS HERE, and this label is what gate G6 measures against the
+% 8-page limit. ACL counts Limitations, Ethics, Acknowledgments, references and
+% appendices as ZERO page budget, so counting total PDF pages over-counts and
+% would make us cut body content that never needed cutting. `make g6` reads this
+% label's page number out of main.aux -- exact, and no PDF parsing.
+% A bare \label here emits no \newlabel, because \label records the CURRENT label
+% context and there is none outside a sectioning unit; \phantomsection did not help
+% either. \refstepcounter creates one, which is what makes the label write its page
+% into main.aux for G6 to read. The counter is never printed.
+\newcounter{bodyend}
+\refstepcounter{bodyend}\label{end-of-body}
+
+%---------------------------------------------------------------------------
 % MANDATORY. Absence is an AUTOMATIC DESK REJECT and it costs ZERO page
 % budget, because Limitations is not counted against the 8 pages.
 % Write it EARLY (C5, W4).

@@ -17,7 +17,10 @@ PAGE_LIMIT := 8
 all: $(MAIN).pdf
 
 $(MAIN).pdf: $(MAIN).tex custom.bib acl.sty acl_natbib.bst
-	$(TECTONIC) -X compile $(MAIN).tex --outdir .
+	@# --keep-intermediates because G6 reads the BODY page count out of main.aux.
+	@# Without it tectonic discards the aux, and a STALE aux from an older build sat
+	@# here for weeks looking authoritative: 28 resolved labels, none of them current.
+	$(TECTONIC) -X compile $(MAIN).tex --outdir . --keep-intermediates
 
 pages: $(MAIN).pdf
 	@python3 -c "import re,zlib;d=open('$(MAIN).pdf','rb').read();\
@@ -30,10 +33,14 @@ print(t)" 2>/dev/null || python3 ../scripts/pdf_pages.py $(MAIN).pdf
 g6: $(MAIN).pdf
 	@echo "== G6: compiles =="
 	@test -f $(MAIN).pdf && echo "  PASS"
-	@echo "== G6: page count <= $(PAGE_LIMIT) =="
-	@n=$$(python3 ../scripts/pdf_pages.py $(MAIN).pdf); \
-	 echo "  pages: $$n"; \
-	 if [ "$$n" -le $(PAGE_LIMIT) ]; then echo "  PASS"; else echo "  FAIL"; exit 1; fi
+	@echo "== G6: BODY page count <= $(PAGE_LIMIT) =="
+	@# 🚨 BODY pages, not total. ACL counts Limitations, Ethics, Acknowledgments,
+	@# references and appendices as ZERO page budget, so comparing the total against 8
+	@# over-counts and would force cuts to body content that never competed for the space.
+	@b=$$(python3 ../scripts/body_pages.py $(MAIN).aux); \
+	 t=$$(python3 ../scripts/pdf_pages.py $(MAIN).pdf); \
+	 echo "  body pages: $$b   (total PDF incl. unlimited sections: $$t)"; \
+	 if [ "$$b" -le $(PAGE_LIMIT) ]; then echo "  PASS"; else echo "  FAIL"; exit 1; fi
 	@echo "== G6: required sections present AND non-empty =="
 	@# 🚨 RESTORED 2026-09-05. This was `grep -q 'section*{Limitations}'`, which tests only
 	@# that the HEADING exists, and commit 4a44efe removed the replacement along with an
