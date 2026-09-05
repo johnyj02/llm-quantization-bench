@@ -32,22 +32,46 @@
 % Never inline a number that lives here (R17.6.2).
 \input{tables/h8_macros}
 
-% 🚨 TITLE CHANGED 2026-09-05 (planner ruling R39.5). It was:
-%   "... Decomposing Accuracy Loss into Competence, Compliance, and Truncation"
-% which promised the decomposition as the deliverable. Under R39.2 the decomposition is the
-% THIRD contribution, behind the apparatus result and the scoring interaction, so the old
-% title advertised what the paper no longer leads with.
+% 🚨 TITLE, and it has been WRONG TWICE. Both errors are recorded because each was caught by
+% a different check and the second was factual rather than editorial (R39.5, then R40).
 %
-% The "leave bf16 unchanged" clause is deliberate: it is the single most striking
-% exactly-measured fact in the study (0.000 SD across ten orderings, 0.000% across 42,380
-% K=2 item-pairs), it is the control that makes every other number interpretable, and it
-% costs no hedging.
+% v1  "... Decomposing Accuracy Loss into Competence, Compliance, and Truncation"
+%     Promised the decomposition as the deliverable. Under R39.2 the decomposition is the
+%     THIRD contribution, so it advertised what the paper no longer leads with.
 %
-% ⚠️ DO NOT make this title assert that protocol moves accuracy MORE than bit width does.
-% R16.5 requires our own bit-width deltas on the same items for that comparison, and
-% cross-comparing to published figures commits the incomparability error the paper diagnoses.
-\title{How Much of Reported Quantization Degradation Is Measurement?\\
-Evaluation-Protocol Factors That Move 4-Bit Accuracy and Leave \texttt{bf16} Unchanged}
+% v2  "How Much of Reported Quantization Degradation Is Measurement? Evaluation-Protocol
+%      Factors That Move 4-Bit Accuracy and Leave bf16 Unchanged"
+%     Two independent problems, both fatal.
+%
+%     (a) THE QUESTION FRAME ANNOUNCED THE CROWDED CELL. R39.1 chose apparatus-led precisely
+%         because it lands in a cell nobody holds, and then this title asked the question
+%         Kurtic et al. answered at ACL 2025 ("degradation was overstated"). Seven of our own
+%         23 bib entries are already question-form, including "Flaw or Artifact?" which we are
+%         structurally the sequel to. And "how much" promises a SHARE-OUT that R16.5 forbids
+%         us from computing.
+%
+%     (b) 🚨 "LEAVE bf16 UNCHANGED" WAS FALSE for one of the factors it covered. bf16 is
+%         exactly unchanged under ORDERING (strict and permissive both min==max across ten
+%         orderings) and under within-job repetition (0.000%), and it is demonstrably NOT
+%         unchanged ACROSS JOB BOUNDARIES: llama bf16 moved +1.11 pp strict and +2.22 pp
+%         permissive, phi bf16 -0.56 and -1.11, with phi's text divergence at 45/100. A title
+%         a reviewer can falsify from our own table is worse than any positioning error.
+%
+% v3, below. The asymmetry claim is restricted to ORDERING, where it is exact and where the
+% mechanism is pinned by intervention (Marlin disabled -> 0.000 on both 4-bit Marlin arms).
+% "Exactly" is load-bearing: it signals a measured zero rather than a hedge.
+%
+% ⚠️ Two standing prohibitions on any future title:
+%   - Do NOT assert protocol moves accuracy MORE than bit width does. R16.5 requires our own
+%     bit-width deltas on the same items; cross-comparing to published figures commits the
+%     incomparability error this paper diagnoses.
+%   - Do NOT call the cross-job effect "nondeterminism". The repetition floor is 0.000% and
+%     K=2 is 0.000% over 42,380 item-pairs, so generation is DETERMINISTIC given a
+%     configuration; what varies is configuration nobody reports. "Nondeterminism" invites the
+%     sampling-noise reading we explicitly ruled out, and discards the more precise fact.
+%     "Job boundaries" is both more accurate and more surprising.
+\title{Item Ordering Moves 4-Bit Accuracy and Leaves \texttt{bf16} Exactly Unchanged:\\
+Reproducibility Failures in Quantized Model Evaluation}
 
 \author{Anonymous ARR submission}
 

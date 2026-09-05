@@ -2828,3 +2828,78 @@ control that makes everything else interpretable, and it costs no hedging.
 already ruled that comparison needs our own bit-width deltas on the same items, and
 cross-comparing to Kurtic's or Red Hat's published figures commits the incomparability error
 the paper diagnoses. Make that claim in the body, once, with our own numbers, or not at all.
+
+---
+
+## R40 — The question frame is CONCEDED and dropped. And my replacement was factually false
+
+Raw answer: `notes/planner-answers/R40-title-question-frame-challenged.txt`. Raised by the
+**user**, who told me to argue with the planner about whether the question frame had been
+asked before and whether it helps acceptance. It had, and it does not.
+
+### R40.1 Conceded, and the decisive argument was an internal contradiction
+
+*"Conceded — the question frame goes, and your argument (3) is the decisive one because it
+caught a contradiction in my own reasoning: I argued apparatus-led wins on landing in an empty
+cell, then endorsed a title that announces the crowded one."*
+
+The four grounds, in the order they mattered:
+
+1. **Kurtic et al. already answered it in print.** *"Give Me BF16 or Give Me Death?"* (ACL
+   2025) found reported degradation was **overstated**, attributing the excess to untuned
+   quantization hyperparameters. That is an answer to *"how much of reported degradation is
+   not the model"*. A reviewer reading only our title sees a question answered last year, and
+   the planner's own instruction was to cite Kurtic early so a reviewer does not discover him.
+2. **The frame is the house style, not a distinctive move.** Seven of our 23 bib entries are
+   already question-form, including *"Flaw or Artifact? Rethinking Prompt Sensitivity"*
+   (EMNLP 2025), which the planner had already established we are structurally the sequel to.
+3. 🚨 **It announced the CROWDED cell.** R39.1 chose apparatus-led *because* it lands in a cell
+   nobody holds; the title then advertised the cell everyone holds.
+4. **"How much" promises a share-out we cannot compute.** R16.5 forbids comparing our numbers
+   to published deltas, and H4 is now third and rests largely on Manski bounds with the
+   stratum below half in 14 of 27 cells.
+
+### R40.2 Q2(a) — the acceptance question is FOLKLORE, and the planner said so plainly
+
+*"I know of no published analysis of title form versus ARR/ACL acceptance."* There is
+bibliometric work in other fields on question titles and downloads or citations, but that is
+citations rather than acceptance, a different literature, and small confounded effects. *"I
+won't represent it as evidence here."* Decide on grounds 3 and 4, which are specific to this
+paper and depend on no folklore. **Recorded so this is not re-litigated as though evidence
+existed.**
+
+### R40.3 🚨 BOTH OF MY REPLACEMENT TITLES WERE FACTUALLY FALSE, and that is worse
+
+I proposed naming three factors and asserting bf16 holds still across them. **Verified against
+our own artifacts, and the planner is right:**
+
+| claim | verdict |
+|---|---|
+| bf16 exactly unchanged under **ordering** | ✅ strict `(0.272, 0.272)` and permissive `(0.488, 0.488)` across all ten orderings, min == max |
+| bf16 exactly unchanged under **within-job repetition** | ✅ repetition floor 0.000%, text divergence 0.000%, K=2 zero over 42,380 item-pairs |
+| bf16 unchanged **across job boundaries** | ❌ **FALSE.** llama bf16 moved **+1.11 pp** strict and **+2.22 pp** permissive; phi bf16 −0.56 and −1.11, with phi text divergence 45/100 |
+
+*"A title asserting three factors move 4-bit while bf16 holds still, when one of them moves
+bf16 too, is a claim a reviewer can falsify from our own Table. That's a worse outcome than any
+positioning error, and I let it through in R39.5 as much as you did."*
+
+⚠️ **Second error of mine: "Nondeterminism" mischaracterises our own result.** The repetition
+floor is 0.000% and K=2 is 0.000%, so **generation is deterministic GIVEN A CONFIGURATION**;
+what varies is configuration nobody reports. *"Calling that nondeterminism invites the reading
+'sampling noise', which we explicitly ruled out — and it discards the more surprising and more
+precise fact."* **"Job boundaries" is both more accurate and more surprising.**
+
+### R40.4 The title, restricted to where the claim is exact
+
+> **Item Ordering Moves 4-Bit Accuracy and Leaves `bf16` Exactly Unchanged: Reproducibility
+> Failures in Quantized Model Evaluation**
+
+Declarative, announces the empty cell, promises no quantity, is **true without qualification**,
+and foregrounds the finding pinned by intervention. *"'Exactly' is doing real work — it's the
+word that signals a measured zero rather than a hedge."* The other two factors go in the
+abstract's second sentence rather than the title, because naming them would force the bf16
+clause out and that clause is the strongest thing in the title.
+
+Both prohibitions are now recorded as comments above the title in `paper/main.tex`, since that
+is where a future editor will look: no magnitude comparison against published deltas, and no
+calling the cross-job effect nondeterminism.
