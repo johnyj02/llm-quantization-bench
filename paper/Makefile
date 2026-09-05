@@ -34,8 +34,13 @@ g6: $(MAIN).pdf
 	@n=$$(python3 ../scripts/pdf_pages.py $(MAIN).pdf); \
 	 echo "  pages: $$n"; \
 	 if [ "$$n" -le $(PAGE_LIMIT) ]; then echo "  PASS"; else echo "  FAIL"; exit 1; fi
-	@echo "== G6: Limitations section present (absence = automatic desk reject) =="
-	@grep -q 'section\*{Limitations}' $(MAIN).tex && echo "  PASS" || { echo "  FAIL"; exit 1; }
+	@echo "== G6: required sections present AND non-empty =="
+	@# 🚨 RESTORED 2026-09-05. This was `grep -q 'section*{Limitations}'`, which tests only
+	@# that the HEADING exists, and commit 4a44efe removed the replacement along with an
+	@# unrelated scope-audit revert. While it was absent, `make g6` reported PASS on this
+	@# criterion with five required sections carrying zero prose, Limitations among them.
+	@# An empty Limitations section is an automatic desk reject exactly as a missing one is.
+	@python3 ../scripts/check_sections.py $(MAIN).tex
 	@printf '== G6: todo markers only inside Results ==\n'
 	@python3 ../scripts/check_todo_scope.py $(MAIN).tex
 

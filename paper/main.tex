@@ -513,6 +513,59 @@ a paired test", NEVER "the deltas are noise".}
 % judge is open-weight not human-level; annotation n and that annotators were
 % unpaid co-authors.
 
+\paragraph{Our own extraction was defective, and we found it by census rather than by test.}
+We report this first because it bounds how much of this paper's own machinery a
+reader should trust. Our permissive extractor applied a commitment-phrase rule
+ahead of the harness's flexible-extract regex, and returned the committed answer
+with its unit attached (\texttt{"5 days"} against a gold of \texttt{"5"}). Because
+the harness's regex admits no alphabetic character, it could not have produced
+those values: the defect was ours, ordered ahead of published practice, and it
+returned worse answers than the harness would have on 2{,}068 of 105{,}950
+generations. A full census of every rung-monotonicity violation is what found it;
+our unit tests passed throughout, because the fixture set contained no generation
+that continued past its committed answer. Two interaction estimates changed
+conclusion when it was repaired and one changed sign. We report the corrected
+numbers, and we take the episode as evidence for this paper's own thesis rather
+than as an aside: a well-intentioned extractor improvement silently degraded 2\% of
+a six-figure corpus, and only an exhaustive audit surfaced it.
+
+\paragraph{The reproducibility claims are single-hardware and single-engine.}
+Every determinism result holds for one GPU (L40S, SM 8.9), one engine version, and
+one CUDA and driver pair, all of which we report. Batch invariance is
+version-specific and kernel-specific, so neither the ordering result nor the
+cross-job result should be read as a claim about other hardware. We also cannot
+serve a stock AWQ checkpoint in \texttt{bfloat16} on this engine version at all,
+which is itself a comparability limitation rather than only an inconvenience:
+published AWQ numbers are not dtype-comparable to GPTQ unless dtype is reported.
+
+\paragraph{The cross-job mechanism is undiagnosed.}
+We establish that generation is bitwise reproducible within a job and not across
+jobs, and we report four refuted hypotheses with the measurements that refuted
+them. We do not identify the cause. The finding is therefore an observation about
+what a third party will encounter, not an explanation, and our recommendation is
+correspondingly procedural rather than a fix.
+
+\paragraph{The competence decomposition rests largely on bounds.}
+The always-compliant stratum falls below half the paired items in 14 of 27 cells,
+and in the worst case (Qwen on the hash-marker GSM8K arm) it is three items. We
+therefore report the point estimate and the Manski bounds together for every cell,
+with the stratum size as a first-class number, rather than presenting a point
+estimate whose subgroup is too small to support it. Wide bounds are reported as
+wide. The decomposition is a supporting analysis in this paper, not a headline.
+
+\paragraph{Scope deliberately excluded, and what that costs.}
+There is no factual-recall task: TriviaQA was cut, so every task here is a
+reasoning task whose canonical extractor is a regular expression, and the
+structural control is the ARC mode pairing rather than a second domain. Our main
+matrix is self-quantized throughout, at a normalised calibration budget, which
+isolates the recipe but means we do not speak to arbitrary published checkpoints.
+Three models cannot support a variance estimate, so model is a fixed effect and no
+claim generalises to a model population. Finally, our anchor comparison against
+official checkpoints tests comparable quality at matched settings rather than
+reproduction, because the official checkpoints were calibrated on data we do not
+have; one of its three arms failed its pre-registered band, and we report the
+failure and the grounds on which we proceeded.
+
 \section*{Ethics Statement}
 \label{sec:ethics}
 
