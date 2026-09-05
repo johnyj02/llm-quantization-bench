@@ -2903,3 +2903,118 @@ clause out and that clause is the strongest thing in the title.
 Both prohibitions are now recorded as comments above the title in `paper/main.tex`, since that
 is where a future editor will look: no magnitude comparison against published deltas, and no
 calling the cross-job effect nondeterminism.
+
+---
+
+## R41 — No point estimate, and the refusal is the useful part. Three cuts, two builds, one move
+
+Raw answer: `notes/planner-answers/R41-acceptance-probability.txt`. Asked by the **user**,
+whose stated objective is maximising acceptance probability.
+
+### R41.1 The planner REFUSED a point estimate, on grounds this paper itself argues
+
+*"I can't calibrate to the resolution you want, and a number would be false precision."* ARR
+ran **17,087 submissions against 10,636 reviewers** in May 2026, and the one published analysis
+of individual-paper predictors found resubmission status non-significant at p=0.112.
+**Reviewer-assignment variance dominates paper-quality variance at this scale**, so 18% cannot
+be distinguished from 25% for a specific paper, and *"pretending otherwise would be the error
+this paper is about."*
+
+**Verified base rates:** ACL 2026 **18.9% main / 17.8% Findings / 36.7% combined** on 12,148
+submissions; NAACL 2025 22% / 15% / 37%. Against *committed* papers, ACL 2026 was 35.0% main
+and 67.9% combined.
+
+| | main | combined |
+|---|---|---|
+| **as it stands today** | **below base rate**, because the paper does not exist in submittable form | — |
+| H1 sweep + H6 arms built clean, three sections written | ~15–25%, centre near 20% | ~35–50% |
+
+⚠️ *"The interval is wider than the adjustment."* The plan's §0.1(d) anchor of ~43% combined
+holds **conditional on a good submission existing**, and *"the operative word is 'existing' —
+that condition is not currently met."*
+
+**The factor ranking, which is the actionable output rather than any number:**
+1. **Whether a complete draft exists by Sep 20** (dominates everything else right now)
+2. Related-work differentiation under the new framing
+3. Whether H1 and H6 have instruments
+4. Whether H3's heterogeneity is **tested** rather than merely observed
+5. H8's version-specificity objection and how it is framed
+6. Everything else
+
+### R41.2 Assets, and one I was under-weighting
+
+H8's intervention-pinned mechanism; `bf16` exactly 0.000; the K=2-zero against cross-job-only
+discrimination; the pre-registered trigger that **fired and was honoured**; the
+105,950-generation corpus; and 🔬 **the template factor's 6/6 sign preservation, which I was
+under-weighting** — *"it's what answers the self-infliction objection empirically rather than
+by argument."*
+
+### R41.3 CUT three things, and cutting beats compressing
+
+- **H4's competence decomposition → supplementary. Keep ONLY the compliance-transition
+  matrix**, which needs no stratum and is a clean finding. A centrepiece resting on Manski
+  bounds with 14 of 27 cells below half and a three-item worst case invites *"your
+  decomposition is unidentified"*, and Holm `m=0` confirms the registered tests are not tests.
+- **H5 and H2 → one Limitations sentence each.** *"Half-built hypotheses read worse than absent
+  ones."*
+- **H7: finish all ~14 papers in one sitting, or cut it.** Four of fourteen *"is not an audit
+  and invites 'why these four?'"* It is reading, no compute, a few hours. **No middle option.**
+
+### R41.4 BUILD both missing instruments, and RELOCATE the self-critique
+
+**Build** H1's sweep and H6's arms per R39.3/R39.4: they are never-cut hypotheses whose
+registered instruments do not exist, which is *"the single most attackable fact about the
+current claim set."*
+
+🔬 **Relocate the parser self-critique from Limitations to METHODS.** Same facts, *"in
+Limitations it reads as confession, in Methods as rigour"*, and it is an instance of the
+paper's own thesis. **Free gain.** ✅ Done.
+
+**On the two cases I was unsure about:** G5a's FAIL **stays reported in Methods** with its
+decomposition attached, because *"a reviewer who discovers a failed validation gate in an
+appendix will be far harsher than one who reads it up front."* And H3's sign disagreement is an
+asset **only if the heterogeneity test is computed**; unrun, *"it is exactly the 'unstable
+result our parser moved twice' liability you fear."*
+
+⚠️ **A liability I had not listed:** the undiagnosed cross-job cause. The four refuted
+hypotheses must be **in the text with their killing numbers**, or the gap *"reads as
+incuriosity."*
+
+### R41.5 Title v4: swap the clauses. Same words, better signalling
+
+> **Reproducibility Failures in Quantized Model Evaluation: Item Ordering Moves 4-Bit Accuracy
+> and Leaves `bf16` Exactly Unchanged**
+
+*"Your concern is legitimate: 'Item Ordering' first reads as a nuisance-parameter paper, and AC
+assignment scans early keywords."* Two rejected: *"Quantized Models Are Not Reproducibly
+Evaluable"* overclaims against our own exact within-job zero, and any title putting the `bf16`
+clause beside job boundaries is **false** per R40.3. Same caveat as R40: title effects on
+acceptance are folklore, and this is scope signalling rather than a probability claim. ✅ Done.
+
+### R41.6 My ordering was wrong, and three things to STOP
+
+**Highest value is the INTRODUCTION**, not the Results subsections: it locks the framing that
+determines every subsection's length, and writing six subsections first *"risks writing them all
+at the wrong weights."* Second is the six subsections in contribution order at the lengths the
+Introduction implies.
+
+🚨 **The correction: the builds are NOT sequential with writing.** *"Submit both now, then write
+while they queue. Serialising builds behind writing wastes the one resource you have in
+surplus."* And **today, before either: compute R38.3's heterogeneity test** — CPU-only, minutes,
+and it decides whether contribution #2 is an asset or a liability. *"Highest value per minute
+available to you."*
+
+**Stop doing three things:**
+1. 🚨 **Stop escalating at this rate.** *"The ledger is at R40 and the marginal value of a ruling
+   has fallen sharply while the marginal value of written prose has risen... planner
+   round-trips are now the main competitor for the attention that should be writing."* Escalate
+   only what is genuinely irreversible: registered estimators, identification, anything that
+   reaches a number in the paper.
+2. **Stop building off the H8/H3/H1 path** — H5, H2, and H7 beyond completion.
+3. **Stop chasing the cross-job cause** beyond R37.3's one cheap `torch.compile` cache test.
+   Unexplained is already ruled publishable, and a fifth refuted hypothesis adds nothing.
+
+⚠️ **One factual correction to R41.6, recorded rather than escalated** (per its own instruction):
+*"submit both now"* is not available, because **neither instrument exists**. Nothing drives
+`--budget` beyond `1x`, and `run_cell` is generation-only with `option_logprobs` always `None`.
+Both are implementation before they are launches.

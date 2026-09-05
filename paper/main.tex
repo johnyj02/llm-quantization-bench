@@ -70,8 +70,14 @@
 %     configuration; what varies is configuration nobody reports. "Nondeterminism" invites the
 %     sampling-noise reading we explicitly ruled out, and discards the more precise fact.
 %     "Job boundaries" is both more accurate and more surprising.
-\title{Item Ordering Moves 4-Bit Accuracy and Leaves \texttt{bf16} Exactly Unchanged:\\
-Reproducibility Failures in Quantized Model Evaluation}
+% v4 (R41.Q3): clauses SWAPPED. Same words, better signalling. "Item Ordering" first read as
+% a nuisance-parameter paper, and AC assignment scans early keywords, so the general claim and
+% the subfield now come first while the exact measured result is kept. Two alternatives were
+% rejected: "Quantized Models Are Not Reproducibly Evaluable" overclaims against our own exact
+% within-job zero, and any title placing "bf16 exactly unchanged" beside job boundaries is
+% FALSE (R40.3: bf16 moves +/-1.11 pp cross-job).
+\title{Reproducibility Failures in Quantized Model Evaluation:\\
+Item Ordering Moves 4-Bit Accuracy and Leaves \texttt{bf16} Exactly Unchanged}
 
 \author{Anonymous ARR submission}
 
@@ -311,6 +317,23 @@ robustness check rather than a load-bearing dependency: if the judge fails its
 agreement gate, the paper's main claim is unaffected. Rung 1b exists because a
 harness that takes the first match will score a model that restates its answer
 differently from one that does not, independent of correctness.
+
+\paragraph{An audit of our own extractor, and what it found.}
+Because this paper's claim is that unreported measurement choices move reported
+numbers, we audited our own extraction rather than assuming it. Our permissive extractor applied a commitment-phrase rule
+ahead of the harness's flexible-extract regex, and returned the committed answer
+with its unit attached (\texttt{"5 days"} against a gold of \texttt{"5"}). Because
+the harness's regex admits no alphabetic character, it could not have produced
+those values: the defect was ours, ordered ahead of published practice, and it
+returned worse answers than the harness would have on 2{,}068 of 105{,}950
+generations. A full census of every rung-monotonicity violation is what found it;
+our unit tests passed throughout, because the fixture set contained no generation
+that continued past its committed answer. Two interaction estimates changed
+conclusion when it was repaired and one changed sign. All numbers reported here are post-repair. We record the episode because it is an
+instance of the effect this paper measures rather than an aside: a well-intentioned
+extractor improvement silently degraded 2\% of a six-figure corpus, our unit tests
+passed throughout, and only an exhaustive audit surfaced it. It is also why we report
+a census of every affected item rather than a sampled estimate.
 
 \subsection{Compliance, competence, and truncation}
 \label{sec:decomp}
@@ -563,22 +586,6 @@ a paired test", NEVER "the deltas are noise".}
 % self-quantized-only main matrix; 3 models is a fixed effect not a population;
 % judge is open-weight not human-level; annotation n and that annotators were
 % unpaid co-authors.
-
-\paragraph{Our own extraction was defective, and we found it by census rather than by test.}
-We report this first because it bounds how much of this paper's own machinery a
-reader should trust. Our permissive extractor applied a commitment-phrase rule
-ahead of the harness's flexible-extract regex, and returned the committed answer
-with its unit attached (\texttt{"5 days"} against a gold of \texttt{"5"}). Because
-the harness's regex admits no alphabetic character, it could not have produced
-those values: the defect was ours, ordered ahead of published practice, and it
-returned worse answers than the harness would have on 2{,}068 of 105{,}950
-generations. A full census of every rung-monotonicity violation is what found it;
-our unit tests passed throughout, because the fixture set contained no generation
-that continued past its committed answer. Two interaction estimates changed
-conclusion when it was repaired and one changed sign. We report the corrected
-numbers, and we take the episode as evidence for this paper's own thesis rather
-than as an aside: a well-intentioned extractor improvement silently degraded 2\% of
-a six-figure corpus, and only an exhaustive audit surfaced it.
 
 \paragraph{The reproducibility claims are single-hardware and single-engine.}
 Every determinism result holds for one GPU (L40S, SM 8.9), one engine version, and

@@ -1,0 +1,68 @@
+Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.
+## Q1 — I can't calibrate to the resolution you want, and a number would be false precision. Here's what I can defend.
+
+**Base rates (verified):** ACL 2026 18.9% main / 17.8% Findings / 36.7% combined on 12,148 submissions. NAACL 2025 22% / 15% / 37%. Against *committed* papers, ACL 2026 was 35.0% main / 67.9% combined.
+
+**Why I won't give you a point estimate:** ARR ran 17,087 submissions against 10,636 reviewers in May 2026, and the one published analysis of individual-paper predictors found resubmission status non-significant at p=0.112. Reviewer-assignment variance dominates paper-quality variance at this scale. I cannot distinguish 18% from 25% for a specific paper, and pretending otherwise would be the error this paper is about.
+
+**Ranges, with the caveat that the interval is wider than the adjustment:**
+
+| | Main | Combined |
+|---|---|---|
+| **As it stands today** | **below base rate** — the paper does not exist in submittable form | — |
+| **H1 sweep + H6 arms built clean, three sections written** | ~15–25%, centre near 20% | ~35–50% |
+
+The plan's §0.1(d) figure of ~43% combined conditional on a *good submission existing* remains the right anchor. The operative word is "existing" — that condition is not currently met.
+
+**The factor ranking, which is the actionable output:**
+
+1. Whether a complete draft exists by Sep 20 (dominates everything else right now)
+2. Related-work differentiation under the new framing
+3. Whether H1 and H6 have instruments
+4. Whether H3's heterogeneity is tested or merely observed
+5. H8's version-specificity objection and how it's framed
+6. Everything else
+
+## Q2 — Three cuts, two builds, one relocation
+
+**Assets, in order:** H8's intervention-pinned mechanism; bf16 exactly 0.000; the K=2-zero / cross-job-only discrimination; the fired-and-honoured pre-registered trigger; the 105,950-generation corpus; **the template factor's 6/6 sign preservation** — you're under-weighting that one, it's what answers the self-infliction objection empirically rather than by argument.
+
+**CUT, not reduce:**
+
+- **H4's competence decomposition.** A centrepiece resting on Manski bounds with 14 of 27 cells below half and a three-item worst case invites *"your decomposition is unidentified."* Holm m=0 confirms the registered tests aren't tests. **Keep only the compliance-transition matrix**, which needs no stratum and is a clean finding; competence decomposition to supplementary. This is stronger than compressing.
+- **H5 and H2.** Unbuilt and uncomputed. Half-built hypotheses read worse than absent ones. One Limitations sentence each.
+- **H7 unless you finish it in one sitting.** Four of fourteen is not an audit and invites *"why these four?"* It's reading, no compute, a few hours. Finish it or cut it — no middle.
+
+**BUILD, per R39.3/R39.4:** H1's sweep and H6's arms. Both are never-cut hypotheses whose registered instruments don't exist, which is the single most attackable fact about the current claim set.
+
+**RELOCATE:** the parser self-critique goes in **Methods, not Limitations.** Same facts; in Limitations it reads as confession, in Methods as rigour — and it's an instance of the paper's own thesis (an extractor "improvement" silently degraded 2% of a 106k corpus, caught by census and not by unit tests). Free gain.
+
+**On your two uncertain cases:** G5a's FAIL stays reported in Methods with its decomposition attached — a reviewer who discovers a failed validation gate in an appendix will be far harsher than one who reads it up front. H3's sign disagreement is an asset **only if the heterogeneity test is computed**; unrun, it is exactly the "unstable result our parser moved twice" liability you fear.
+
+**One liability you didn't list:** the undiagnosed cross-job cause. R21.4's ruling stands, but the four refuted hypotheses must be *in the text with their killing numbers*, or the gap reads as incuriosity.
+
+## Q3 — Swap v3's clauses. Same words, better signalling.
+
+> **Reproducibility Failures in Quantized Model Evaluation: Item Ordering Moves 4-Bit Accuracy and Leaves bf16 Exactly Unchanged**
+
+Your concern is legitimate: "Item Ordering" first reads as a nuisance-parameter paper, and AC assignment scans early keywords. Swapping puts the general claim and the subfield first while keeping the exact measured result, with no overclaim and no falsity.
+
+I rejected two alternatives: *"Quantized Models Are Not Reproducibly Evaluable"* overclaims against our own exact within-job zero, and any title putting "bf16 exactly unchanged" next to job boundaries is **false** — R40 established bf16 moves ±1.11 pp cross-job.
+
+Same caveat as R40: title effects on acceptance are folklore. This is a judgement about scope signalling, not a probability claim.
+
+## Q4 — Your ordering is wrong in one specific way, and it's costing you 20 days of idle GPU
+
+**Highest value: the Introduction.** It locks the framing that determines every Results subsection's length, and §11 names framing as the largest *controllable* rejection factor. Writing six Results subsections before the Introduction risks writing them all at the wrong weights.
+
+**Second: the six Results subsections**, in contribution order, at the lengths the Introduction implies.
+
+**The correction:** H1's sweep and H6's arms are **not sequential with writing.** They're jobs. Launching them costs minutes; queue waits are 20 min to 2.5 h. **Submit both now, then write while they queue.** Serialising builds behind writing wastes the one resource you have in surplus.
+
+**Do today, before either:** compute R38.3's heterogeneity test. CPU-only, minutes, and it determines whether contribution #2 is an asset or a liability. Highest value per minute available to you.
+
+**Stop doing three things:**
+
+1. **Stop escalating at this rate.** The ledger is at R40 and the marginal value of a ruling has fallen sharply while the marginal value of written prose has risen. With three empty sections and 37 days, planner round-trips are now the main competitor for the attention that should be writing. Escalate only what is genuinely irreversible — registered estimators, identification, anything that reaches a number in the paper. Not much else qualifies now.
+2. **Stop building off the H8/H3/H1 path.** H5, H2, and H7-beyond-completion.
+3. **Stop chasing the cross-job cause** beyond R37.3's one cheap `torch.compile` cache test. Unexplained is already ruled publishable; a fifth refuted hypothesis adds nothing the four don't.
