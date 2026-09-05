@@ -230,9 +230,13 @@ def run_one_cell(cell: dict, plan: list, max_num_seqs: int, base_repo: str,
         "max_num_seqs": max_num_seqs,
         # 🚨 `run_id` is the CALLER's, not this module's. `sm_sweep` reuses this function and
         # must write under `sweep-v1`: a sweep cell differs from a reference cell in
-        # `budget_level` and `max_gen_toks`, both of which are in `decoding_fingerprint`, so
-        # sharing an id would either be refused on resume or pool two budget levels into one
-        # population that every `--run-id` consumer reads as homogeneous.
+        # `budget_level` and `max_gen_toks`, so sharing an id would pool two budget levels
+        # into one population that every `--run-id` consumer reads as homogeneous.
+        #
+        # ⚠️ CORRECTED 2026-09-05: neither field is in `decoding_fingerprint`'s payload, and
+        # that function does not guard this stage (it is called from `sm_determinism.py` only).
+        # The separation comes from `budget_level` in `cell_path` and from `validate()` refusing
+        # a label that disagrees with the config's declared cap.
         "run_id": cell.get("run_id", RUN_ID),
         "repeat_idx": repeat_idx,
         # H1's budget level (A15/R39.3). Defaults to 1x, so the reference run is unchanged.

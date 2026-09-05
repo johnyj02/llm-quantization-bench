@@ -24,6 +24,7 @@ from quantartifact.records import (
     SchemaError,
     StaleCacheError,
     TruncatedCellError,
+    _expected_max_gen_toks,
     append_records,
     assert_cell_reusable,
     assert_join_key_unique,
@@ -36,6 +37,21 @@ from quantartifact.records import (
 
 
 def make_record(**overrides) -> GenerationRecord:
+    """A valid record, with `max_gen_toks` DERIVED from the task and budget level.
+
+    ⚠️ It is derived rather than defaulted for the same reason production derives it. The old
+    fixture hardcoded `max_gen_toks=256`, correct for its default `gsm8k_cot` at 1x and wrong for
+    any test that overrode `task=`. `validate()` now refuses a `budget_level` that disagrees with
+    the cap `configs/tasks.yaml` declares, and it caught this fixture immediately: a BBH record at
+    1x carrying 256 where BBH declares 1024.
+
+    A fixture that cannot express the inconsistency is worth more than one that is merely correct
+    today, because the whole point of the new guard is that a mislabelled budget is unrecoverable.
+    An explicit `max_gen_toks=` override still wins, so a test can still construct the violation
+    on purpose.
+    """
+    task = overrides.get("task", "gsm8k_cot")
+    level = overrides.get("budget_level", "1x")
     defaults = dict(
         run_id="main-v1",
         cell_id="qwen2.5-3b|gptq-4bit",
@@ -50,8 +66,8 @@ def make_record(**overrides) -> GenerationRecord:
         gold="18",
         prompt_variant="fewshot_cot",
         scoring_mode="generate",
-        budget_level="1x",
-        max_gen_toks=256,
+        budget_level=level,
+        max_gen_toks=_expected_max_gen_toks(task, level) or 256,
         decoding="greedy",
         sample_idx=0,
         seed=0,

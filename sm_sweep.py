@@ -59,10 +59,17 @@ CONFIGS = Path(__file__).parent / "configs"
 SMOKE = os.environ.get("SM_HP_SMOKE") == "1" or "--smoke" in sys.argv
 
 #: ⚠️ Its OWN run_id, never `main-v1`. A sweep cell and a reference cell differ in
-#: `budget_level` and `max_gen_toks`, both of which are in `decoding_fingerprint`, so writing
-#: them under one id would either be refused by `assert_cell_reusable` or, worse, pool two
-#: budget levels into one population that every downstream `--run-id` consumer reads as
-#: homogeneous.
+#: `budget_level` and `max_gen_toks`, so writing them under one id would pool two budget
+#: levels into one population that every downstream `--run-id` consumer reads as homogeneous.
+#:
+#: ⚠️ CORRECTED 2026-09-05. This used to claim both fields are "in `decoding_fingerprint`" and
+#: that writing them under one id "would either be refused by `assert_cell_reusable`" or pool
+#: them. **The first clause was false and the second overstated the protection.** Neither field
+#: is in the fingerprint payload, and the fingerprint does not guard this stage at all: it is
+#: called from `sm_determinism.py` only. What actually separates a sweep cell from a reference
+#: cell is `budget_level` in `cell_path`, plus `records.GenerationRecord.validate()` refusing a
+#: label that disagrees with the config's cap. Recorded because someone trusting the old comment
+#: could have removed `budget_level` from the path believing the fingerprint covered it.
 RUN_ID = "sweep-v1-smoke" if SMOKE else "sweep-v1"
 
 #: The three contrasted arms. `bnb-nf4` and `gptq-8bit` are deliberately absent: §2.2 excludes

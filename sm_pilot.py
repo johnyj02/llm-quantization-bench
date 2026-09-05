@@ -254,6 +254,15 @@ for lm_eval_task, task, subtask, limit in payload["plan"]:
     items = [{"item_id": p.item_id, "prompt": p.prompt_text, "gold": p.gold,
               "prompt_token_ids": p.prompt_token_ids}
              for p in prompts]
+    # 🚨 BOUND ONCE, deliberately. `budget_level` and `max_gen_toks` were two independent
+    # `payload.get("budget_level", "1x")` expressions three lines apart in the call below,
+    # agreeing only because they happened to be spelled the same, with a comment instructing a
+    # future editor to keep them in step. A comment is not an enforcement, and the CODE
+    # REVIEWER was right to call the guard incidental: one careless edit records a 4x
+    # generation against a 256-token cap, which scores cleanly and is unrecoverable.
+    # One binding makes the disagreement unexpressible. `records.GenerationRecord.validate()`
+    # now also refuses the mismatch at write time, so this holds for every stage, not just this one.
+    _budget = payload.get("budget_level", "1x")
     started = time.monotonic()
     counts = run_cell(
         runner,
@@ -270,13 +279,23 @@ for lm_eval_task, task, subtask, limit in payload["plan"]:
         # ⚠️ `budget_level` and `max_gen_toks` MUST come from the same key. Passing the label
         # from the payload while leaving the cap at ["1x"] would record a 4x generation as 4x
         # while capping it at 256 tokens, i.e. a mislabelled artifact that scores cleanly and
-        # is unrecoverable afterwards. It is also part of `decoding_fingerprint`, so a cached
-        # 1x cell cannot be reused for 2x.
-        budget_level=payload.get("budget_level", "1x"),
+        # is unrecoverable afterwards.
+        #
+        # ⚠️ CORRECTED 2026-09-05: this comment used to add "It is also part of
+        # `decoding_fingerprint`, so a cached 1x cell cannot be reused for 2x." BOTH HALVES WERE
+        # FALSE. `budget_level` and `max_gen_toks` are absent from the fingerprint payload
+        # (`generate.py`: decoding_version, sampling, generation_config, required_env,
+        # batch_invariant, seed, enable_prefix_caching, async_scheduling, enforce_eager,
+        # disabled_kernels, until_applied, max_num_seqs), and the fingerprint does not guard the
+        # generation stages at all: it is called from `sm_determinism.py` only, and these stages
+        # are guarded by `records.assert_cell_reusable()` instead. What actually separates a 1x
+        # cell from a 2x cell is `budget_level` in `cell_path`. Someone trusting the old comment
+        # could have removed it believing the fingerprint covered them.
+        budget_level=_budget,
         # The terminator set is part of the DEFINITION of each template level: at `raw`
         # lm-eval's few-shot set is correct by construction, at `chat` it is not. Tasks
         # without a per-level override fall back to their single `until`.
-        max_gen_toks=config["max_gen_toks"][payload.get("budget_level", "1x")],
+        max_gen_toks=config["max_gen_toks"][_budget],
         until=(config.get("until_by_template") or {}).get(
             payload["template_level"], config["until"]),
         quant_config_hash=cell["quant_config_hash"],

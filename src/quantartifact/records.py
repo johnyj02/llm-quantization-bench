@@ -58,6 +58,41 @@ class SchemaError(ValueError):
     """A record violates the interface contract. Always fatal, never warned."""
 
 
+def _expected_max_gen_toks(task: str, budget_level: str) -> int | None:
+    """`configs/tasks.yaml`'s declared cap for a task at a budget level, or None.
+
+    Returns None rather than raising when the answer is genuinely unknown: an unrecognised
+    task, a level the task does not declare, or a config that cannot be read. `validate()`
+    then skips the comparison instead of rejecting a record it cannot judge.
+
+    ⚠️ **None means "I cannot know", never "it is fine", and the distinction is load-bearing
+    here.** `compliance.classify_termination` used to swallow a config read failure and return
+    an empty table, which made every stop-sequence kill look like a natural stop and silently
+    restored the bug the read was added to fix. So the failure is bounded to a *skipped* check
+    on a *single* comparison rather than a green light, and a task genuinely absent from the
+    config is caught by the config audit instead.
+    """
+    global _TASK_CAPS
+    if _TASK_CAPS is None:
+        try:
+            import yaml  # noqa: PLC0415 - only needed on this path
+
+            configs = Path(__file__).resolve().parents[2] / "configs" / "tasks.yaml"
+            tasks = yaml.safe_load(configs.read_text())["tasks"]
+            _TASK_CAPS = {
+                name: dict(cfg["max_gen_toks"])
+                for name, cfg in tasks.items()
+                if isinstance(cfg, dict) and isinstance(cfg.get("max_gen_toks"), dict)
+            }
+        except (OSError, KeyError, TypeError, ValueError):
+            _TASK_CAPS = {}
+    return (_TASK_CAPS.get(task) or {}).get(budget_level)
+
+
+#: Cache for the above. Populated once; `{}` means the config was unreadable.
+_TASK_CAPS: dict[str, dict[str, int]] | None = None
+
+
 @dataclasses.dataclass
 class GenerationRecord:
     """One generation. Complete enough that ANY future scorer can run over it.
@@ -225,6 +260,34 @@ class GenerationRecord:
 
         if self.task == "bbh" and not self.subtask:
             raise SchemaError("subtask is REQUIRED for task=bbh")
+
+        # 🚨 THE BUDGET LABEL MUST AGREE WITH THE CAP IT WAS GENERATED UNDER.
+        #
+        # This is H1's whole instrument. `budget_level` is the independent variable of the
+        # registered token-budget sweep (prereg §3, A15), and `max_gen_toks` is the cap that
+        # actually bound the generation. If they disagree, the artifact is MISLABELLED: a
+        # generation capped at 256 tokens recorded as `4x`. It scores cleanly, it looks
+        # plausible in aggregate, and it is unrecoverable afterwards, because nothing else in
+        # the record says what cap was in force.
+        #
+        # Checked HERE rather than only at the call site because `validate()` is the fail-closed
+        # point every stage passes through, and the mislabel can arrive from any of them. The
+        # CODE REVIEWER's point was that the call-site guard was a comment instructing a future
+        # editor, i.e. incidental rather than structural; this is the structural half.
+        #
+        # ⚠️ Deliberately compares against `configs/tasks.yaml` rather than a literal, because a
+        # hardcoded table is exactly how `compliance.HARNESS_UNTIL` drifted from the config and
+        # reported a stale terminator set as a measurement.
+        if self.scoring_mode == "generate" and self.budget_level and self.max_gen_toks:
+            expected = _expected_max_gen_toks(self.task, self.budget_level)
+            if expected is not None and expected != self.max_gen_toks:
+                raise SchemaError(
+                    f"budget_level={self.budget_level!r} disagrees with "
+                    f"max_gen_toks={self.max_gen_toks} for task={self.task!r}: "
+                    f"configs/tasks.yaml declares {expected} at that level "
+                    f"({self.cell_id}/{self.item_id}). A mislabelled budget is "
+                    f"unrecoverable after the fact, so this fails closed."
+                )
 
         # Determinism contract. A record produced with these wrong is not
         # comparable to the rest of the study, so it must never reach disk.

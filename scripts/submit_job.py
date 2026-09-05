@@ -124,8 +124,13 @@ STAGES: dict[str, dict] = {
     },
     "sweep": {
         "entry_point": "sm_sweep.py",
-        "description": "A15/H1: the token-budget sweep, 3 arms x {2x,4x} x 1,400 items. "
-                       "1x comes free from main-v1's nested subsample",
+        # ⚠️ CORRECTED 2026-09-05. This read "3 arms x {2x,4x} x 1,400 items", which scans as
+        # SIX units and understates the run threefold. It is 3 MODELS x 3 arms x 2 levels.
+        # The internal comment below had it right, so only the line a human confirms a
+        # submission against was wrong, which is the worse of the two places to be wrong.
+        "description": "A15/H1 token-budget sweep: 3 models x 3 arms x {2x,4x} = 18 units "
+                       "x 1,400 items = 25,200 generations. 1x comes free from main-v1's "
+                       "prefix-nested subsample",
         # 18 units x 1,400 items = 25,200 generations, but at 2x and 4x caps the per-item cost
         # is higher than the reference run's, so the measured ~7,100 gen/h does not transfer.
         # 12 h caps a hang at ~$34; per-item resume means a timeout costs a queue wait.
