@@ -344,6 +344,59 @@ so Q is anticonservative there. Descriptive, never inferential.
 neither result is marginal. The registered omnibus is still reported because it was
 pre-specified, and the per-arm estimates plus this test are the substantive result.
 
+### 3-bis. H1's directional prediction, registered BEFORE the sweep runs
+
+Registered **2026-09-05**, planner ruling R39.3, and the timing is the whole point: this is
+written while **no `2x` or `4x` generation exists anywhere**, so it is a prediction rather than
+a description. `sm_sweep.py` has been written and its smoke has not yet run.
+
+🚨 **Why a prediction and not just a measurement.** R39.3: *"the length finding is
+OBSERVATIONAL; the budget sweep is INTERVENTIONAL, and interventional evidence is what licenses
+H1's causal claim."* A sweep that merely reports three numbers per arm measures a curve. A sweep
+that reports whether a **pre-stated ordering** held tests a mechanism. The second is what H1
+was registered as.
+
+**The observational input, stated inline so the prediction cannot be back-fitted.** Measured on
+`main-v1` at full n, tokens discarded per generation between the full output and the scored
+prefix:
+
+| model | bf16 | gptq-8bit | gptq-4bit | awq-4bit | bnb-nf4 |
+|---|---|---|---|---|---|
+| llama-3.1-8b | 19.5 | 19.1 | **5.9** | 7.8 | **63.9** |
+| phi-3.5-mini | 61.7 | 59.0 | **107.0** | 60.2 | 46.9 |
+| qwen2.5-3b | 1.8 | 1.4 | 1.2 | 5.4 | 4.3 |
+
+**THE REGISTERED PREDICTION.** Arms that discard more tokens at `1x` should show a **larger
+accuracy gain** when the budget is raised, because a discarded answer is an answer the scorer
+never saw and a larger budget is what lets it be seen. Concretely, and these are the
+falsifiable forms:
+
+1. **Within a model, the arm-wise ranking of discard at `1x` should positively correlate with
+   the arm-wise ranking of accuracy gain from `1x` to `4x`.** So on Llama, `bnb-nf4` should gain
+   most and `gptq-4bit` least; on Phi, `gptq-4bit` should gain most.
+2. **Across models, Qwen should show the smallest gains at every arm**, since it discards
+   1.2–5.4 tokens per generation against Phi's 46.9–107.0.
+3. **`bf16` is not predicted to be immune.** Llama `bf16` discards 19.5 tokens and Phi `bf16`
+   61.7, so this is *not* the ordering asymmetry of H8; the prediction is about magnitude
+   ordering, not about one arm being exactly unmoved.
+
+⚠️ **What would REFUTE it, stated now.** A budget response that is flat across arms within a
+model, or one whose ranking is uncorrelated with or opposite to the discard ranking. Either
+would mean truncation is not the channel through which the budget acts, and H1 would then be
+reported as a measured curve with its predicted mechanism **refuted**, which is publishable and
+is not to be relabelled as a limitation.
+
+⚠️ **One confound named in advance.** A larger budget lets a model generate more, and more
+generation can degrade an answer as well as complete one (§5a's two-sided error). So the
+prediction is about the **net** accuracy gain, and the recovered-versus-destroyed decomposition
+of §5a is reported per level so the two directions are visible separately rather than netted
+silently.
+
+**Scope, and why `1x` is not regenerated.** 3 models × 3 contrasted arms × {`2x`, `4x`} over the
+1,400-item sweep composition. `1x` comes from `main-v1` via the verified prefix-nested GSM8K
+subsample. ⚠️ Regenerating `1x` would produce a **second** `1x` measurement that §9f's cross-job
+noise guarantees will not match the first, leaving two numbers where the design wants one.
+
 ## 3. Frozen token-budget levels (H1)
 
 **Frozen as absolute integers before any results exist.** Verified against

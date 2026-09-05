@@ -122,6 +122,18 @@ STAGES: dict[str, dict] = {
         # Isolation of its own writes is by run_id (`anchor-v1-smoke`), not by prefix.
         "smoke_isolates_checkpoints": False,
     },
+    "sweep": {
+        "entry_point": "sm_sweep.py",
+        "description": "A15/H1: the token-budget sweep, 3 arms x {2x,4x} x 1,400 items. "
+                       "1x comes free from main-v1's nested subsample",
+        # 18 units x 1,400 items = 25,200 generations, but at 2x and 4x caps the per-item cost
+        # is higher than the reference run's, so the measured ~7,100 gen/h does not transfer.
+        # 12 h caps a hang at ~$34; per-item resume means a timeout costs a queue wait.
+        "max_run": 43200,
+        # READS job 1's checkpoints by recipe hash, so the smoke must see the study prefix.
+        # Isolation of its own writes is by run_id (`sweep-v1-smoke`).
+        "smoke_isolates_checkpoints": False,
+    },
     "determinism": {
         "entry_point": "sm_determinism.py",
         "description": "A7/H8: per-format bitwise disagreement + max_num_seqs frontier",

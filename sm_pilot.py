@@ -258,11 +258,25 @@ for lm_eval_task, task, subtask, limit in payload["plan"]:
     counts = run_cell(
         runner,
         run_id=payload["run_id"], cell_id=cell["cell_id"], task=task, subtask=subtask,
-        items=items, prompt_variant="fewshot_cot", budget_level="1x",
+        items=items, prompt_variant="fewshot_cot",
+        # 🚨 H1's BUDGET LEVEL, read from the payload rather than hardcoded (R39.3).
+        #
+        # This was the literal string "1x" in both places, which is why H1's registered
+        # instrument did not exist: `configs/tasks.yaml` declared all three levels as absolute
+        # integers and `generate.py` accepted `--budget {1x,2x,4x}`, but nothing drove them, so
+        # a repo-wide search found the levels only in an argparse choice list. Declared and
+        # never consumed, which is this project's recurring shape.
+        #
+        # ⚠️ `budget_level` and `max_gen_toks` MUST come from the same key. Passing the label
+        # from the payload while leaving the cap at ["1x"] would record a 4x generation as 4x
+        # while capping it at 256 tokens, i.e. a mislabelled artifact that scores cleanly and
+        # is unrecoverable afterwards. It is also part of `decoding_fingerprint`, so a cached
+        # 1x cell cannot be reused for 2x.
+        budget_level=payload.get("budget_level", "1x"),
         # The terminator set is part of the DEFINITION of each template level: at `raw`
         # lm-eval's few-shot set is correct by construction, at `chat` it is not. Tasks
         # without a per-level override fall back to their single `until`.
-        max_gen_toks=config["max_gen_toks"]["1x"],
+        max_gen_toks=config["max_gen_toks"][payload.get("budget_level", "1x")],
         until=(config.get("until_by_template") or {}).get(
             payload["template_level"], config["until"]),
         quant_config_hash=cell["quant_config_hash"],

@@ -205,7 +205,7 @@ def build_cells(models: dict, specs: dict, calibration) -> list[dict]:
 
 
 def run_one_cell(cell: dict, plan: list, max_num_seqs: int, base_repo: str,
-                 repeat_idx: int = 0) -> dict | None:
+                 repeat_idx: int = 0, budget_level: str = "1x") -> dict | None:
     """One cell in its own process, via the PILOT's cell script.
 
     Subprocess per cell because torch's caching allocator and the engine's hooks do not
@@ -216,15 +216,27 @@ def run_one_cell(cell: dict, plan: list, max_num_seqs: int, base_repo: str,
     # would overwrite the first's counts file and the two would be indistinguishable in the
     # report -- the same cache-identity mistake this project has made nine times, and the
     # K=2 measurement is precisely a measurement OF two runs that must not be conflated.
-    tag = cell["cell_id"].replace("|", "__") + (f"__k{repeat_idx}" if repeat_idx else "")
+    tag = (cell["cell_id"].replace("|", "__")
+           + (f"__k{repeat_idx}" if repeat_idx else "")
+           # ⚠️ And the BUDGET LEVEL, for the same reason the repeat index is here: without it
+           # the 2x and 4x units of one cell overwrite each other's counts file and become
+           # indistinguishable in the report. Tenth instance of this shape if omitted.
+           + (f"__{budget_level}" if budget_level != "1x" else ""))
     out_path = GENERATIONS_ROOT / f".{tag}.counts.json"
     payload = {
         "template_level": cell["template_level"],
         "cell": {**cell, "base_repo": base_repo},
         "plan": plan,
         "max_num_seqs": max_num_seqs,
-        "run_id": RUN_ID,
+        # 🚨 `run_id` is the CALLER's, not this module's. `sm_sweep` reuses this function and
+        # must write under `sweep-v1`: a sweep cell differs from a reference cell in
+        # `budget_level` and `max_gen_toks`, both of which are in `decoding_fingerprint`, so
+        # sharing an id would either be refused on resume or pool two budget levels into one
+        # population that every `--run-id` consumer reads as homogeneous.
+        "run_id": cell.get("run_id", RUN_ID),
         "repeat_idx": repeat_idx,
+        # H1's budget level (A15/R39.3). Defaults to 1x, so the reference run is unchanged.
+        "budget_level": budget_level,
         "generations_root": str(GENERATIONS_ROOT),
         "tasks_yaml": str(CONFIGS / "tasks.yaml"),
         "models_yaml": str(CONFIGS / "models.yaml"),
