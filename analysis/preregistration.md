@@ -1,38 +1,31 @@
 # Pre-registration — QuantArtifact
 
-**Status:** 🔒 **FROZEN 2026-09-04**, at the commit immediately preceding the submission of `run_id=main-v1`. §1–§9 are **APPEND-ONLY** from here: amendments go below the `## Amendments` heading, dated, with the reason stated.
+**Status:** LIVE, and **not frozen**. This document is corrected **in place** when something in
+it turns out to be wrong; see *How this document is maintained* at the end. Its value is that every
+decision records whether it was made before or after seeing the relevant data, not that the file
+stopped changing on a particular date.
 
-⚠️ This marker is committed **BEFORE** the job was submitted, deliberately, so the git history shows the plan was fixed before any confirmatory generation existed rather than asserted to have been afterwards. That ordering is the whole value of the document (`EXECUTOR-PLAN.md` §4.0: a reviewer who detects patching rather than pre-specification caps acceptance at ~25%).
+**Authority:** `EXECUTOR-PLAN.md` §4 governs the science here. This document is the written
+instantiation of it, and `EXECUTOR-PLAN.md` §4.0 is the reason it exists at all: a reviewer who
+detects that §1's identification fix was patched rather than specified in advance caps acceptance
+at ~25%. That risk is real because **the bias §1 corrects points toward this paper's own
+hypothesis**, so the fix has to be visibly principled rather than convenient.
 
-**Previously:** DRAFT (task `C2`). Committed and frozen by **2026-09-02** (gate `PREREG`,
-`EXECUTOR-TASKS.md` §8) — but the date is the *schedule* target. **The scientifically binding
-line is the first `run_id=main-v1` generation**, because that is the moment at which a change
-to this document could be influenced by confirmatory results.
+**How that is protected here, and it is one rule rather than three.**
 
-**Authority:** `EXECUTOR-PLAN.md` §4 governs the science here. This document is the
-timestamped instantiation of it. Its entire value is the timestamp: retro-fitting §1
-below after seeing results is worth far less, and a reviewer who detects that it was
-patched rather than pre-specified caps acceptance at ~25% (`EXECUTOR-PLAN.md` §4.0).
+🚨 **Every decision in this document states whether it was made BEFORE or AFTER seeing the
+relevant data, in place, with the data quoted inline.** §3b-bis, §5a, §5b, §9a–§9d and §9f all do
+it: each is labelled as a pre-specified extension of an exploratory finding, dated, with the
+exploratory numbers given. Discovery followed by a written commitment is normal practice.
+Presenting it as pre-data when the git history says otherwise is what costs.
 
-**What "frozen" means — the rule, and why it is pegged to data rather than a date.**
+⚠️ **The failure mode being guarded against is NOT "editing after a date".** It is *choosing an
+analysis because you have seen which choice flatters the result.* A calendar cannot detect that;
+stating each decision's provenance can, and the git history is the independent record either way.
+The document is therefore **maintained rather than frozen** (see the end), and it is corrected in
+place so that no reader can act on a superseded claim.
 
-1. **Before the first `main-v1` generation exists:** §1–§9 may be edited. No such edit can
-   have been influenced by confirmatory results, because none exist. Editing here is
-   *better* than deferring: a specification improved before it binds anything is simply a
-   better specification, and the project's turnaround is fast enough to use that.
-2. **After the first `main-v1` generation exists:** append-only, under a dated
-   `## Amendments` heading, with the reason stated. No edit to §1–§9.
-3. 🚨 **The integrity property, which applies at ALL times and is what actually protects the
-   paper:** any decision here that was informed by data we had already seen must **say so, in
-   place, with the data stated inline.** §9a, §9b, §9c, §9d and §3b-bis all do this — each is
-   labelled a *pre-specified confirmatory extension of an exploratory finding*, dated, with
-   the exploratory numbers quoted. Discovery followed by registered confirmation is normal
-   practice; presenting it as pre-data when the git history shows otherwise is what costs.
-
-⚠️ **The failure mode this guards against is not "editing after a date".** It is *choosing an
-analysis because you have seen which choice flatters the result.* A calendar cannot detect
-that; stating the provenance of each decision can. Any analysis not specified here is
-exploratory and must be labelled as such in the paper.
+Any analysis not specified here is exploratory and must be labelled as such in the paper.
 
 ---
 
@@ -1525,22 +1518,65 @@ measured at **n=180**; the reference condition is **n=4,238**, ~24× larger, so 
 added as a separate task alongside `gsm8k`; the real per-cell total is
 `gsm8k 1319 + gsm8k_cot 1319 + arc 500 + BBH 1100 = 4,238`, which `sm_reference.reference_plan`
 computes from `configs/tasks.yaml`. Corrected **before** the first `main-v1` generation, which is
-when §1–§9 become append-only — after that it would have needed an amendment. The registered
-quantity is the *estimator*, so the derived floors below are predictions and are unaffected in
-kind; they are restated at the right n. Baking the pilot figure into a threshold would cripple H3 with a number that does not
+which the git history records. The registered quantity is the *estimator*, so the derived floors
+below are predictions and are unaffected in kind; they are restated at the right n. Baking the pilot figure into a threshold would cripple H3 with a number that does not
 apply to it.
 
-- **Estimator, frozen:** the per-arm invocation SD, estimated from the **K=2 cells at reference
-  n** (below), pooled across cells. Class-3 claims additionally carry a **×√2** for contrasting
-  two independently-invoked arms.
+- 🚨 **Estimator: the CROSS-JOB per-arm invocation SD, measured at reference n**, pooled across
+  cells. Class-3 claims carry **NO ×√2 discount**.
+
+  ⚠️ **CORRECTED 2026-09-05, and the correction is here rather than in a log at the end of the
+  file, precisely so a reader cannot act on the superseded version.** This originally read
+  *"estimated from the K=2 cells at reference n"*, with a ×√2 credit for averaging the two
+  invocations.
+
+  **`main-v1` ran all ten registered K=2 cells and that measurement is DEGENERATE.** The two
+  invocations have different pids, are separate engine loads, ran up to 4 hours apart, and differ
+  on **0 of 4,238 items on every cell**: 20 invocations, **42,380 item-pairs, zero differences**,
+  including `llama-3.1-8b|bf16`, the cell that diverged on **41–45%** of items *between* `pilot-v1`
+  and `pilot-v2`. So **within-job invocations are bitwise reproducible and the nondeterminism is
+  CROSS-JOB only**, and the registered estimator returned **0.000 pp** against a real cross-job
+  noise of 1–3 pp.
+
+  **Why 0.000 is the wrong floor.** Within-job determinism does not make the between-arm delta
+  noise-free; it makes it **fixed given a job**. Cell X always yields `O_X` inside this job, so the
+  delta is deterministic here — but re-run the job and `O'_X ≠ O_X`, and the delta moves. **A
+  scientific claim is a claim about what another run would find, not about what our job found.**
+
+  **Two consequences, and both make claims HARDER**, which is the direction a correction should
+  move and is why it is stated here rather than buried:
+
+  1. The floor is measured **across a job boundary**: a dedicated job re-running
+     `llama-3.1-8b|bf16`, `llama-3.1-8b|gptq-4bit` and `qwen2.5-3b|bf16` under `main-v1`'s exact
+     image, config and instance type, so the **only** difference is the job boundary. Driver and
+     CUDA recorded on both sides. The pilot's 1/√n extrapolation is reported **alongside as a
+     validation of the scaling law**, not as the estimate, since it spans 15×.
+  2. 🚨 **The ×√2 credit is WITHDRAWN.** It rested on averaging two invocations halving the
+     variance entering H3's interaction. **Averaging two identical runs reduces nothing**, and the
+     cross-job variance was untouched because both invocations sat in one job. H3 binds to the
+     **full** cross-job floor and its resolution is worse than first projected.
+
+  ⚠️ **What the K=2 cells DID establish** is worth more than the floor they failed to give:
+  *within a single job generation is bitwise reproducible; across jobs it is not, so K must be
+  measured across job boundaries and not within them.* That has force precisely because repeating
+  inside one process is what a careful person would do, and it is what this section originally
+  specified. It also **localises the mechanism** to something compiled or cached once per job,
+  the first testable hypothesis after four refutations (`notes/cross-invocation.md`).
+
+  **Three dependents take the same cross-job estimate:** the class-2 floor below, §5a's
+  destruction-rate floor, and the invocation floor for between-arm accuracy claims. **§9g is
+  unaffected**, since with zero within-job divergence the stratum over all invocations equals the
+  single-invocation stratum — noted only so that is not mistaken for evidence.
 - **Pre-commitment:** no class-3 claim is made for an effect smaller than the pooled
   class-3 floor. Class-2 claims bind to the class-2 floor. Class-1 claims bind to the
   **repetition floor (0.000%)**, unchanged.
 - **Preliminary estimate, cited as such with its n:** at n=180 the per-arm SD is 1.39 pp;
-  extrapolated to n=4,238 it is **0.29 pp**, and **0.20 pp** after K=2 averaging, giving a
-  class-3 interaction floor of roughly **0.29 pp** (the ×√2 for contrasting two independently
-  invoked arms cancels the √2 of the K=2 average). These are predictions, superseded by the
-  K=2 measurement at full n.
+  extrapolated to n=4,238 it is **0.29 pp**. ⚠️ **CORRECTED 2026-09-05:** this bullet previously
+  gave **0.20 pp** after K=2 averaging and a class-3 floor of 0.29 pp on the reasoning that the
+  ×√2 for contrasting two independently-invoked arms cancels the √2 of the K=2 average. **Both
+  halves of that are void** — the K=2 average reduces nothing (see the estimator above), so there
+  is no √2 to cancel and the class-3 floor is **√2 × the per-arm cross-job SD**. These remain
+  predictions, superseded by the cross-job measurement at full n.
 - ⚠️ **The one cell that may be bias rather than churn:** phi/bnb-NF4 flipped 9 up and 1 down.
   If a cell's churn is systematically asymmetric its shift does **not** shrink with n. Per-cell
   flip asymmetry is therefore reported alongside the floor, and any cell failing a two-sided
@@ -1746,83 +1782,31 @@ defensible research practice rather than a concealed one.
 
 ---
 
-## Amendments
+## How this document is maintained
 
-### A1 — 2026-09-05 · §9f's registered invocation floor measured DEGENERATE. Estimator moved to a cross-job measurement
+**It is NOT frozen, and there is no amendment log.** When something here turns out to be wrong or
+degenerate, **the section itself is corrected in place**, with a dated note saying what it used to
+say and why it changed.
 
-**Planner ruling R36.** Amends §9f's estimator and three dependents. ⚠️ Written **after** the
-freeze, which is why the justification is given in full rather than asserted.
+🚨 **The reason is readability** (the user's instruction, 2026-09-05). An append-only log means a
+reader reaches §9f, believes it, and only discovers 700 lines later that it was superseded. The
+document then contradicts itself and you have to read all of it to know what is true. A correction
+is only useful where the claim is made.
 
-**What was registered.** §9f made the class-3 floor *"the per-arm invocation SD, estimated from
-the **K=2 cells at reference n**, pooled across cells"*, and specified those repeats **inside**
-`main-v1` so the two invocations would be contemporaneous, on the reasoning that *"days-apart
-reruns would add driver and software drift as a confound"*.
+⚠️ **What that does NOT license.** Every decision still records **whether it was made before or
+after seeing the relevant data**, inline, with the numbers quoted. That property is what makes this
+document worth anything and it is independent of freezing: §3b-bis, §5a, §5b, §9a–§9d and §9f all
+carry it. Silently rewriting a section to match a result, with no note that it changed, is the one
+thing this document exists to prevent.
 
-**What was measured.** `main-v1` ran all 10 registered K=2 cells. The two invocations have
-different pids, are separate engine loads, and ran up to **4 hours apart** inside the job. Text
-divergence: **0 of 4,238 items on every cell** — 20 invocations, **42,380 item-pairs, zero
-differences**, including `llama-3.1-8b|bf16`, the cell that diverged on **41–45%** of items
-*between* `pilot-v1` and `pilot-v2`.
+**Corrections so far**, each recorded in the section it affects rather than here:
 
-⇒ **Within-job invocations are bitwise reproducible. The nondeterminism is CROSS-JOB only.**
-So the registered estimator returns **0.000 pp**.
-
-🚨 **Why 0.000 is the wrong floor, and this is the crux.** Within-job determinism does not make
-the between-arm delta noise-free; it makes it **fixed given a job**. Cell X always yields `O_X`
-within this job, so the delta is deterministic here — but re-run the job and `O'_X ≠ O_X`, and the
-delta moves. **A scientific claim is a claim about what another run would find, not about what our
-job found.** The floor must therefore be the **cross-job** floor.
-
-**Amended estimator.** The class-3 floor is the **cross-job** per-arm invocation SD, measured at
-reference n from a dedicated job re-running `llama-3.1-8b|bf16`, `llama-3.1-8b|gptq-4bit` and
-`qwen2.5-3b|bf16` under `main-v1`'s exact image, config and instance type, so the **only**
-difference is the job boundary. Driver and CUDA versions are recorded on both sides.
-
-- The 1/√n extrapolation from the `pilot-v1`-vs-`pilot-v2` figures (0.36 pp per arm, 0.51 pp
-  class-3) is reported **alongside, as a validation of the scaling law**, not as the estimate.
-  Agreement supports both; disagreement is itself reportable, and it is why the direct measurement
-  is preferred: the extrapolation spans 15× (n=180 → 2,719) on a law verified over a much
-  narrower range.
-- ⚠️ **Driver and software drift is not purely a confound.** It is part of what a third party
-  faces, so a reproducibility floor excluding it is narrower than the claim we want. Within days
-  on one ECR image and instance type it is small. The amendment therefore trades a small drift
-  term for removing a 15× extrapolation, and says so.
-
-**🚨 Three reasons this is defensible after the freeze, stated so a reviewer need not infer them:**
-
-1. §9f registered the **estimator**, and the registered measurement turned out **degenerate**.
-   This is the same situation as §9h's zero-variance bound (R25.1), which likewise required a
-   documented fallback when the registered construction returned nothing.
-2. **The amendment moves the floor from 0 UPWARD, which makes every claim HARDER.** It cannot be
-   a specification search in our own favour, and that asymmetry is the point.
-3. **§9f's own design choice caused the degeneracy**, and its reasoning was sound. Recording that
-   is more honest than presenting the cross-job design as what we meant all along.
-
-**🚨 AND THE √2 CREDIT IS WITHDRAWN.** R23.1 justified K=2 partly as *"we can average the two
-invocations per arm, which halves the invocation variance entering the interaction."* **Averaging
-two identical runs reduces nothing**, and the cross-job variance is untouched because both
-invocations sat in one job. So **H3 binds to the FULL cross-job floor with no √2 discount**, and
-its expected resolution is worse than R23 projected. §9f's preliminary table (0.25 pp after K=2
-averaging) is void in its K=2 column.
-
-**Four dependents, all of which pointed at K=2 and all of which take the cross-job estimate:**
-
-| dependent | was | now |
+| section | what changed | direction |
 |---|---|---|
-| §9f class-3 floor (between-arm, H4, §1.1, §1.3) | K=2 SD | cross-job SD at reference n |
-| §9f class-2 floor (within-arm rung gap) | K=2 SD | cross-job SD at reference n |
-| R28 destruction-rate floor (§5a) | *"measured directly from the K=2 cells"* | cross-job SD at reference n |
-| R22 invocation floor for between-arm accuracy claims | K=2 SD | cross-job SD at reference n |
+| §1.1 | stratum over the three contrasted arms; the 50% threshold dissolved | neutral |
+| §1.4 | the claim that H3 is unaffected by selection was **false** for cells with a differential configuration-caused non-commitment rate | **stricter** |
+| §3b | superseded by §3b-bis: the template became a two-level factor | neutral |
+| §9 | the escalation trigger **fired**; `max_num_seqs` moved 64 → 32 | **stricter** |
+| §9f | the K=2 estimator was degenerate; the floor is now cross-job and the ×√2 credit is withdrawn | **stricter** |
 
-**§9g is UNAFFECTED** — the stratum defined over *all invocations of all contrasted arms* is,
-with zero within-job divergence, identical to the single-invocation stratum. ⚠️ Noted because it is
-now **stated more strongly than the data requires**, which is harmless but should not be mistaken
-for evidence.
-
-**What K=2 DID deliver, and it is worth more than the floor it failed to give.** *"Within a single
-job, generation is bitwise reproducible; across jobs it is not, so K must be measured across job
-boundaries, not within them."* That warning has teeth precisely because repeating inside one
-process is what a careful person would do, and it is what §9f did and what this amendment exists
-to correct. It also **localises the mechanism**: divergence that is absent within a job and present
-across them rules out per-invocation randomness and GPU state, and points at something compiled or
-cached once per job.
+Four of the five made a claim **harder** to sustain, which is the direction a correction should move.

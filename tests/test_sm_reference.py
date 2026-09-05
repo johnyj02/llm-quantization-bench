@@ -170,15 +170,57 @@ class TestFailClosed:
         )
 
 
-class TestFreezeLineIsDocumented:
-    def test_source_states_it_is_the_freeze_line(self):
-        assert "FREEZE LINE" in SOURCE
+class TestPreregIsMaintainedNotFrozen:
+    """🚨 REPLACES `TestFreezeLineIsDocumented` (user decision D16, 2026-09-05).
 
-    def test_prereg_pegs_the_freeze_to_this_run(self):
-        prereg = (REPO / "analysis" / "preregistration.md").read_text()
-        assert "first `run_id=main-v1` generation" in prereg, (
-            "the prereg must peg append-only status to this run, not to a calendar date"
+    Document freezing and dated amendments are removed. The objection was readability and it
+    identified a real defect: §9f claimed the invocation floor came from the K=2 cells, that
+    turned out degenerate, and the correction was appended **700 lines later** — so a reader
+    reached §9f, believed it, and could not know it was superseded.
+
+    ⚠️ These tests enforce what REPLACED the freeze, rather than nothing. "Not frozen" means
+    corrected **visibly**, never corrected quietly, and the properties below are what make that
+    checkable instead of aspirational.
+    """
+
+    PREREG = (REPO / "analysis" / "preregistration.md").read_text()
+
+    def test_the_prereg_does_NOT_claim_to_be_frozen_or_append_only(self):
+        """A stale freeze claim is worse than none: it tells a reader the file cannot have moved."""
+        assert "APPEND-ONLY" not in self.PREREG
+        assert "## Amendments" not in self.PREREG, (
+            "the dated amendment log is removed (D16); corrections go in the section that makes "
+            "the claim, so a reader cannot act on a superseded version"
         )
+
+    def test_the_maintenance_policy_is_stated(self):
+        assert "How this document is maintained" in self.PREREG
+
+    def test_provenance_marking_survives_the_freeze_removal(self):
+        """🚨 The property that actually protects the paper, and it is independent of freezing.
+
+        The failure mode is choosing an analysis because you have seen which choice flatters the
+        result. A calendar never detected that; an inline note saying whether a decision came
+        before or after the data does.
+        """
+        assert "informed by pilot data already seen" in self.PREREG.lower(), (
+            "at least one section must still label itself as informed by data already seen"
+        )
+        assert "Not pre-data" in self.PREREG, (
+            "the explicit not-pre-data disclaimer is the anti-flattery guard; removing document "
+            "freezing must not remove it"
+        )
+
+    def test_corrections_are_dated_where_they_are_made(self):
+        """A correction with no date is indistinguishable from the original claim."""
+        assert "CORRECTED 2026-09-05" in self.PREREG
+        assert "AMENDED 2026-09-04" in self.PREREG
+
+    def test_the_superseded_K2_estimator_is_not_still_asserted(self):
+        """The specific defect D16 was about: §9f must not still read as if K=2 gives the floor."""
+        assert "CROSS-JOB per-arm invocation SD" in self.PREREG
+        assert "Estimator, frozen:** the per-arm invocation SD, estimated from the **K=2" \
+            not in self.PREREG
 
     def test_loglikelihood_omission_is_flagged_not_silent(self):
         """H6's mode contrast is incomplete until the log-likelihood arms exist; that

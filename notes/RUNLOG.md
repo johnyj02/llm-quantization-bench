@@ -1654,7 +1654,8 @@ zero and license claims far below the true run-to-run variation — **the opposi
 they would be contemporaneous. That reasoning was sound and it is exactly what made the measurement
 return nothing.
 
-**Prereg amendment A1 written** (the freeze is append-only, which is what the rule is for). The
+**§9f CORRECTED IN PLACE** (the user removed document freezing on 2026-09-05: a correction belongs
+where the claim is made, not in a log a reader reaches 700 lines later). The
 floor moves to a **cross-job** measurement at reference n, and the amendment states the three
 reasons that makes it defensible post-freeze — chiefly that **it moves the floor from 0 UPWARD, so
 it makes every claim harder and cannot be a specification search in our favour.**

@@ -447,10 +447,22 @@ Stages, in dependency order: `verify` → `throughput` → `quantize` (job 1) �
 one cheap job answering a specific open question — a *measurement*, not a rehearsal. All eight
 have entry points and submit cleanly; `README.md` §4 has the table.
 
-🚨 **`reference` is the pre-registration freeze line.** `analysis/preregistration.md` §1–§9 may
-be edited freely until the first `main-v1` generation exists, because until then no edit can
-have been influenced by confirmatory results. From that job onward it is append-only. The Sep 2
-date is the *schedule* target, not the binding constraint (§9f).
+🚨 **`analysis/preregistration.md` IS NOT FROZEN, and there are NO dated amendments** (the user's
+instruction, 2026-09-05). Corrections go **in place, in the section that makes the claim**, with a
+dated note saying what it used to say and why it changed.
+
+The reason is readability, and it came from a real defect: an append-only log meant a reader hit
+§9f, believed it, and only discovered 700 lines later that it had been superseded. The document
+contradicted itself and you had to read all of it to know what was true. **A correction is only
+useful where the claim is made.**
+
+⚠️ **What that does NOT relax.** Every decision still states **whether it was made before or after
+seeing the relevant data**, inline, with the numbers quoted. That is the property that protects the
+paper, and it is independent of freezing: the failure mode is *choosing an analysis because you
+have seen which choice flatters the result*, and a calendar never detected that. The git history is
+the independent record. ⚠️ **Silently rewriting a section to match a result, with no note that it
+changed, is the one thing the document exists to prevent** — so "not frozen" means *corrected
+visibly*, never *corrected quietly*.
 
 🚨 **A cached or resumed unit of work must be keyed on EVERYTHING that determines what it
 produces.** This has cost real runs eight times — values declared and never forwarded

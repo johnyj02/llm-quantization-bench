@@ -291,3 +291,40 @@ budget"* rule was already lifted; this goes further and lifts cost as a consider
 automatic desk reject and costs only writing; the judge and annotation track needs the co-author's
 calendar; the Oct 14 reviewer registration is per-author and unbuyable. D15 does not help with any
 of them, and it must not become a reason to prefer compute over writing.
+
+### D16 — 🚨 NO DOCUMENT FREEZING, and no dated amendments (user, 2026-09-05)
+
+The user's words: *"stop freezing documents is what I meant; which means that dont claim something
+then after a while of the user reading the doc say oh we made a change to what we claimed in the
+begining and make a dated ammendement"*.
+
+**The objection is about READABILITY, not about rigour**, and it identifies a real defect I had
+created. `analysis/preregistration.md` said in §9f that the invocation floor came from the K=2
+cells. That turned out to be degenerate, and I recorded the correction as an appended amendment
+**700 lines later**. So a reader reached §9f, believed it, and had no way of knowing it was
+superseded without reading to the end. The document contradicted itself.
+
+**The rule now:** a correction goes **in place, in the section that makes the claim**, with a dated
+note saying what it used to say and why it changed. §1.4 already did this correctly; the appended
+amendment was the wrong pattern and has been folded into §9f and deleted.
+
+⚠️ **What this does NOT relax, and the distinction is the whole point.** Every decision still
+states **whether it was made before or after seeing the relevant data**, inline, with the numbers
+quoted. That property is independent of freezing:
+
+- The failure mode being guarded against is *choosing an analysis because you have seen which
+  choice flatters the result.* A calendar never detected that; stating provenance does, and the git
+  history is an independent record either way.
+- 🚨 **"Not frozen" means corrected VISIBLY, never corrected quietly.** Silently rewriting a section
+  to match a result, with no note that it changed, is the one thing the document exists to prevent.
+
+**Why this is defensible rather than a weakening.** Five corrections have been made so far and
+**four made a claim harder to sustain**: §1.4 admitted H3 was not immune to a selection effect, §9
+recorded that an escalation trigger fired, and §9f moved a floor **up from zero**. A process whose
+corrections consistently tighten the standard is not one that needs a calendar to be trusted.
+
+⚠️ **The residual risk, stated plainly.** `EXECUTOR-PLAN.md` §4.0 warns that a reviewer who judges
+§1's identification fix to have been patched rather than specified in advance caps acceptance at
+~25%, and that risk is real because the bias §1 corrects points **toward** this paper's own
+hypothesis. Without a freeze, the defence is the inline provenance notes plus the git history
+rather than a single timestamp. I raised this once; the user's decision stands and this records it.
