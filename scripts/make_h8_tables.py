@@ -214,6 +214,17 @@ def mechanism_table(reanalysis: list) -> str:
 def macros(report: dict, reanalysis: list, report10: dict) -> str:
     """Single-number facts the prose needs, as macros so the prose cannot go stale."""
     sd_level = max(c["max_num_seqs"] for c in report10["sweep"])
+    # Worst text and worst correctness divergence across the plain sweep cells, for the
+    # body-prose anchor described below. bf16 is excluded: it is exactly zero at every
+    # level, so including it would make the ratio undefined rather than conservative.
+    _sweep = [c for c in reanalysis
+              if c["model_key"] == AUDIT_MODEL and not variant(c) and c["arm"] != "bf16"]
+    worst_text = max((c["by_level"] or {}).get("text_divergence") or 0.0 for c in _sweep)
+    worst_corr = max(
+        max(((c["by_level"] or {}).get("correctness_divergence") or {}).get(r) or 0.0
+            for r in ("strict", "permissive"))
+        for c in _sweep
+    )
     quant = [c for c in reanalysis
              if c["model_key"] == AUDIT_MODEL and c["arm"] != "bf16" and not variant(c)]
     worst_range = worst_sd = 0.0
@@ -286,6 +297,17 @@ def macros(report: dict, reanalysis: list, report10: dict) -> str:
         # freeze to 32 — so using the frozen-value macro in its caption would have
         # labelled B=64 data as B=32, in the table the H8 section LEADS with.
         rf"\newcommand{{\hEightSDLevel}}{{{sd_level}\xspace}}",
+        # 🚨 The three-level comparison IN BODY PROSE, not only in the appendix table.
+        # R42/§7: an appendix must not carry load-bearing content, because reviewers are
+        # not expected to read it and hiding substantive material there is itself a
+        # desk-reject ground. When the frontier table moved to the appendix, the body's
+        # only quantitative claim became "roughly an order of magnitude", which depends on
+        # a table the reviewer will not see. These anchor it: worst text divergence against
+        # the worst correctness divergence at the same measurement, so the ratio the claim
+        # rests on is checkable from the prose alone.
+        rf"\newcommand{{\hEightWorstText}}{{{worst_text * 100:.1f}\xspace}}",
+        rf"\newcommand{{\hEightWorstCorr}}{{{worst_corr * 100:.1f}\xspace}}",
+        rf"\newcommand{{\hEightTextCorrRatio}}{{{worst_text / worst_corr:.0f}\xspace}}",
     ])
 
 

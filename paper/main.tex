@@ -581,14 +581,14 @@ concentrates at larger batch sizes, or a different kernel-selection path
 entirely --- and we do not have evidence to separate them.}
 
 \paragraph{The frontier.}
-Table~\ref{tab:h8-frontier} reports divergence at all three measurement levels
-and all three batch sizes, rather than only at the configuration we adopt
-(Appendix~\ref{app:h8frontier}). The
-three levels differ by roughly an order of magnitude: generated text diverges
-far more often than the extracted answer, which diverges more often than
-scored correctness. Reporting text divergence alone would substantially
-overstate the impact on any reported number, and reporting correctness alone
-would conceal how much of the trace is unstable.
+The level at which divergence is measured changes its apparent size by about
+$\hEightTextCorrRatio\times$: generated text diverges on up to
+\hEightWorstText\% of items, while scored correctness diverges on at most
+\hEightWorstCorr\% at the same configuration, with the extracted answer between
+them. Reporting text divergence alone would substantially overstate the impact on
+any reported number, and reporting correctness alone would conceal how much of the
+trace is unstable, so we report all three levels at every batch size we swept
+(Appendix~\ref{app:h8frontier}).
 
 Notably the permissive rung is the more order-sensitive of the two at the
 answer level, because it accepts the last number anywhere in the trace and the

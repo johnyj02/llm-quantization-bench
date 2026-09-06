@@ -50,6 +50,13 @@ g6: $(MAIN).pdf
 	@python3 ../scripts/check_sections.py $(MAIN).tex
 	@printf '== G6: todo markers only inside Results ==\n'
 	@python3 ../scripts/check_todo_scope.py $(MAIN).tex
+	@printf '== G6: desk-reject checks (anonymity, refs, todo deadline, checklist) ==\n'
+	@# 🚨 ADDED 2026-09-05 (planner ruling R42.2). The original four criteria left three
+	@# desk-reject grounds with no instrument at all: a non-anonymous submission, silently
+	@# dropped citations, and an incomplete Responsible NLP Checklist. Each check names the
+	@# ground it protects inline, because this gate's instrument has already drifted from its
+	@# intent twice and the fix is that the intent is readable next to the test.
+	@python3 ../scripts/check_submittable.py $(MAIN).tex $(MAIN).pdf
 
 clean:
 	rm -f $(MAIN).aux $(MAIN).log $(MAIN).out $(MAIN).bbl $(MAIN).blg \

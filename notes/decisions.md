@@ -353,3 +353,40 @@ rather than reinterpreting records taken under the old semantics.
 be justified on *schedule* grounds. A correction that forces a re-run of the reference condition
 late in September is a different proposition from one that forces a $2 probe, and the honest move is
 to say which it is when raising it.
+
+### D17 — A gate's check must name the intent it protects, inline (R42.3, 2026-09-05)
+
+**The rule.** Every automated gate criterion carries, next to the code, the specific failure it
+exists to prevent. Not a description of what it measures, but a statement of what goes wrong if
+it passes when it should not.
+
+**Why, and this is the fourth instance of one pattern rather than a new concern.** This project's
+recurring defect is *declared versus enforced*: a value stated in a config and never forwarded
+(`desc_act`, `async_scheduling`), a value forwarded but absent from the identity used to skip work
+(`max_num_seqs` in `decoding_fingerprint`), a terminator table retyped from config and left to
+drift (`HARNESS_UNTIL`). Gate G6 then produced the same shape **one level up, in the instrument
+that checks the deliverable**:
+
+- it compared **total** PDF pages against a limit that applies to the body only, which
+  over-counted the moment Limitations existed and nearly caused body content to be cut to make
+  room for content that never competed for the space;
+- its Limitations check was `grep -q 'section\*{Limitations}'`, testing that the *heading*
+  existed, and it reported PASS while five required sections carried zero prose. An empty
+  Limitations section is a desk reject exactly as a missing one is.
+
+In both cases the intent was right and the implementation tested something weaker that happened
+to pass. A comment naming the intent is what lets the next reader notice the gap by reading,
+rather than by the gate failing at the moment it matters.
+
+**What this does not license.** It is not a substitute for the check being correct. Two of the
+checks added under this rule were themselves wrong on first writing: the `\todo` counter reported
+6 where 4 were real, because it subtracted one literal comment form instead of stripping comments
+per line. A comment explaining the intent would not have caught that; running it against ground
+truth did. Both are required.
+
+**Corollary, from the same ruling.** Where a gate protects an *external* rule, verify the rule at
+its source rather than from recall, including the planner's recall. R42 asked the planner whether
+the 8-page limit was tradeable; it agreed with me and then declined to be the authority, on the
+grounds that *"the symmetric error is cutting content against a constraint that isn't there."*
+Checking the CFP directly then falsified two beliefs we both held: that Acknowledgments is
+excluded from the count, and that a ninth page is granted on acceptance.

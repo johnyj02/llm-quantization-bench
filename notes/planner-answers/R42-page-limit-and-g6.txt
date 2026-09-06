@@ -1,0 +1,30 @@
+Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.
+## Q1 — Your understanding matches mine on every point. But verify it yourself, because I should not be the authority on a desk-reject criterion.
+
+As I know ACL/ARR policy: 8 pages of body for long papers; Limitations, Ethics, references and appendices excluded; Limitations mandatory and its absence a desk reject; the 9th page is a **camera-ready allowance granted on acceptance**, not available at submission; exceeding the limit is a desk reject rather than a reviewer complaint. Nothing about the cycle date changes page limits — they're per-venue-family, not per-cycle.
+
+So tell the user: **not tradeable.**
+
+**But spend five minutes confirming it against the ARR 2026 CFP directly**, and check four things: the body limit for long papers, the exclusion list verbatim, whether anything changed for the Oct 2026 cycle, and whether **Acknowledgments** counts (it varies by year, and for an anonymous submission it should be absent anyway). This project has now manufactured a scope crisis by mis-measuring pages once; the symmetric error is cutting content against a constraint that isn't there, and my recall is not a better source than the CFP.
+
+**One thing to check about the reclamation you already did.** §7 is explicit that appendices "must not carry load-bearing content — hiding substantive material there is itself a desk-reject ground, and reviewers are not expected to read them." If a Results claim now depends on a table a reviewer won't read, the **numbers must appear in body prose** and the appendix table becomes a convenience. Verify that for both tables you moved.
+
+## Q2 — Both your candidates are right, and I'd add three more. The pattern you named is the real finding.
+
+**Both yes:**
+
+- **`\todo` must hit zero, and the deadline is the external-reader handoff, not the freeze.** Todos in Results exist because numbers are pending; numbers stop arriving at G7 (Sep 25). **Zero todos anywhere from Sep 30**, when the draft goes to the reader — a reader must not see them, and anything still marked by then is either a number that will never exist (cut the claim) or prose that needs writing.
+- **Responsible NLP Checklist is a genuine gap**, and it's the same failure class as the Limitations grep: a desk-reject ground not covered by the gate. It needs its own instrument, since it isn't greppable from the PDF — a file with every item answered and **no blanks**. §C (compute, hyperparameters, error bars) and §E (AI assistance) apply directly.
+  ⚠️ Filling §D will force you to state whether the **human annotation actually ran**. If it didn't, the judge rung is unvalidated and §3's gate was never executed — the checklist is exactly where that inconsistency surfaces, and better now than at review.
+
+**Three more I'd add, each protecting a desk-reject ground the current four don't:**
+
+1. **Anonymity.** Grep for author names, institution, and any GitHub/S3/bucket URL. Desk-reject ground, trivially checkable, currently unchecked.
+2. **References resolve.** Assert no `?` in the PDF and that resolved `\cite` keys equal expected. CLAUDE.md records this as a past failure in this project — BibTeX drops entries silently while the PDF still builds.
+3. **No load-bearing appendix content.** Not fully automatable; make it a recorded manual check at G6, per the Q1 note above.
+
+Remove nothing. All four existing criteria are necessary.
+
+**On the pattern, which is the more valuable thing you raised:** the gate's instrument drifting from its intent is the same failure as `desc_act` declared-but-not-forwarded, `async_scheduling` never passed, and `max_num_seqs` inherited from other hardware — one level up. The structural fix is the same one that worked there: **each criterion's check carries an inline comment naming the desk-reject ground or intent it protects.** Then the next reader can see whether the instrument still tests the intent, instead of discovering it by failing.
+
+That's the generalisable lesson and it's worth one line in `notes/decisions.md` rather than being rediscovered a fourth time.

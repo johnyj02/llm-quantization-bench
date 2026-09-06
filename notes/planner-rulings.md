@@ -3018,3 +3018,86 @@ available to you."*
 *"submit both now"* is not available, because **neither instrument exists**. Nothing drives
 `--budget` beyond `1x`, and `run_cell` is generation-only with `option_logprobs` always `None`.
 Both are implementation before they are launches.
+
+---
+
+## R42 — The 8-page limit is NOT tradeable, and G6's four criteria miss three desk-reject grounds
+
+Raw answer: `notes/planner-answers/R42-page-limit-and-g6.txt`. Asked because writing H3 took
+the body to 9 pages and the user asked directly whether going over is acceptable.
+
+### R42.1 Not tradeable, and the planner refused to be the authority on it
+
+The planner's recall matched mine on every point, and then it declined to settle the question:
+*"spend five minutes confirming it against the ARR 2026 CFP directly ... This project has now
+manufactured a scope crisis by mis-measuring pages once; the symmetric error is cutting content
+against a constraint that isn't there, and my recall is not a better source than the CFP."*
+
+**Verified against the CFP on 2026-09-05.** The answer to the user is **not tradeable**:
+
+| | CFP wording |
+|---|---|
+| long-paper limit | *"up to eight (8) pages of content"* |
+| Limitations | *"will not count toward the page limit"*, and **required** |
+| Ethics | excluded *"as long as it is placed in the end of the paper"* |
+| references | *"unlimited pages of references"* |
+| appendices | *"They do not count towards the page limit"* |
+| over-length | *"Submissions that exceed the length requirements, or are missing a limitations section, will be desk rejected"* |
+
+🚨 **And desk rejection *"can happen at any time in the review cycle"*, not only at the initial
+check**, so this is not a risk that expires once the paper is accepted for review.
+
+⚠️ **Two beliefs the planner and I SHARED that the CFP does not support**, both now corrected in
+`scripts/body_pages.py` where the claim was made:
+
+1. **Acknowledgments is excluded.** The CFP does not address it. Our docstring asserted it. It
+   does not bite for us, since ours is empty and sits after Ethics and an anonymous submission
+   should not carry one, but the assertion was unsupported.
+2. **A ninth page is granted on acceptance.** The CFP states no such thing: it gives only the
+   8-page long and 4-page short submission limits and draws no camera-ready distinction. **Do
+   not plan against a ninth page.**
+
+🚨 **The planner also caught a defect I had just introduced.** §7 forbids load-bearing appendix
+content, because reviewers are *"not required to consider material in appendices"* and putting
+key content there *"could be viewed as an attempt to circumvent the content page count"*, which
+is a desk-reject risk in its own right. I had reclaimed space by moving two tables to the
+appendix. Checked both:
+
+- **Heterogeneity: safe.** Both estimates and both intervals were already in body prose, so the
+  table is a genuine convenience.
+- **Frontier: NOT safe, and fixed.** The body pointed at a table a reviewer will not read and
+  its only quantitative claim was *"roughly an order of magnitude"*. The body now carries the
+  numbers (59.4% text against 11.2% correctness, about 5x), so the claim is checkable from the
+  prose alone.
+
+Also newly recorded: appendices must use the **official double-column format** or the
+submission is desk-rejected, from July 2025 onward.
+
+### R42.2 Both my candidates were right, and three more grounds had no instrument
+
+**Remove nothing** from the existing four criteria; all are necessary. Added:
+
+| check | desk-reject ground it protects |
+|---|---|
+| **anonymity** | a non-anonymous submission. Greps the PDF for the repo's own git identity, plus GitHub URLs, S3 URIs, the 12-digit account id, AWS hostnames and ECR references |
+| **references resolve** | silently dropped citations. `CLAUDE.md` records this as a defect we have had: BibTeX drops entries silently while the PDF still builds |
+| **`\todo` deadline** | a reader seeing red TODO markers. **Zero todos anywhere from Sep 30**, the external-reader handoff, not the results freeze: numbers stop arriving at G7 (Sep 25), so anything still marked by Sep 30 is either a number that will never exist, in which case cut the claim, or prose that needs writing |
+| **Responsible NLP Checklist** | an incomplete or incorrect filing, a desk-reject ground since Dec 2024 that G6 did not cover at all. Needs its own artifact since it is not greppable from the PDF |
+
+⚠️ **The checklist has a consequence worth stating in advance:** filling §D forces a statement
+about whether the human annotation actually ran. If it did not, the judge rung is unvalidated and
+§3's gate was never executed. *"The checklist is exactly where that inconsistency surfaces, and
+better now than at review."*
+
+### R42.3 🔬 The pattern is the more valuable finding, and it gets a structural fix
+
+*"The gate's instrument drifting from its intent is the same failure as `desc_act`
+declared-but-not-forwarded, `async_scheduling` never passed, and `max_num_seqs` inherited from
+other hardware. One level up."*
+
+**Structural fix, adopted:** every criterion's check carries an inline comment naming the
+desk-reject ground or intent it protects, so the next reader can see whether the instrument still
+tests the intent **instead of discovering it by failing.** Implemented in
+`scripts/check_submittable.py`, where each function's docstring opens with the ground it guards.
+
+Recorded as a decision rather than left to be rediscovered a fourth time.
