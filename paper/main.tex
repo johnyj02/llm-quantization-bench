@@ -87,8 +87,10 @@ Item Ordering Moves 4-Bit Accuracy and Leaves \texttt{bf16} Exactly Unchanged}
 \maketitle
 
 \begin{abstract}
-Reported quantization degradation is a difference between two measurements, and a
-difference inherits every property of the instrument that produced it. We evaluate
+When a paper reports that 4-bit quantization costs two points of accuracy, that number
+was not measured. It is one score minus another, so any part of the evaluation setup
+that happens to penalise the two models unequally ends up inside the reported gap. We
+evaluate
 three instruction-tuned models at five precisions on reasoning benchmarks,
 holding the engine, decoding configuration and prompts fixed, and vary properties
 of the evaluation apparatus that no protocol we are aware of reports. Submitting
@@ -128,10 +130,13 @@ degraded 2\% of that corpus until a census found it.
 %    over-credits too).
 %  - Kurtic et al. (ACL 2025) cited EARLY. Do not let a reviewer discover it.
 
-Reported quantization degradation is a difference between two measurements, and a
-difference inherits every property of the instrument that produced it. This paper
-asks which properties of the evaluation apparatus move that difference, and
-answers with three that are not reported by any protocol we are aware of.
+When a paper reports that 4-bit quantization costs two points of accuracy, that number
+was not measured. It is the difference between two measurements: the model scored at
+full precision, and the model scored after quantization. Anything about the evaluation
+that penalises those two runs by the same amount cancels when you subtract. Anything
+that penalises one more than the other does not, and lands in the reported gap instead.
+This paper asks what those unequal factors are, and finds three that no evaluation
+protocol we are aware of reports.
 
 The framing matters because part of the answer is already known. \citet{kurtic2025bf16}
 showed that reported degradation had been overstated and attributed the excess to
@@ -144,8 +149,8 @@ quantized model.
 That distinction organises the paper. It is well known that lenient answer
 extraction raises absolute scores \citep{jo2025finding,yu2025xfinder}, and that
 prompt formatting moves them substantially \citep{sclar2024formatspread}. What has
-not been established is whether such choices change the quantization
-\emph{delta}, which is the quantity papers actually report. A choice that lowers
+not been established is whether such choices change the \emph{gap} between a
+full-precision model and a quantized one, which is the number papers actually report. A choice that lowers
 every model's score by the same amount is a nuisance and nothing more, because the gap
 between them survives it. A choice that lowers some models' scores more than others
 changes that gap, and so contaminates every published comparison that did not report
