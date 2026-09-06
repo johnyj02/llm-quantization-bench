@@ -111,8 +111,9 @@ comparability. Two of the three factors are nevertheless controllable, and we gi
 the remedies with their measured costs: generating all compared precisions inside one
 process removes the cross-process variation at no cost, and disabling the quantized
 matrix-multiply kernels removes the ordering variation for GPTQ and AWQ at roughly
-$3.7\times$ evaluation wall clock, though not for NF4, whose mechanism is different and
-which we cannot mitigate. The third factor, the extraction rule, is a choice rather than
+$3.7\times$ evaluation wall clock. It does nothing for bitsandbytes NF4, which never used
+those kernels and whose ordering sensitivity therefore has a separate cause that we
+localise but do not identify. The third factor, the extraction rule, is a choice rather than
 a nuisance parameter and must therefore be reported rather than standardised away. We
 release 105{,}950 generations with per-item termination and length metadata, a runnable
 order-invariance probe, and an audit of our own extraction pipeline, which had silently
@@ -207,8 +208,9 @@ numbers, not about deployment risk.
 
 \paragraph{Contributions.}
 (i) Item ordering moves 4-bit accuracy and leaves \texttt{bf16} exactly
-unchanged, with the mechanism pinned to a named kernel by intervention, and four
-coverage gaps identified in a batch-invariant serving mode.
+unchanged, with the mechanism pinned to a named kernel by intervention, and four gaps
+identified in the engine's batch-invariance mode, the setting whose purpose is to make
+results independent of how requests are grouped.
 (ii) Generation is reproducible within a job and not across jobs, so
 reproducibility must be measured across job boundaries; we report four candidate
 mechanisms we refuted and the measurements that refuted them.
@@ -547,9 +549,11 @@ We serve every arm through a single engine version (\hEightEngine) with
 batch-invariant kernels enabled, tensor parallelism disabled, prefix caching
 off, and a fixed decoding configuration, then vary one parameter that no
 evaluation protocol we are aware of reports: \emph{the order in which items are
-submitted}. Because requests are batched dynamically, an item's position
-determines which other items share its batch, and therefore the shapes over
-which the engine's reductions are performed.
+submitted}. Because requests are batched dynamically, an item's position determines which other
+items share its batch, and therefore the shapes over which the engine sums its
+intermediate results. Floating-point addition is not associative, so summing the same
+numbers in a different order can differ in the last bit, and in chain-of-thought
+generation a single differing token changes every token after it.
 
 Holding the ordering fixed and running the same items again changes nothing: not one
 of the \hEightNCells{} model-and-precision combinations we measured produced a single
@@ -604,14 +608,22 @@ autotuning paths are likewise unguarded. We report this as a defect in the
 feature rather than in either kernel; AWQ has the guard and is nonetheless
 affected, so the guard as implemented is insufficient.
 
+\textbf{What this establishes, and what it does not.} The intervention locates the
+mechanism in a specific pair of kernels and shows the effect is not merely correlated with
+them, because removing them removes it. It does not explain the arithmetic: we do not
+identify which reduction differs, in what order, or why AWQ's batch-invariance guard fails
+to hold. We claim the localisation, which is what an intervention buys, and not the
+explanation.
+
 \begin{table}[t]
 \centering
 \small
 \input{tables/h8_mechanism}
 \caption{Paired intervention at $B=8$: identical inputs, identical engine, with
 and without the Marlin and Machete kernels. Text divergence and accuracy SD in
-percentage points. \texttt{bnb} NF4 is unaffected, indicating a second and
-distinct mechanism.}
+percentage points. bitsandbytes NF4 is unaffected at exactly $1.00\times$
+because it never used these kernels, so its ordering sensitivity has a second and distinct
+cause.}
 \label{tab:h8-mechanism}
 \end{table}
 
@@ -1056,6 +1068,58 @@ in the released log, totalling roughly 35 GPU-hours on a single accelerator.
 \bibliography{custom}
 
 \appendix
+
+\section{Terms used in this paper}
+\label{app:glossary}
+
+% 🚨 A GLOSSARY IS A LOOKUP CONVENIENCE, NEVER THE DEFINITION OF RECORD.
+%
+% Every term below is ALSO defined inline at its first use in the body, and it has to stay
+% that way. §7 forbids load-bearing appendix content because reviewers are not required to
+% read appendices, and a body that depends on this section to be intelligible would be
+% exactly that defect. The planner already caught one instance of it here, when moving the
+% frontier table left a Results claim resting on a table a reviewer would not see.
+%
+% So this section must never become the reason to stop defining a term where it is used.
+% If a future edit introduces a term and adds it only here, that is a regression.
+
+Every term here is also defined where it first appears in the text. This section is for
+looking one up out of order, not the definition of record.
+
+\begin{description}\itemsep2pt
+  \item[arm] One precision setting of one model, for example Llama-3.1-8B at
+    GPTQ-4bit. We compare five.
+  \item[\texttt{bf16}] Brain floating point, 16 bits. The unquantized baseline every
+    quantized setting is compared against.
+  \item[GPTQ, AWQ] Two post-training quantization methods. Both produce a weight file
+    ahead of time, which the serving engine then loads.
+  \item[bitsandbytes NF4] A third method, 4-bit NormalFloat. Unlike GPTQ and AWQ it is
+    applied \emph{in flight} when the model loads, rather than read from a prepared file,
+    and it has no dedicated GPU kernels in our serving engine. Both facts matter: they are
+    why the kernel remedy of \S\ref{sec:h8} does not apply to it.
+  \item[kernel] The specialised GPU routine that performs one operation, here the
+    quantized matrix multiplication. Different kernels compute the same mathematical
+    result by different arithmetic routes, which is why the choice is observable.
+  \item[Marlin, Machete] The two quantized matrix-multiply kernels our engine selects by
+    default for 4-bit GPTQ and AWQ. Disabling them is the intervention in \S\ref{sec:h8}.
+  \item[batch invariance] The property that a result does not depend on which other
+    requests were processed alongside it. Our engine offers a mode intended to guarantee
+    this; \S\ref{sec:h8} reports where that mode does not reach.
+  \item[strict, permissive] The two answer-extraction rules whose disagreement this paper
+    measures. \emph{Strict} is the evaluation harness's canonical regular expression, used
+    verbatim. \emph{Permissive} is the harness's own flexible extractor, which accepts
+    looser forms. Both are the harness's, not ours.
+  \item[rung] One step of the extraction ladder in \S\ref{sec:ladder}. Five rungs run
+    over the same stored text, so comparing them costs no additional generation.
+  \item[interaction] Here, the difference between how much permissive extraction helps a
+    quantized setting and how much it helps \texttt{bf16} on the same items. Zero means
+    the extraction rule is a nuisance; non-zero means it changes the reported gap.
+  \item[the gap, the reported difference] The number a paper reports as quantization
+    degradation: the unquantized score minus the quantized score.
+  \item[within a process, across processes] Whether two compared measurements were
+    produced by the same running instance of the serving engine, or by two separate runs.
+    \S\ref{sec:crossjob} shows this distinction is load-bearing.
+\end{description}
 
 \section{The order-divergence frontier in full}
 \label{app:h8frontier}
