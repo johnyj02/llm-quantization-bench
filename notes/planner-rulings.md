@@ -3101,3 +3101,91 @@ tests the intent **instead of discovering it by failing.** Implemented in
 `scripts/check_submittable.py`, where each function's docstring opens with the ground it guards.
 
 Recorded as a decision rather than left to be rediscovered a fourth time.
+
+---
+
+## R43 — We had TWO remedies and were advertising none of them
+
+Raw answer: `notes/planner-answers/R43-no-fix-objection.txt`. **Raised by the USER**, who
+asked whether the abstract's *"no single correction restores comparability"* invites the
+rejection reviewers give purely diagnostic papers that expose a problem without offering an
+actionable fix.
+
+**The risk is real and the reframe is a correction of an undersell rather than spin.** Three
+of our own headings advertised the *absence* of a fix while two working remedies sat in the
+text as evidence rather than as recommendations.
+
+### R43.1 I overclaimed the kernel mitigation, and my own number said so
+
+I proposed promoting `VLLM_DISABLED_KERNELS` as a remedy, having measured it at 3.72× for
+gptq-4bit and 3.64× for awq-4bit against **exactly 1.00×** for bnb-nf4.
+
+⚠️ **That 1.00× is not "unaffected". It is the same fact as bnb-NF4's ordering sensitivity
+being a second, Marlin-independent mechanism that the disable does not touch.** So the remedy
+ships with its scope stated: it removes ordering variation for GPTQ and AWQ at roughly 3.7×
+evaluation wall clock, and does **nothing** for NF4, which we cannot mitigate.
+
+*"A mitigation with a stated scope reads as measured; one presented as universal invites the
+reviewer to find the exception themselves."*
+
+### R43.2 🚨 The remedy I MISSED, and it is the stronger one
+
+**K=2 measured exactly zero over 42,380 item-pairs.** That makes *"generate every compared
+precision inside a single process lifetime"* a working remedy for cross-process variation, **at
+zero cost**, no flags, backed by the largest exact zero in the study.
+
+⇒ **Two of three factors have mitigations, not one.** I had assembled the evidence for this
+myself (R36) and did not recognise it as a remedy.
+
+### R43.3 Recommend the TEST, not the flag. That is what survives the version going stale
+
+Two claim levels, and only one is the recommendation:
+
+| level | claim | durability |
+|---|---|---|
+| version-specific | set `VLLM_DISABLED_KERNELS=…` in vLLM 0.26.0 | stale in six months |
+| **practice-level** | **verify order-invariance for whichever kernels your backend selected, by running the same items in several orderings and checking bitwise agreement** | durable, backend-agnostic |
+
+The second is the recommendation and the first is its worked instance, which is the structure
+R39.1 used to answer the staleness objection for H8 generally. 🔬 **Promoting it this way
+REDUCES staleness exposure rather than increasing it, because a test generalises where a flag
+does not.** And *"you already built the instrument. Release it."*
+
+### R43.4 The mitigation does not undercut heterogeneity, it ISOLATES it
+
+My worry was that a fix covering one of three findings invites a reviewer to notice the gap.
+The division is principled, and stating it converts the asymmetry into the organising claim:
+
+> **Ordering and the process boundary are NUISANCE parameters** — they bear on nothing anyone
+> is asking, so pin them, and we give the measured costs. **The extraction rule is a CHOICE**
+> whose effect varies by quantization method and by task, so it cannot be standardised away and
+> must be reported.
+
+A reviewer who notices the fix covers two of three has been told exactly that, with the reason.
+And heterogeneity is **strengthened**: it is what remains after the controllable factors are
+controlled.
+
+### R43.5 Do NOT name a standard. Name and release the TEST
+
+My instinct was right and the planner sharpened why: naming a reporting standard *"asserts
+community-adoption authority on one paper's evidence"*, which is the shape of claim §7 already
+warns against. Instead **name and release the probe**, an instrument validated on 105,950
+generations, which gives the paper an artifact identity without overreach.
+
+The three reporting fields stay as a plain short list promoted into the contributions: item
+submission order, whether the compared precisions shared a process, and the generation budget
+with its truncation rate, one sentence each on why.
+
+### R43.6 The headings were doing real damage
+
+Both led with a negative. Same content, constructive framing:
+
+- *"What a reader should change, and it is not a threshold"* → **"What to do: two controllable
+  factors, and one that must be reported"**
+- *"Reporting, not correcting"* → **"Why the scoring rule must be reported rather than
+  corrected"**
+
+⚠️ **The abstract KEEPS "no single correction restores comparability"**, because it is true and
+load-bearing, and now follows it immediately with both remedies, their measured costs, and the
+released probe. Nothing about the findings changes; a reviewer skimming simply stops seeing
+problem, disclaimer, dataset.

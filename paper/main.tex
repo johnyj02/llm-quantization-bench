@@ -107,8 +107,15 @@ budget, precision settings differ by an order of magnitude in how many tokens of
 their output are discarded before scoring. We further show that how strictly an answer is extracted from the model's output
 changes the apparent size of quantization damage, and changes it by different
 amounts on different tasks and methods, so no single correction restores
-comparability. We release 105{,}950 generations with per-item termination and
-length metadata, and an audit of our own extraction pipeline, which had silently
+comparability. Two of the three factors are nevertheless controllable, and we give
+the remedies with their measured costs: generating all compared precisions inside one
+process removes the cross-process variation at no cost, and disabling the quantized
+matrix-multiply kernels removes the ordering variation for GPTQ and AWQ at roughly
+$3.7\times$ evaluation wall clock, though not for NF4, whose mechanism is different and
+which we cannot mitigate. The third factor, the extraction rule, is a choice rather than
+a nuisance parameter and must therefore be reported rather than standardised away. We
+release 105{,}950 generations with per-item termination and length metadata, a runnable
+order-invariance probe, and an audit of our own extraction pipeline, which had silently
 degraded 2\% of that corpus until a census found it.
 \end{abstract}
 
@@ -207,9 +214,21 @@ reproducibility must be measured across job boundaries; we report four candidate
 mechanisms we refuted and the measurements that refuted them.
 (iii) The precision-by-scoring interaction is real and heterogeneous across tasks
 and methods, so no single correction recovers comparability.
-(iv) A corpus of 105{,}950 generations with per-item termination and length
+(iv) Remedies with measured costs, rather than a diagnosis alone. Generating every
+compared precision inside a single process removes the cross-process variation at no
+cost; disabling the quantized matrix-multiply kernels removes the ordering variation for
+GPTQ and AWQ at roughly $3.7\times$ evaluation wall clock, and does nothing for NF4,
+whose mechanism is separate. Because a kernel flag is specific to one engine version, the
+recommendation we actually make is the \emph{test} rather than the flag: verify
+order-invariance for whichever kernels your backend selected, by running the same items
+in several orderings and checking bitwise agreement. We release that probe.
+(v) Three fields a protocol should report, each because we measured it moving the
+quantized precisions and not the \texttt{bf16} baseline: the item submission order, whether
+the compared precisions were generated in the same process, and the generation budget
+together with its truncation rate.
+(vi) A corpus of 105{,}950 generations with per-item termination and length
 metadata, released so that any extractor can be re-evaluated without a GPU.
-(v) An audit of our own extraction pipeline, which had silently degraded 2\% of
+(vii) An audit of our own extraction pipeline, which had silently degraded 2\% of
 that corpus until a census found it, offered as an instance of the effect we
 measure rather than as an aside.
 
@@ -838,19 +857,38 @@ directly. Report alongside the exactly-zero generative interaction and its \S9h 
 \label{sec:discussion}
 % C7, W5.
 
-\paragraph{What a reader should change, and it is not a threshold.}
-Our results do not license a rule of the form ``report accuracy to one decimal
-place'' or ``average over $k$ runs''. Averaging cannot help with a factor that is
-deterministic given a configuration, and precision is not the problem. What the
-results license is narrower and cheaper: three configuration choices currently go
-unreported, each of them moves the quantized arms and not the \texttt{bf16}
-baseline, and reporting them costs nothing. Item submission order, whether the
-compared arms were generated in the same process, and the generation budget with
-its truncation rate are the three. A protocol that reports them is comparable to
-another protocol that reports them; one that does not is not comparable to
-anything, including itself on a later day.
+\paragraph{What to do: two controllable factors, and one that must be reported.}
+The three factors divide, and the division is principled rather than a matter of how
+much effort we spent on each. Item ordering and the process boundary are \emph{nuisance
+parameters}: they have no bearing on the question anyone is asking, so the right response
+is to pin them, and we measured what that costs. Generating every compared precision
+inside one process removes the cross-process variation entirely and costs nothing, which
+follows from the exact zero over 42{,}380 paired comparisons in
+\S\ref{sec:crossjob}. Disabling the quantized matrix-multiply kernels removes the
+ordering variation for GPTQ and AWQ at roughly $3.7\times$ evaluation wall clock, which is
+a cheap trade for a one-off benchmark run and would not be a sensible one for production
+serving. It does nothing for NF4, whose ordering sensitivity survives the disable and
+whose mechanism we did not identify.
 
-\paragraph{Reporting, not correcting.}
+The extraction rule is different in kind. It is not a nuisance parameter but a
+\emph{choice} about what counts as a correct answer, and \S\ref{sec:h3} shows its effect
+varies by quantization method and by task. A quantity that varies with the thing you are
+measuring cannot be standardised away, so it has to be reported. That is why our
+recommendation is asymmetric: pin the first two, report the third.
+
+What none of this licenses is a rule of the form ``report accuracy to one decimal place''
+or ``average over $k$ runs''. Averaging cannot help with a factor that is deterministic
+given a configuration, and numerical precision was never the problem.
+
+\paragraph{Recommend the test, not the flag.}
+A kernel name and an environment variable are specific to one engine version, and ours
+will age. The durable form of the same advice is a test: run the same items in several
+orderings and check whether the outputs agree bitwise, for whichever kernels your backend
+selected. That question stays meaningful when the kernel names change, and it is what we
+release alongside the corpus. Our own use of it is the worked instance rather than the
+recommendation itself.
+
+\paragraph{Why the scoring rule must be reported rather than corrected.}
 The heterogeneity in \S\ref{sec:h3} is why every recommendation here is a
 disclosure requirement rather than an adjustment: the sign of the scoring effect
 depends on which method and which task a paper used, so there is no single

@@ -1,0 +1,50 @@
+Warning: no stdin data received in 3s, proceeding without it. If piping from a slow command, redirect stdin explicitly: < /dev/null to skip, or wait longer.
+Risk is real, act on it, and the reframe is a correction of an undersell rather than spin. But your (1) overclaims, and you've missed a second mitigation that is better evidenced than the first.
+
+## Correction to (1): the kernel fix is not universal even within ordering
+
+Your own numbers say so. `bnb-nf4` at exactly **1.00×** means it never used those kernels — which is the same fact as its order sensitivity being a **second, Marlin-independent mechanism, unmoved by the disable**. So the honest offer is:
+
+> For GPTQ and AWQ, disabling the Marlin and Machete kernels removes ordering variation entirely at ~3.7× evaluation wall clock. For bnb-NF4 it changes nothing, and we have no mitigation for that mechanism.
+
+More precise, and better — a mitigation with a stated scope reads as measured; one presented as universal invites the reviewer to find the exception themselves.
+
+## The mitigation you missed, and it's your strongest
+
+**K=2 measured exactly zero over 42,380 item-pairs.** That makes *"generate all compared arms within a single process lifetime"* a working remedy for cross-job variation — **at zero cost**, no flags, backed by the largest exact zero in the study.
+
+So two of three factors have mitigations, not one.
+
+## (a) — Recommend the *test*, not the flag. That's what survives the version going stale.
+
+Two claim levels, and only one should be the recommendation:
+
+- Version-specific: set `VLLM_DISABLED_KERNELS=...` in vLLM 0.26.0. Stale in six months.
+- Practice-level: **verify order-invariance for whatever kernel your backend selected, by running the same items in ≥3 orderings and checking bitwise agreement.** Durable, backend-agnostic.
+
+Make the second the recommendation and the first its worked instance — the same structure R39.1 used to answer the staleness objection for H8 generally. Promoting it this way **reduces** staleness exposure rather than increasing it, because a test generalises where a flag doesn't.
+
+And you already built the instrument. Release it. A runnable order-invariance probe that produced exact zeros on bf16 and pinned a kernel by intervention is a more useful artifact than the flag it happens to validate.
+
+## (b) — The mitigation doesn't undercut heterogeneity, it isolates it. And the division is principled.
+
+Your structure is right in shape but understates it. The correct version:
+
+> **Two factors are controllable; one is not, and the reason is principled.** Ordering and job boundaries are *nuisance* parameters — you can pin them, and we show how, with measured costs. The scoring rule is a *choice* whose effect varies by quantization method and task, so it cannot be standardised away and must be reported.
+
+That converts the asymmetry from an awkward gap into the paper's organising claim. A reviewer who finds the fix covers two of three has been told exactly that, with the reason. And heterogeneity is *strengthened*: it's what remains after the controllable factors are controlled.
+
+## (c) — Your instinct is right about the standard, and you should go further than three fields
+
+Don't name a standard. Naming one asserts community-adoption authority on one paper's evidence, and it's the shape of claim §7 already warns against.
+
+But **name and release the test.** That's an instrument we built and validated on 105,950 generations; it's citable, version-agnostic in design, and it gives the paper an artifact identity without overreach. Keep the three reporting fields as a plain short list promoted into the contributions — item submission order, whether compared arms shared a process, and the generation budget with its truncation rate — with one sentence each on why.
+
+## Fix the three headings, they're doing real damage
+
+"Reporting, not correcting" and "What a reader should change, and it is not a threshold" both lead with a negative. Same content, constructive framing:
+
+- → **"What to do: two controllable factors and one that must be reported"**
+- → **"Why the scoring rule must be reported rather than corrected"**
+
+And in the abstract, keep "no single correction restores comparability" — it's true and load-bearing — then follow it immediately with the two mitigations and their measured costs, and the released probe alongside the corpus. Nothing about the findings changes; a reviewer skimming just stops seeing problem-disclaimer-dataset.
