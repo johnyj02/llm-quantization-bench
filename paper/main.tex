@@ -101,10 +101,10 @@ the mechanism is established by intervention. Generation is bitwise reproducible
 comparisons, and is \emph{not} reproducible across processes, where the same
 configuration diverges on up to 45\% of items; the common practice of repeating a
 measurement in one process therefore cannot detect it. Under a fixed generation
-budget, arms differ by an order of magnitude in how many tokens their scored
-answer discards. We further show that the scoring rung interacts with precision
-\emph{heterogeneously} across tasks and quantization methods, established by
-pre-registered contrasts, so no single protocol-level correction restores
+budget, precision settings differ by an order of magnitude in how many tokens of
+their output are discarded before scoring. We further show that how strictly an answer is extracted from the model's output
+changes the apparent size of quantization damage, and changes it by different
+amounts on different tasks and methods, so no single correction restores
 comparability. We release 105{,}950 generations with per-item termination and
 length metadata, and an audit of our own extraction pipeline, which had silently
 degraded 2\% of that corpus until a census found it.
@@ -140,31 +140,35 @@ Our concern is the residual that survives quantization-side tuning, and our
 mechanisms are orthogonal to theirs: they act on the evaluation, not on the
 quantized model.
 
-\paragraph{An artifact in a level is not an artifact in a difference.}
+\paragraph{Changing every score is not the same as changing the gap between scores.}
 That distinction organises the paper. It is well known that lenient answer
 extraction raises absolute scores \citep{jo2025finding,yu2025xfinder}, and that
 prompt formatting moves them substantially \citep{sclar2024formatspread}. What has
 not been established is whether such choices change the quantization
-\emph{delta}, which is the quantity papers actually report. A factor that shifts
-every arm equally is a nuisance; a factor that shifts arms \emph{differently} is a
-confound in every published comparison. We test for the second, and find it.
+\emph{delta}, which is the quantity papers actually report. A choice that lowers
+every model's score by the same amount is a nuisance and nothing more, because the gap
+between them survives it. A choice that lowers some models' scores more than others
+changes that gap, and so contaminates every published comparison that did not report
+the choice. We test for the second kind, and find it.
 
 \paragraph{Three protocol factors, one of which we can turn off.}
 Serving the same items through the same engine and varying only their submission
 order changes 4-bit accuracy by up to \hEightWorstSDTen{} points of standard
 deviation across \hEightSDOrderings{} orderings, while leaving \texttt{bf16}
-accuracy \emph{exactly} unchanged at both scoring rungs. Disabling the quantized
-matrix-multiply kernels drives that variation to zero on \hEightPinned{} arms, so
+accuracy \emph{exactly} unchanged under both extraction rules. Disabling the quantized
+matrix-multiply kernels drives that variation to zero on \hEightPinned{} of the
+quantized settings, so
 the mechanism is established by intervention rather than inferred. Separately,
 generation is bitwise reproducible \emph{within} a job and is not reproducible
 \emph{across} jobs, which means the standard remedy of repeating a measurement in
-one process cannot detect it. And under a fixed generation budget, arms that emit
-longer traces lose answers to truncation at differing rates, converting a length
-difference into measured degradation.
+one process cannot detect it. And under a fixed generation budget, settings whose
+models write longer reasoning lose their answers to the cutoff more often, which turns
+a difference in verbosity into what looks like a difference in ability.
 
 \paragraph{The effect reaches the reported quantity, and not uniformly.}
-The scoring rung interacts with precision, and the interaction is
-\emph{heterogeneous}: it differs across tasks and across quantization methods,
+How strictly the answer is extracted from the output interacts with precision, and
+that interaction is \emph{uneven}: it differs across tasks and across quantization
+methods,
 both established by pre-registered contrasts rather than observed. The
 consequence is the practical one. If the interaction were uniform, a single
 correction would remove it. Because it is not, no protocol-level adjustment
@@ -277,7 +281,7 @@ refuted. \citet{ren2026shortcut} find that 8.2--44.1\% of answers graded correct
 are reached by shortcut hacking, so lenient extraction over-credits as surely as
 strict extraction under-credits. We therefore treat the strict/permissive
 contrast as a measurement instrument to be characterised rather than a knob to
-be turned in one direction, and we report both rungs throughout.
+be turned in one direction, and we report both extraction rules throughout.
 
 \paragraph{Prompt- and protocol-sensitivity.}
 \citet{hua2025flaw} ask whether prompt sensitivity is a genuine model property
@@ -317,7 +321,8 @@ canonical filters are the object of study rather than an implementation detail.
 \citet{pape2026silent} find that inference-backend choice alone moves benchmark
 scores by up to 16.6 points, and \citet{masoudian2026sideeffect} attribute
 roughly 39\% of out-of-the-box variance to it. We read this as a reason to
-freeze the engine, version, and every decoding parameter across all arms, which
+freeze the engine, version, and every decoding parameter across all precision
+settings, which
 we do and report; a floating serving configuration would make precision effects
 unidentifiable. We claim no novelty on this axis.
 
@@ -361,11 +366,12 @@ Qwen2.5-3B-Instruct, Phi-3.5-mini-instruct, and Llama-3.1-8B-Instruct. Each is
 pinned by commit SHA rather than tag, since tags move and reproducibility holds
 only within identical versions.
 
-Five precision arms form a dose--response rather than a two-point comparison:
-\texttt{bf16}, GPTQ-8bit, GPTQ-4bit, AWQ-4bit, and bitsandbytes NF4. A monotone
-bf16 $\rightarrow$ 8-bit $\rightarrow$ 4-bit trend is a substantially stronger
-internal-validity argument than a single contrast, because a protocol artifact
-has no reason to track bit-width monotonically.
+We compare five precision settings, which we call \emph{arms}: \texttt{bf16},
+GPTQ-8bit, GPTQ-4bit, AWQ-4bit, and bitsandbytes NF4. Five rather than two, because
+ordering them by bit width gives a graded series instead of a single before-and-after
+comparison. If accuracy falls steadily from \texttt{bf16} through 8-bit to 4-bit,
+that is much harder to explain as a measurement artifact, since an artifact of the
+evaluation has no reason to track bit width in order.
 
 All manipulations are one-factor-at-a-time from a single fixed reference
 condition, so every reported effect is attributable to the one factor varied.
@@ -410,7 +416,8 @@ confound this design exists to exclude.
 \label{sec:ladder}
 Every generation is stored once and scored many times. We apply a ladder of
 extractors to the \emph{same} stored text, so the entire ladder costs zero
-additional generation and every rung sees byte-identical inputs:
+additional generation and every step sees byte-identical inputs. We call each step a
+\emph{rung}, and refer to them by name rather than by number throughout:
 
 \begin{enumerate}\itemsep0pt
   \item \textbf{strict} --- the evaluation harness's canonical regular
@@ -424,12 +431,12 @@ additional generation and every rung sees byte-identical inputs:
   \item \textbf{judge} --- a trained answer verifier \citep{chen2025xverify}.
 \end{enumerate}
 
-\textbf{The headline contrast is rung 1 versus rung 2.} Both are deterministic,
+\textbf{The headline contrast is strict versus permissive.} Both are deterministic,
 auditable, and judge-independent, which is what makes judge validation a
 robustness check rather than a load-bearing dependency: if the judge fails its
-agreement gate, the paper's main claim is unaffected. Rung 1b exists because a
-harness that takes the first match will score a model that restates its answer
-differently from one that does not, independent of correctness.
+agreement gate, the paper's main claim is unaffected. The strict-last variant exists because a harness that takes the first match will
+score a model that restates its answer differently from one that does not,
+independent of correctness.
 
 \paragraph{An audit of our own extractor, and what it found.}
 Because this paper's claim is that unreported measurement choices move reported
@@ -520,9 +527,10 @@ submitted}. Because requests are batched dynamically, an item's position
 determines which other items share its batch, and therefore the shapes over
 which the engine's reductions are performed.
 
-Holding the ordering fixed, generation is exactly reproducible: the repetition
-floor is \hEightRepFloor\% in all \hEightNCells{} cells. So every difference
-reported below is attributable to ordering alone, not to run-to-run variation.
+Holding the ordering fixed and running the same items again changes nothing: not one
+of the \hEightNCells{} model-and-precision combinations we measured produced a single
+differing output. So every difference reported below is caused by the ordering, not by
+run-to-run variation.
 
 \paragraph{Aggregate accuracy moves, and only for quantized arms.}
 Table~\ref{tab:h8-sd} gives the standard deviation of accuracy across
@@ -595,7 +603,7 @@ consistent with our data --- a data-dependent reduction whose result
 concentrates at larger batch sizes, or a different kernel-selection path
 entirely --- and we do not have evidence to separate them.}
 
-\paragraph{The frontier.}
+\paragraph{The size of the effect depends on where you measure it.}
 The level at which divergence is measured changes its apparent size by about
 $\hEightTextCorrRatio\times$: generated text diverges on up to
 \hEightWorstText\% of items, while scored correctness diverges on at most
@@ -683,7 +691,8 @@ clusters. Positive means leniency helps the quantized arm \emph{more} than
 \small
 \input{tables/h3_interaction}
 \caption{Precision $\times$ scoring interaction in accuracy points against
-\texttt{bf16}, at rung 1 versus rung 2, on \hThreeRecords{} generations.
+\texttt{bf16}, under strict versus permissive extraction, on \hThreeRecords{}
+generations.
 \textbf{Bold} excludes the null. $\dagger$ marks a worst-case bound rather than a
 bootstrap interval: ARC-C's estimate is \emph{exactly} zero, so there is nothing
 to resample and the interval is the Wilson zero-event bound
@@ -702,9 +711,9 @@ comparison reverses: GPTQ W4A16 \hThreeGsmGptqFour{}~pp
 $[\hThreeGsmGptqFourLo, \hThreeGsmGptqFourHi]$ and \texttt{bnb} NF4
 \hThreeGsmNfFour{}~pp $[\hThreeGsmNfFourLo, \hThreeGsmNfFourHi]$.
 
-An omnibus over estimates spanning \hThreeBbhGptqFour{} to \hThreeGsmNfFour{}
-describes neither, so the per-arm estimates are the result and their disagreement
-is the quantity of interest.
+A single pooled estimate over values running from \hThreeBbhGptqFour{} to
+\hThreeGsmNfFour{} would describe neither end, so we report the individual estimates
+and treat their disagreement as the finding.
 
 \paragraph{The disagreement is tested, not observed.}
 A sign that differs across cells could be sampling variation, so we
@@ -744,7 +753,7 @@ unreported protocols. They are not.
 \paragraph{One excluded arm, reported as a demonstration only.}
 GSM8K under the hash-marker prompt (\hThreeGsmDemoExcluded) is excluded from the
 family above and from the Holm correction, because instruction-tuned models
-rarely emit the \texttt{\#\#\#\#} marker unprompted, so rung 1 there measures
+rarely emit the \texttt{\#\#\#\#} marker unprompted, so strict extraction there measures
 marker compliance rather than competence and a floored metric has no variance for
 an interaction to appear in (Appendix~\ref{app:prereg}). Its estimates are large and
 negative (GPTQ W4A16 \hThreeGsmDemoGptqFour{}~pp, AWQ W4A16
