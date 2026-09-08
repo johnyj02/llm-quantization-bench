@@ -1,0 +1,4002 @@
+[
+  {
+    "annotation_id": "ann-0000",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-6",
+    "arm": "gptq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0001",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-18",
+    "arm": "bnb-nf4",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0002",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-0",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0003",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-13",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0004",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-16",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0005",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bnb-nf4",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-5",
+    "arm": "bnb-nf4",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0006",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-14",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0007",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-11",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0008",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|awq-4bit",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-15",
+    "arm": "awq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0009",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-1",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0010",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|awq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-0",
+    "arm": "awq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0011",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-17",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0012",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-16",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0013",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-0",
+    "arm": "bnb-nf4",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0014",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-18",
+    "arm": "gptq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0015",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-12",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0016",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-19",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0017",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-4",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0018",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-17",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0019",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-1",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0020",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-13",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0021",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-1",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0022",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-0",
+    "arm": "gptq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0023",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-17",
+    "arm": "gptq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0024",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bnb-nf4",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-11",
+    "arm": "bnb-nf4",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0025",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-14",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0026",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-18",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0027",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-6",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0028",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-8",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0029",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-6",
+    "arm": "bnb-nf4",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0030",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|gptq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-9",
+    "arm": "gptq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0031",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-12",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0032",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|awq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-4",
+    "arm": "awq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0033",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-5",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0034",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-6",
+    "arm": "gptq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0035",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-19",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0036",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-10",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0037",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|awq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-1",
+    "arm": "awq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0038",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-6",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0039",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-12",
+    "arm": "gptq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0040",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|gptq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-0",
+    "arm": "gptq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0041",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|awq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-15",
+    "arm": "awq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0042",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-13",
+    "arm": "gptq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0043",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|gptq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-14",
+    "arm": "gptq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0044",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-0",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0045",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-17",
+    "arm": "bnb-nf4",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0046",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-0",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0047",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-13",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0048",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|awq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-10",
+    "arm": "awq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0049",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-9",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0050",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|awq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-19",
+    "arm": "awq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0051",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|gptq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-16",
+    "arm": "gptq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0052",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|awq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-6",
+    "arm": "awq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0053",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bnb-nf4",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-19",
+    "arm": "bnb-nf4",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0054",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-6",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0055",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|gptq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-11",
+    "arm": "gptq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0056",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|awq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-5",
+    "arm": "awq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0057",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|awq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-12",
+    "arm": "awq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0058",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-15",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": true
+  },
+  {
+    "annotation_id": "ann-0059",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|awq-4bit",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_7215845",
+    "arm": "awq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0060",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|awq-4bit",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-11",
+    "arm": "awq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0061",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-12",
+    "arm": "bnb-nf4",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0062",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|awq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-3",
+    "arm": "awq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0063",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|awq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-10",
+    "arm": "awq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0064",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|awq-4bit",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-2",
+    "arm": "awq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0065",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|awq-4bit",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-10",
+    "arm": "awq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0066",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|gptq-4bit",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-4",
+    "arm": "gptq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0067",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_403234",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0068",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-7",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0069",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-11",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0070",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-8",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0071",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-11",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0072",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-11",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0073",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-2",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0074",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-99",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0075",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_SC_400578",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0076",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|gptq-4bit",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-10",
+    "arm": "gptq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0077",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-15",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0078",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bnb-nf4",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-15",
+    "arm": "bnb-nf4",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0079",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-17",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0080",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-3",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0081",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bnb-nf4",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-11",
+    "arm": "bnb-nf4",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0082",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|gptq-4bit",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-91",
+    "arm": "gptq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0083",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_7012740",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0084",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-16",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0085",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-9",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0086",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-9",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0087",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-15",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0088",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-3",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0089",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-0",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0090",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-89",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0091",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_7250058",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0092",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-1",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0093",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-5",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0094",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-9",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0095",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-1",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0096",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-2",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0097",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-6",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0098",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-61",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0099",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_7116288",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0100",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-3",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0101",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-4",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0102",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-19",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0103",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-0",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0104",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-10",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0105",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-8",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0106",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-40",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0107",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|awq-4bit",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_SC_405086",
+    "arm": "awq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0108",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|awq-4bit",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-3",
+    "arm": "awq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0109",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|awq-4bit",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-8",
+    "arm": "awq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0110",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-2",
+    "arm": "bnb-nf4",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0111",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|awq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-19",
+    "arm": "awq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0112",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-12",
+    "arm": "bnb-nf4",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0113",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|awq-4bit",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-9",
+    "arm": "awq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0114",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|gptq-4bit",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-68",
+    "arm": "gptq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0115",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_7235638",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0116",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-18",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0117",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-16",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0118",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-16",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0119",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-9",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0120",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-19",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0121",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-15",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0122",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-83",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0123",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "MCAS_2006_9_44",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0124",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-3",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0125",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-13",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0126",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-10",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0127",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-13",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0128",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bnb-nf4",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-16",
+    "arm": "bnb-nf4",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0129",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bnb-nf4",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-3",
+    "arm": "bnb-nf4",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0130",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bnb-nf4",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-77",
+    "arm": "bnb-nf4",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0131",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_SC_409139",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0132",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-17",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0133",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-15",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0134",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-6",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0135",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-16",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0136",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-10",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0137",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-6",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0138",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-73",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0139",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_7250058",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0140",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|awq-4bit",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-3",
+    "arm": "awq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0141",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-8",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0142",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-14",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0143",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|awq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-9",
+    "arm": "awq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0144",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-4",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0145",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-12",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0146",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-45",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0147",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_SC_401620",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0148",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-10",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0149",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-6",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0150",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-1",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0151",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-15",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0152",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-13",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0153",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-4",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0154",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-8",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0155",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|awq-4bit",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_7044328",
+    "arm": "awq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0156",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-11",
+    "arm": "gptq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0157",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-9",
+    "arm": "gptq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0158",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-16",
+    "arm": "bnb-nf4",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0159",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|awq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-5",
+    "arm": "awq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0160",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-16",
+    "arm": "bnb-nf4",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0161",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-8",
+    "arm": "gptq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0162",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bnb-nf4",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-76",
+    "arm": "bnb-nf4",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0163",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_SC_413240",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0164",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-14",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0165",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-5",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0166",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-2",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0167",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-1",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0168",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-2",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0169",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-19",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0170",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-92",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0171",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|gptq-4bit",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_7175875",
+    "arm": "gptq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0172",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bnb-nf4",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-9",
+    "arm": "bnb-nf4",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0173",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bnb-nf4",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-7",
+    "arm": "bnb-nf4",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0174",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|gptq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-6",
+    "arm": "gptq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0175",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|gptq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-12",
+    "arm": "gptq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0176",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|gptq-4bit",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-19",
+    "arm": "gptq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0177",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-18",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0178",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-6",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0179",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_7139878",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0180",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-18",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0181",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-8",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0182",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-10",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0183",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-6",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0184",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-15",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0185",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-12",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0186",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-43",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0187",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_SC_402120",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0188",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-7",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0189",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-2",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0190",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-13",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0191",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-11",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0192",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-19",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0193",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-8",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0194",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-3",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0195",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_7012740",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0196",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-2",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0197",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-13",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0198",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-17",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0199",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-2",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0200",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-9",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0201",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-17",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0202",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-67",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0203",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bnb-nf4",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "AKDE&ED_2008_4_25",
+    "arm": "bnb-nf4",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0204",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|awq-4bit",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-6",
+    "arm": "awq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0205",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-18",
+    "arm": "bnb-nf4",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0206",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-12",
+    "arm": "bnb-nf4",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0207",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|awq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-17",
+    "arm": "awq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0208",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-15",
+    "arm": "gptq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0209",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-14",
+    "arm": "gptq-4bit",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0210",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bnb-nf4",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-85",
+    "arm": "bnb-nf4",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "4bit",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0211",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_7044328",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0212",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-15",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0213",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-10",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0214",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-0",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0215",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-8",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0216",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-1",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0217",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-17",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0218",
+    "run_id": "pilot-v2",
+    "cell_id": "llama-3.1-8b|bf16",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-93",
+    "arm": "bf16",
+    "model_key": "llama-3.1-8b",
+    "stratum": [
+      "llama-3.1-8b",
+      "bf16",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0219",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bnb-nf4",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_7136885",
+    "arm": "bnb-nf4",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0220",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-15",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0221",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|gptq-4bit",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-19",
+    "arm": "gptq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0222",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|gptq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-7",
+    "arm": "gptq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0223",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|gptq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-8",
+    "arm": "gptq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0224",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|awq-4bit",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-6",
+    "arm": "awq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0225",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|gptq-4bit",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-16",
+    "arm": "gptq-4bit",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0226",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bnb-nf4",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-82",
+    "arm": "bnb-nf4",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "4bit",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0227",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_SC_400402",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0228",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-5",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0229",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-11",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0230",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-4",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0231",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-3",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0232",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-13",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0233",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-3",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0234",
+    "run_id": "pilot-v2",
+    "cell_id": "phi-3.5-mini|bf16",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-55",
+    "arm": "bf16",
+    "model_key": "phi-3.5-mini",
+    "stratum": [
+      "phi-3.5-mini",
+      "bf16",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0235",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "Mercury_404894",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0236",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-15",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0237",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bnb-nf4",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-0",
+    "arm": "bnb-nf4",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0238",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|awq-4bit",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-10",
+    "arm": "awq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0239",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-17",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0240",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-16",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0241",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|awq-4bit",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-11",
+    "arm": "awq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0242",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|gptq-4bit",
+    "task": "gsm8k",
+    "subtask": null,
+    "item_id": "idx-47",
+    "arm": "gptq-4bit",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "4bit",
+      "gsm8k"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0243",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "arc_challenge_chat",
+    "subtask": null,
+    "item_id": "MCAS_2004_9_15-v1",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "arc_challenge_chat"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0244",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "boolean_expressions",
+    "item_id": "idx-7",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/boolean_expressions"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0245",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "dyck_languages",
+    "item_id": "idx-19",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/dyck_languages"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0246",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "logical_deduction_five_objects",
+    "item_id": "idx-5",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/logical_deduction_five_objects"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0247",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "multistep_arithmetic_two",
+    "item_id": "idx-11",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/multistep_arithmetic_two"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0248",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "object_counting",
+    "item_id": "idx-15",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/object_counting"
+    ],
+    "rungs_disagree": false
+  },
+  {
+    "annotation_id": "ann-0249",
+    "run_id": "pilot-v2",
+    "cell_id": "qwen2.5-3b|bf16",
+    "task": "bbh",
+    "subtask": "word_sorting",
+    "item_id": "idx-7",
+    "arm": "bf16",
+    "model_key": "qwen2.5-3b",
+    "stratum": [
+      "qwen2.5-3b",
+      "bf16",
+      "bbh/word_sorting"
+    ],
+    "rungs_disagree": false
+  }
+]
