@@ -116,6 +116,10 @@ def main() -> int:
     # Where both labelled and agreed, that is the verdict. Where they disagree, §10 requires
     # joint adjudication by rule lookup, which has not happened, so those items are held out
     # rather than resolved by a tie-break this script invents.
+    adj_path = ANN / "adjudicated.json"
+    adjudicated = {k: v for k, v in json.loads(adj_path.read_text()).items()
+                   if not k.startswith("_")} if adj_path.is_file() else {}
+
     human: dict[str, str] = {}
     unadjudicated = []
     for i in sorted(set(labels["A1"]) | set(labels["A2"])):
@@ -124,6 +128,11 @@ def main() -> int:
             continue
         if len(set(got)) == 1:
             human[i] = got[0]
+        elif i in adjudicated:
+            # §10: resolved by rubric-clause lookup, with the clause recorded. Note this can
+            # land on a label NEITHER annotator chose (ann-0030 did), which is precisely why
+            # §10 specifies rule lookup rather than a tie-break.
+            human[i] = adjudicated[i]["label"]
         else:
             unadjudicated.append(i)
     print(f"\nhuman verdicts  : {len(human)} ({len(unadjudicated)} disagreements await "
@@ -140,6 +149,8 @@ def main() -> int:
                     rows[(r["cell_id"], r["task"], r.get("subtask"), r["item_id"])] = r
 
     report: dict = {"iaa": iaa, "n_human_verdicts": len(human),
+                    "n_adjudicated": len(adjudicated),
+                    "adjudication_clauses": {k: v["clause"] for k, v in adjudicated.items()},
                     "n_unadjudicated_held_out": len(unadjudicated), "rungs": {}}
 
     for rung in RUNGS:

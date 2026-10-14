@@ -1,64 +1,73 @@
 {
   "iaa": {
     "n": 120,
-    "raw_agreement": 1.0,
+    "raw_agreement": 0.975,
     "raw_agreement_ci95": [
-      0.9689808331071251,
-      0.9999999999999999
+      0.9290699661552766,
+      0.9914618252964924
     ],
-    "cohen_kappa": 1.0,
-    "gwet_ac1": 1.0,
+    "cohen_kappa": 0.943127962085308,
+    "gwet_ac1": 0.9679579893638326,
     "confusion": {
-      "CORRECT|CORRECT": 82,
-      "INCORRECT|INCORRECT": 34,
-      "NO_ANSWER|NO_ANSWER": 4
+      "CORRECT|CORRECT": 83,
+      "INCORRECT|CORRECT": 1,
+      "INCORRECT|INCORRECT": 29,
+      "NO_ANSWER|CORRECT": 1,
+      "NO_ANSWER|NO_ANSWER": 5,
+      "CORRECT|INCORRECT": 1
     },
     "n_rubric_gap_excluded": 0
   },
   "n_human_verdicts": 250,
+  "n_adjudicated": 3,
+  "adjudication_clauses": {
+    "ann-0004": "step 2 + step 3",
+    "ann-0030": "4.3",
+    "ann-0080": "step 3"
+  },
   "n_unadjudicated_held_out": 0,
   "rungs": {
     "strict": {
       "bf16": {
         "n": 104,
-        "agreement": 0.7596153846153846,
+        "agreement": 0.7692307692307693,
         "agreement_ci95": [
-          0.6691888601666811,
-          0.8315462055508482
+          0.6795448831161146,
+          0.8397359257761383
         ],
         "false_positive_rate": 0.0,
-        "false_negative_rate": 0.2403846153846154
+        "false_negative_rate": 0.23076923076923078
       },
       "4bit": {
         "n": 146,
-        "agreement": 0.5684931506849316,
+        "agreement": 0.5616438356164384,
         "agreement_ci95": [
-          0.4874149583610978,
-          0.6460594495185261
+          0.48060101335331307,
+          0.6395259537383485
         ],
         "false_positive_rate": 0.0273972602739726,
-        "false_negative_rate": 0.4041095890410959
+        "false_negative_rate": 0.410958904109589
       }
     },
     "permissive": {
       "bf16": {
         "n": 104,
-        "agreement": 0.8461538461538461,
+        "agreement": 0.8557692307692307,
         "agreement_ci95": [
-          0.7646197650840263,
-          0.903026989206013
+          0.7755885741205193,
+          0.9106039233442431
         ],
         "false_positive_rate": 0.0,
-        "false_negative_rate": 0.15384615384615385
+        "false_negative_rate": 0.14423076923076922
       },
       "4bit": {
         "n": 146,
-        "agreement": 0.8835616438356164,
+        "agreement": 0.8904109589041096,
         "agreement_ci95": [
-          0.8214385528954438,
-          0.9260181312304503
+          0.8293942123918577,
+          0.9314099125219987
         ],
-        "false_positive_rate": 0.0136986301369863,
+        "false_positive_rate": 0.00684931506849315,
         "false_negative_rate": 0.10273972602739725
       }
     }
