@@ -122,6 +122,19 @@ STAGES: dict[str, dict] = {
         # Isolation of its own writes is by run_id (`anchor-v1-smoke`), not by prefix.
         "smoke_isolates_checkpoints": False,
     },
+    "h6": {
+        "entry_point": "sm_h6.py",
+        "description": "H6 arm 2: ARC-Challenge scored by LOG-LIKELIHOOD on arm 1's prompt. "
+                       "3 models x 3 arms = 9 cells x 500 items x 4 options. The negative "
+                       "control, marked never-cut",
+        # 9 cells x 500 items x 4 option continuations = 18,000 prompt-logprob passes, each
+        # one token of generation. Far cheaper than generation: the cost is 9 engine loads at
+        # ~2.6 min plus a short scoring pass. 4 h caps a hang at ~$11.
+        "max_run": 14400,
+        # READS job 1's checkpoints by recipe hash, so the smoke must see the study prefix.
+        # Its own writes are isolated by run_id (`h6-v1-smoke`), not by prefix.
+        "smoke_isolates_checkpoints": False,
+    },
     "sweep": {
         "entry_point": "sm_sweep.py",
         # ⚠️ CORRECTED 2026-09-05. This read "3 arms x {2x,4x} x 1,400 items", which scans as

@@ -613,6 +613,80 @@ class VLLMRunner:
             self.engine_state = read_back_engine_state(self._llm, self.spec)
         return self._llm
 
+    def score_options(
+        self,
+        prompts: list[str],
+        options: list[str],
+    ) -> list[dict[str, float]]:
+        """Log-likelihood of each option continuation. H6's arm 2 (prereg SS3c, A15/R39.4).
+
+        Returns one `{option: summed_logprob}` per prompt, input order preserved.
+
+        **Why this exists as a separate method.** `run_cell` and `generate` are
+        generation-only: `scoring_mode` is fixed to `"generate"` and `option_logprobs` is
+        always `None`. H6 is the study's negative control and its claim is that where the
+        answer space is structurally constrained the extraction effect vanishes, which needs
+        the SAME prompt scored by log-likelihood rather than by generating and parsing. One
+        method, same engine, same pinned sampling.
+
+        🚨 **Uses `prompt_logprobs`, NOT the generated-token top-k.** Reading the first
+        generated position's `logprobs=k` would be one pass instead of four and is what I
+        reached for first. It is wrong here: if an option token falls outside the top-k
+        window the lookup returns nothing, and a missing option is indistinguishable from a
+        very unlikely one. That silently drops an option from the comparison. Appending the
+        option to the prompt and reading its own logprob cannot fail that way.
+
+        ⚠️ Scores the option as scored, including any leading space. `configs/tasks.yaml`
+        sets `continuations: [" A", " B", " C", " D"]` with
+        `assert_single_token_per_option: true`, so these are normally one token each, but the
+        sum is taken rather than assuming that, because the assertion belongs to the config
+        and not to this method.
+        """
+        from vllm import SamplingParams  # noqa: PLC0415 - serving image only
+
+        # max_tokens=1 because vLLM requires at least one; we read the PROMPT logprobs and
+        # discard whatever it generates.
+        params = SamplingParams(
+            temperature=0.0, top_p=1.0, top_k=-1,
+            repetition_penalty=1.0, presence_penalty=0.0, frequency_penalty=0.0,
+            max_tokens=1, prompt_logprobs=0,
+        )
+
+        tokenizer = self.llm.get_tokenizer()
+        flat = [p + opt for p in prompts for opt in options]
+        base_lens = [len(tokenizer.encode(p)) for p in prompts]
+        outputs = self.llm.generate(flat, params)
+
+        results: list[dict[str, float]] = []
+        for i, _prompt in enumerate(prompts):
+            scores: dict[str, float] = {}
+            for j, opt in enumerate(options):
+                out = outputs[i * len(options) + j]
+                # `prompt_logprobs` is one entry per prompt token, `None` at position 0 since
+                # the first token has no preceding context to be predicted from.
+                plp = out.prompt_logprobs or []
+                ids = out.prompt_token_ids
+                total = 0.0
+                for pos in range(base_lens[i], len(plp)):
+                    entry = plp[pos]
+                    if not entry:
+                        continue
+                    # 🚨 Index by the ACTUAL token id at this position. An earlier version
+                    # took max() over the dict, which is the MOST LIKELY token rather than
+                    # the one in this continuation. With `prompt_logprobs=0` the dict
+                    # usually holds only the actual token, so max() would have agreed by
+                    # accident and then disagreed silently the moment vLLM returned more.
+                    lp = entry.get(ids[pos])
+                    if lp is None:
+                        raise RuntimeError(
+                            f"no prompt logprob for token {ids[pos]} at position {pos}; "
+                            f"cannot score option {opt!r} and will not guess"
+                        )
+                    total += lp.logprob
+                scores[opt] = total
+            results.append(scores)
+        return results
+
     def generate(
         self,
         prompts: list[str],
