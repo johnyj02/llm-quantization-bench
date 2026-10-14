@@ -1,5 +1,8 @@
 # CLAUDE.md — operational instructions for this project
 
+## Rules:
+- Be concise and to the point. Use bullet points to structure a human readable answer. Be specific when you answer questions. Do not use em dashes. Keep answers readable in say 2 minutes
+
 **Read this before touching compute.** It records the things that are not derivable from the
 code and that cost real time to rediscover. Scientific design lives in `EXECUTOR-PLAN.md`;
 scope/schedule in `EXECUTOR-TASKS.md`; decisions in `notes/decisions.md`. This file is

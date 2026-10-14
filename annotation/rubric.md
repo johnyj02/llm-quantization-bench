@@ -221,7 +221,7 @@ number cannot be reinterpreted after the fact.
 
 ## Sign-off
 
-| Annotator | Dry run completed | Rubric accepted | Date |
-|---|---|---|---|
-| Joseph Sankoorikal Johny | ☐ | ☐ | |
-| Syed Ahmed Danish | ☐ | ☐ | |
+| Annotator | Dry run completed | Rubric accepted | Date  |
+|---|---|-----------------|-------|
+| Joseph Sankoorikal Johny | Done | Done            | 09/01 |
+| Syed Ahmed Danish | Done | Done               | 09/07 |
