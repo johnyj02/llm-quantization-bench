@@ -70,10 +70,17 @@ def shrinkage_effect(at_1x: list[int], at_4x: list[int], name: str) -> Effect:
         b = sum(at_4x[rng.randrange(n4)] for _ in range(n4)) / n4
         draws.append(100 * (b - a))
     draws.sort()
+    # §9 requires Holm within each family, and a percentile interval alone gives Holm
+    # nothing to order. So the p-value is the bootstrap analogue: the proportion of draws
+    # on the wrong side of the null, doubled for a two-sided test, floored at 1/n_draws
+    # because zero draws on one side means "below our resolution", not p=0.
+    wrong = min(sum(d >= 0 for d in draws), sum(d <= 0 for d in draws))
+    p_two = max(2 * wrong / len(draws), 1 / len(draws))
     return Effect(
         name=name, estimate=point,
         ci_low=draws[int(0.025 * len(draws))], ci_high=draws[int(0.975 * len(draws))],
         unit="pp", n=min(n1, n4),
+        p_value=p_two, test="bootstrap two-sided (proportion of draws past the null)",
         interval_method="cluster bootstrap over items, 10000 percentile draws",
         noise_class=NoiseClass.COMPOUNDING,
         context={"seed": 20260908, "n_1x": n1, "n_4x": n4,

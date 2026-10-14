@@ -43,8 +43,8 @@
   },
   "effects": [
     {
-      "ci_high": 2.1999999999999997,
-      "ci_low": -1.1777777777777776,
+      "ci_high": 2.222222222222222,
+      "ci_low": -1.1555555555555554,
       "claimable": null,
       "context": {
         "direction": "negative = degradation shrank as the budget rose (H1)",
@@ -60,12 +60,12 @@
       "name": "H1_degradation_shrinkage[gsm8k_cot|gptq-4bit]",
       "noise_class": "compounding",
       "null_value": 0.0,
-      "p_value": null,
-      "test": null,
+      "p_value": 0.5414,
+      "test": "bootstrap two-sided (proportion of draws past the null)",
       "unit": "pp"
     },
     {
-      "ci_high": 0.0,
+      "ci_high": -0.022222222222222088,
       "ci_low": -3.5999999999999996,
       "claimable": null,
       "context": {
@@ -75,20 +75,20 @@
         "seed": 20260908
       },
       "estimate": -1.8000000000000003,
-      "excludes_null": false,
+      "excludes_null": true,
       "floor": null,
       "interval_method": "cluster bootstrap over items, 10000 percentile draws",
       "n": 4500,
       "name": "H1_degradation_shrinkage[gsm8k_cot|awq-4bit]",
       "noise_class": "compounding",
       "null_value": 0.0,
-      "p_value": null,
-      "test": null,
+      "p_value": 0.0482,
+      "test": "bootstrap two-sided (proportion of draws past the null)",
       "unit": "pp"
     },
     {
-      "ci_high": 0.3456790123456791,
-      "ci_low": -2.6666666666666665,
+      "ci_high": 0.3209876543209877,
+      "ci_low": -2.7037037037037037,
       "claimable": null,
       "context": {
         "direction": "negative = degradation shrank as the budget rose (H1)",
@@ -104,13 +104,13 @@
       "name": "H1_degradation_shrinkage[bbh|gptq-4bit]",
       "noise_class": "compounding",
       "null_value": 0.0,
-      "p_value": null,
-      "test": null,
+      "p_value": 0.124,
+      "test": "bootstrap two-sided (proportion of draws past the null)",
       "unit": "pp"
     },
     {
-      "ci_high": 0.5802469135802469,
-      "ci_low": -2.802469135802469,
+      "ci_high": 0.49382716049382724,
+      "ci_low": -2.7777777777777777,
       "claimable": null,
       "context": {
         "direction": "negative = degradation shrank as the budget rose (H1)",
@@ -126,17 +126,17 @@
       "name": "H1_degradation_shrinkage[bbh|awq-4bit]",
       "noise_class": "compounding",
       "null_value": 0.0,
-      "p_value": null,
-      "test": null,
+      "p_value": 0.179,
+      "test": "bootstrap two-sided (proportion of draws past the null)",
       "unit": "pp"
     }
   ],
   "holm": [
     {
-      "adjusted_alpha": null,
+      "adjusted_alpha": 0.05,
       "effect": {
-        "ci_high": 2.1999999999999997,
-        "ci_low": -1.1777777777777776,
+        "ci_high": 2.222222222222222,
+        "ci_low": -1.1555555555555554,
         "claimable": null,
         "context": {
           "direction": "negative = degradation shrank as the budget rose (H1)",
@@ -152,20 +152,20 @@
         "name": "H1_degradation_shrinkage[gsm8k_cot|gptq-4bit]",
         "noise_class": "compounding",
         "null_value": 0.0,
-        "p_value": null,
-        "test": null,
+        "p_value": 0.5414,
+        "test": "bootstrap two-sided (proportion of draws past the null)",
         "unit": "pp"
       },
       "family": "H1",
-      "m": 0,
+      "m": 4,
       "name": "H1_degradation_shrinkage[gsm8k_cot|gptq-4bit]",
-      "p_value": null,
-      "rejected": null
+      "p_value": 0.5414,
+      "rejected": false
     },
     {
-      "adjusted_alpha": null,
+      "adjusted_alpha": 0.0125,
       "effect": {
-        "ci_high": 0.0,
+        "ci_high": -0.022222222222222088,
         "ci_low": -3.5999999999999996,
         "claimable": null,
         "context": {
@@ -175,28 +175,28 @@
           "seed": 20260908
         },
         "estimate": -1.8000000000000003,
-        "excludes_null": false,
+        "excludes_null": true,
         "floor": null,
         "interval_method": "cluster bootstrap over items, 10000 percentile draws",
         "n": 4500,
         "name": "H1_degradation_shrinkage[gsm8k_cot|awq-4bit]",
         "noise_class": "compounding",
         "null_value": 0.0,
-        "p_value": null,
-        "test": null,
+        "p_value": 0.0482,
+        "test": "bootstrap two-sided (proportion of draws past the null)",
         "unit": "pp"
       },
       "family": "H1",
-      "m": 0,
+      "m": 4,
       "name": "H1_degradation_shrinkage[gsm8k_cot|awq-4bit]",
-      "p_value": null,
-      "rejected": null
+      "p_value": 0.0482,
+      "rejected": false
     },
     {
-      "adjusted_alpha": null,
+      "adjusted_alpha": 0.016666666666666666,
       "effect": {
-        "ci_high": 0.3456790123456791,
-        "ci_low": -2.6666666666666665,
+        "ci_high": 0.3209876543209877,
+        "ci_low": -2.7037037037037037,
         "claimable": null,
         "context": {
           "direction": "negative = degradation shrank as the budget rose (H1)",
@@ -212,21 +212,21 @@
         "name": "H1_degradation_shrinkage[bbh|gptq-4bit]",
         "noise_class": "compounding",
         "null_value": 0.0,
-        "p_value": null,
-        "test": null,
+        "p_value": 0.124,
+        "test": "bootstrap two-sided (proportion of draws past the null)",
         "unit": "pp"
       },
       "family": "H1",
-      "m": 0,
+      "m": 4,
       "name": "H1_degradation_shrinkage[bbh|gptq-4bit]",
-      "p_value": null,
-      "rejected": null
+      "p_value": 0.124,
+      "rejected": false
     },
     {
-      "adjusted_alpha": null,
+      "adjusted_alpha": 0.025,
       "effect": {
-        "ci_high": 0.5802469135802469,
-        "ci_low": -2.802469135802469,
+        "ci_high": 0.49382716049382724,
+        "ci_low": -2.7777777777777777,
         "claimable": null,
         "context": {
           "direction": "negative = degradation shrank as the budget rose (H1)",
@@ -242,15 +242,15 @@
         "name": "H1_degradation_shrinkage[bbh|awq-4bit]",
         "noise_class": "compounding",
         "null_value": 0.0,
-        "p_value": null,
-        "test": null,
+        "p_value": 0.179,
+        "test": "bootstrap two-sided (proportion of draws past the null)",
         "unit": "pp"
       },
       "family": "H1",
-      "m": 0,
+      "m": 4,
       "name": "H1_degradation_shrinkage[bbh|awq-4bit]",
-      "p_value": null,
-      "rejected": null
+      "p_value": 0.179,
+      "rejected": false
     }
   ],
   "length": {
