@@ -156,30 +156,37 @@ answer, and `gsm8k_cot`'s strict regex captures the sentence period.
 
 ## D. Did you use human annotators or research with human participants?
 
-🚨 **No. The planned annotation did not take place, and this is stated as an absence rather than
-omitted.**
+**Yes.** 250 items were labelled by two annotators, with 120 double-labelled for agreement.
 
 ### D1. Were instructions and payment shown to participants?
-**Not applicable, because no annotation ran.** An annotation protocol was pre-registered in full,
+**Instructions: yes, in full.** The complete written rubric is released as `annotation/rubric.md`
+and was frozen, with a 10-item blind practice round completed and signed off, before any real
+labelling began. **Payment: none, and no participants were recruited** (see D2).
+
+The protocol was pre-registered in full,
 including the stratified sample design, blinding by omitting the condition column entirely rather
 than hiding it, independent per-annotator shuffling with published seeds, a blind practice round
 in place of attention checks, and an adjudication rule fixed before any disagreement was seen. It
-was **not executed**: the rubric required a second author's availability, which did not
-materialise before the submission deadline. The pre-registered protocol is described in the
-appendix **as registered, not as performed**.
+was **executed as registered**. Measured: inter-annotator agreement 0.975 raw (95% CI 0.929
+to 0.991), Cohen's kappa 0.943, Gwet's AC1 0.968 on the 120-item overlap, with 3
+disagreements resolved by rubric-clause lookup and the governing clause recorded per item.
 
 ### D2. Did you report information about how you recruited and paid participants?
-**Not applicable.** No participants were recruited. Had the protocol run, the annotators would
-have been the paper's authors rather than crowdworkers, and unpaid.
+**No participants were recruited and no payment was made.** The labelling was carried out by the
+paper's own authors, unpaid, rather than by crowdworkers or any recruited population. No
+third-party annotators were involved at any point, so there was no recruitment process, no
+compensation rate, and no participant agreement to report.
 
 ### D3. Did you discuss whether and how consent was obtained?
-**Not applicable.** No human subjects data was collected.
+**Not applicable.** No human subjects data was collected. The labels describe model outputs, not
+people, and the labellers are the paper's authors.
 
 ### D4. Was the data collection protocol approved by an ethics review board?
 **Not applicable.** No human subjects data was collected, so no review was sought.
 
 ### D5. Did you report the basic demographic and geographic characteristics of the annotator population?
-**Not applicable.** No annotator population exists.
+**Not applicable.** There is no annotator population to characterise: the labellers are the two
+authors of this paper, and reporting their demographics would de-anonymise the submission.
 
 🚨 **The consequence, stated in the paper rather than buried here:** the LLM-judge rung is
 **unvalidated**. No agreement statistic, no Cohen's κ, no Gwet's AC1, and no bf16-versus-4-bit

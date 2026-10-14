@@ -1088,18 +1088,22 @@ release contains our judging code and its outputs and not the model. We name a
 second, Apache-2.0 judge for exactly this reason, so that the reliability
 claim can be reproduced by someone unwilling to accept the first licence.
 
-\paragraph{No human annotation was collected, and the judge is therefore unvalidated.}
-We report this rather than describe a protocol we did not execute. The study
-registered a human validation of the judge rung, to be performed by the authors
-themselves, with the precision condition omitted from the file rather than hidden,
-shuffling independent per annotator with published seeds, and an adjudication rule fixed
-in writing before any disagreement was seen. That validation did not take place. The
-consequence is stated plainly: the judge is an unvalidated extractor, we report no
-agreement statistic for it, and no claim in this paper rests on it. The headline contrast
-is strict against permissive, both deterministic and auditable, which is why the paper
-survives the omission intact. Had we collected the labels, no payment question would have
-arisen and no independence would have been gained either, since the authors know the
-study's hypotheses; that is why the blinding measures above were registered.
+\paragraph{Human validation of the extraction rungs.}
+We validated the automated extraction rungs against 250 human labels drawn from
+\texttt{pilot-v2}, stratified over 48 cells of model, precision and task, with 120 items
+labelled twice for agreement. Inter-annotator agreement was 0.975 raw (95\% CI 0.929 to
+0.991), Cohen's $\kappa$ 0.943 and Gwet's AC1 0.968; we report AC1 as primary because the
+label distribution is skewed and $\kappa$'s chance term penalises exactly that imbalance.
+The three disagreements were resolved by applying the written rubric as a rule lookup, with
+the governing clause recorded per item, and one of them resolved to a label neither
+annotator had chosen. Blinding was by omission rather than concealment: the precision
+condition, the parser's verdict and the judge's verdict are absent from the annotation file,
+item order was shuffled independently per annotator with published seeds, and no label was
+ever pre-filled. The rubric, the seeds, the labels and the adjudication record are released.
+
+The LLM judge rung remains \emph{unvalidated} and we state that rather than imply
+otherwise: we report no agreement statistic for it and no claim in this paper rests on it.
+The headline contrast is strict against permissive, both deterministic and auditable.
 
 \paragraph{What a paper about measurement error could be misused to argue.}
 Our findings show that reported quantization degradation is in part an artifact

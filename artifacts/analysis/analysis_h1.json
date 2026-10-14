@@ -1,0 +1,373 @@
+{
+  "accuracy": {
+    "bbh|awq-4bit|1x": 0.3888888888888889,
+    "bbh|awq-4bit|2x": 0.39185185185185184,
+    "bbh|awq-4bit|4x": 0.39185185185185184,
+    "bbh|bf16|1x": 0.3988888888888889,
+    "bbh|bf16|2x": 0.3907407407407407,
+    "bbh|bf16|4x": 0.3907407407407407,
+    "bbh|gptq-4bit|1x": 0.36666666666666664,
+    "bbh|gptq-4bit|2x": 0.36925925925925923,
+    "bbh|gptq-4bit|4x": 0.37037037037037035,
+    "gsm8k_cot|awq-4bit|1x": 0.6713333333333333,
+    "gsm8k_cot|awq-4bit|2x": 0.7466666666666667,
+    "gsm8k_cot|awq-4bit|4x": 0.7493333333333333,
+    "gsm8k_cot|bf16|1x": 0.7493333333333333,
+    "gsm8k_cot|bf16|2x": 0.8086666666666666,
+    "gsm8k_cot|bf16|4x": 0.8093333333333333,
+    "gsm8k_cot|gptq-4bit|1x": 0.7013333333333334,
+    "gsm8k_cot|gptq-4bit|2x": 0.7553333333333333,
+    "gsm8k_cot|gptq-4bit|4x": 0.756
+  },
+  "degradation": {
+    "bbh|awq-4bit": {
+      "1x": 1.0,
+      "2x": -0.1111111111111111,
+      "4x": -0.1111111111111111
+    },
+    "bbh|gptq-4bit": {
+      "1x": 3.2222222222222223,
+      "2x": 2.148148148148148,
+      "4x": 2.037037037037037
+    },
+    "gsm8k_cot|awq-4bit": {
+      "1x": 7.8,
+      "2x": 6.2,
+      "4x": 6.0
+    },
+    "gsm8k_cot|gptq-4bit": {
+      "1x": 4.8,
+      "2x": 5.333333333333334,
+      "4x": 5.333333333333334
+    }
+  },
+  "effects": [
+    {
+      "ci_high": 2.1999999999999997,
+      "ci_low": -1.1777777777777776,
+      "claimable": null,
+      "context": {
+        "direction": "negative = degradation shrank as the budget rose (H1)",
+        "n_1x": 4500,
+        "n_4x": 4500,
+        "seed": 20260908
+      },
+      "estimate": 0.5333333333333335,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "cluster bootstrap over items, 10000 percentile draws",
+      "n": 4500,
+      "name": "H1_degradation_shrinkage[gsm8k_cot|gptq-4bit]",
+      "noise_class": "compounding",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 0.0,
+      "ci_low": -3.5999999999999996,
+      "claimable": null,
+      "context": {
+        "direction": "negative = degradation shrank as the budget rose (H1)",
+        "n_1x": 4500,
+        "n_4x": 4500,
+        "seed": 20260908
+      },
+      "estimate": -1.8000000000000003,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "cluster bootstrap over items, 10000 percentile draws",
+      "n": 4500,
+      "name": "H1_degradation_shrinkage[gsm8k_cot|awq-4bit]",
+      "noise_class": "compounding",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 0.3456790123456791,
+      "ci_low": -2.6666666666666665,
+      "claimable": null,
+      "context": {
+        "direction": "negative = degradation shrank as the budget rose (H1)",
+        "n_1x": 8100,
+        "n_4x": 8100,
+        "seed": 20260908
+      },
+      "estimate": -1.185185185185185,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "cluster bootstrap over items, 10000 percentile draws",
+      "n": 8100,
+      "name": "H1_degradation_shrinkage[bbh|gptq-4bit]",
+      "noise_class": "compounding",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    },
+    {
+      "ci_high": 0.5802469135802469,
+      "ci_low": -2.802469135802469,
+      "claimable": null,
+      "context": {
+        "direction": "negative = degradation shrank as the budget rose (H1)",
+        "n_1x": 8100,
+        "n_4x": 8100,
+        "seed": 20260908
+      },
+      "estimate": -1.1111111111111112,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "cluster bootstrap over items, 10000 percentile draws",
+      "n": 8100,
+      "name": "H1_degradation_shrinkage[bbh|awq-4bit]",
+      "noise_class": "compounding",
+      "null_value": 0.0,
+      "p_value": null,
+      "test": null,
+      "unit": "pp"
+    }
+  ],
+  "holm": [
+    {
+      "adjusted_alpha": null,
+      "effect": {
+        "ci_high": 2.1999999999999997,
+        "ci_low": -1.1777777777777776,
+        "claimable": null,
+        "context": {
+          "direction": "negative = degradation shrank as the budget rose (H1)",
+          "n_1x": 4500,
+          "n_4x": 4500,
+          "seed": 20260908
+        },
+        "estimate": 0.5333333333333335,
+        "excludes_null": false,
+        "floor": null,
+        "interval_method": "cluster bootstrap over items, 10000 percentile draws",
+        "n": 4500,
+        "name": "H1_degradation_shrinkage[gsm8k_cot|gptq-4bit]",
+        "noise_class": "compounding",
+        "null_value": 0.0,
+        "p_value": null,
+        "test": null,
+        "unit": "pp"
+      },
+      "family": "H1",
+      "m": 0,
+      "name": "H1_degradation_shrinkage[gsm8k_cot|gptq-4bit]",
+      "p_value": null,
+      "rejected": null
+    },
+    {
+      "adjusted_alpha": null,
+      "effect": {
+        "ci_high": 0.0,
+        "ci_low": -3.5999999999999996,
+        "claimable": null,
+        "context": {
+          "direction": "negative = degradation shrank as the budget rose (H1)",
+          "n_1x": 4500,
+          "n_4x": 4500,
+          "seed": 20260908
+        },
+        "estimate": -1.8000000000000003,
+        "excludes_null": false,
+        "floor": null,
+        "interval_method": "cluster bootstrap over items, 10000 percentile draws",
+        "n": 4500,
+        "name": "H1_degradation_shrinkage[gsm8k_cot|awq-4bit]",
+        "noise_class": "compounding",
+        "null_value": 0.0,
+        "p_value": null,
+        "test": null,
+        "unit": "pp"
+      },
+      "family": "H1",
+      "m": 0,
+      "name": "H1_degradation_shrinkage[gsm8k_cot|awq-4bit]",
+      "p_value": null,
+      "rejected": null
+    },
+    {
+      "adjusted_alpha": null,
+      "effect": {
+        "ci_high": 0.3456790123456791,
+        "ci_low": -2.6666666666666665,
+        "claimable": null,
+        "context": {
+          "direction": "negative = degradation shrank as the budget rose (H1)",
+          "n_1x": 8100,
+          "n_4x": 8100,
+          "seed": 20260908
+        },
+        "estimate": -1.185185185185185,
+        "excludes_null": false,
+        "floor": null,
+        "interval_method": "cluster bootstrap over items, 10000 percentile draws",
+        "n": 8100,
+        "name": "H1_degradation_shrinkage[bbh|gptq-4bit]",
+        "noise_class": "compounding",
+        "null_value": 0.0,
+        "p_value": null,
+        "test": null,
+        "unit": "pp"
+      },
+      "family": "H1",
+      "m": 0,
+      "name": "H1_degradation_shrinkage[bbh|gptq-4bit]",
+      "p_value": null,
+      "rejected": null
+    },
+    {
+      "adjusted_alpha": null,
+      "effect": {
+        "ci_high": 0.5802469135802469,
+        "ci_low": -2.802469135802469,
+        "claimable": null,
+        "context": {
+          "direction": "negative = degradation shrank as the budget rose (H1)",
+          "n_1x": 8100,
+          "n_4x": 8100,
+          "seed": 20260908
+        },
+        "estimate": -1.1111111111111112,
+        "excludes_null": false,
+        "floor": null,
+        "interval_method": "cluster bootstrap over items, 10000 percentile draws",
+        "n": 8100,
+        "name": "H1_degradation_shrinkage[bbh|awq-4bit]",
+        "noise_class": "compounding",
+        "null_value": 0.0,
+        "p_value": null,
+        "test": null,
+        "unit": "pp"
+      },
+      "family": "H1",
+      "m": 0,
+      "name": "H1_degradation_shrinkage[bbh|awq-4bit]",
+      "p_value": null,
+      "rejected": null
+    }
+  ],
+  "length": {
+    "bbh|awq-4bit|1x": {
+      "full_mean": 397.3351851851852,
+      "hit_cap_rate": 0.15444444444444444,
+      "n": 2700,
+      "scored_mean": 336.8140740740741
+    },
+    "bbh|awq-4bit|2x": {
+      "full_mean": 535.2522222222223,
+      "hit_cap_rate": 0.12814814814814815,
+      "n": 2700,
+      "scored_mean": 437.6803703703704
+    },
+    "bbh|awq-4bit|4x": {
+      "full_mean": 792.1670370370371,
+      "hit_cap_rate": 0.12444444444444444,
+      "n": 2700,
+      "scored_mean": 629.2555555555556
+    },
+    "bbh|bf16|1x": {
+      "full_mean": 374.94,
+      "hit_cap_rate": 0.12444444444444444,
+      "n": 2700,
+      "scored_mean": 279.91185185185185
+    },
+    "bbh|bf16|2x": {
+      "full_mean": 477.88444444444445,
+      "hit_cap_rate": 0.09851851851851852,
+      "n": 2700,
+      "scored_mean": 343.3737037037037
+    },
+    "bbh|bf16|4x": {
+      "full_mean": 674.9581481481481,
+      "hit_cap_rate": 0.09555555555555556,
+      "n": 2700,
+      "scored_mean": 460.2285185185185
+    },
+    "bbh|gptq-4bit|1x": {
+      "full_mean": 435.01296296296294,
+      "hit_cap_rate": 0.19518518518518518,
+      "n": 2700,
+      "scored_mean": 310.62074074074076
+    },
+    "bbh|gptq-4bit|2x": {
+      "full_mean": 613.945925925926,
+      "hit_cap_rate": 0.16037037037037036,
+      "n": 2700,
+      "scored_mean": 382.8218518518519
+    },
+    "bbh|gptq-4bit|4x": {
+      "full_mean": 928.8759259259259,
+      "hit_cap_rate": 0.1514814814814815,
+      "n": 2700,
+      "scored_mean": 513.6111111111111
+    },
+    "gsm8k_cot|awq-4bit|1x": {
+      "full_mean": 186.63066666666666,
+      "hit_cap_rate": 0.2946666666666667,
+      "n": 1500,
+      "scored_mean": 179.632
+    },
+    "gsm8k_cot|awq-4bit|2x": {
+      "full_mean": 223.65266666666668,
+      "hit_cap_rate": 0.08733333333333333,
+      "n": 1500,
+      "scored_mean": 203.304
+    },
+    "gsm8k_cot|awq-4bit|4x": {
+      "full_mean": 258.54466666666667,
+      "hit_cap_rate": 0.056666666666666664,
+      "n": 1500,
+      "scored_mean": 214.44533333333334
+    },
+    "gsm8k_cot|bf16|1x": {
+      "full_mean": 170.62133333333333,
+      "hit_cap_rate": 0.152,
+      "n": 1500,
+      "scored_mean": 169.35866666666666
+    },
+    "gsm8k_cot|bf16|2x": {
+      "full_mean": 183.38533333333334,
+      "hit_cap_rate": 0.014666666666666666,
+      "n": 1500,
+      "scored_mean": 179.88533333333334
+    },
+    "gsm8k_cot|bf16|4x": {
+      "full_mean": 187.64733333333334,
+      "hit_cap_rate": 0.005333333333333333,
+      "n": 1500,
+      "scored_mean": 181.75533333333334
+    },
+    "gsm8k_cot|gptq-4bit|1x": {
+      "full_mean": 179.19266666666667,
+      "hit_cap_rate": 0.222,
+      "n": 1500,
+      "scored_mean": 173.45733333333334
+    },
+    "gsm8k_cot|gptq-4bit|2x": {
+      "full_mean": 205.40266666666668,
+      "hit_cap_rate": 0.05733333333333333,
+      "n": 1500,
+      "scored_mean": 187.00666666666666
+    },
+    "gsm8k_cot|gptq-4bit|4x": {
+      "full_mean": 223.29933333333332,
+      "hit_cap_rate": 0.02,
+      "n": 1500,
+      "scored_mean": 191.08066666666667
+    }
+  },
+  "levels": [
+    "1x",
+    "2x",
+    "4x"
+  ],
+  "n_items_joined": 12600,
+  "rung": "permissive"
+}
