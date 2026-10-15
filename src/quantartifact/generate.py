@@ -615,76 +615,98 @@ class VLLMRunner:
 
     def score_options(
         self,
-        prompts: list[str],
+        prompt_texts: list[str],
+        prompt_token_ids: list[list[int]],
+        gen_prefix: str,
         options: list[str],
-    ) -> list[dict[str, float]]:
-        """Log-likelihood of each option continuation. H6's arm 2 (prereg SS3c, A15/R39.4).
+    ) -> list[dict[str, dict[str, float]]]:
+        """Log-likelihood of each option after `gen_prefix`. H6's arm 2 (prereg SS3c).
 
-        Returns one `{option: summed_logprob}` per prompt, input order preserved.
+        Returns, per prompt, `{option: {"logprob": summed, "n_tokens": k}}`.
 
-        **Why this exists as a separate method.** `run_cell` and `generate` are
-        generation-only: `scoring_mode` is fixed to `"generate"` and `option_logprobs` is
-        always `None`. H6 is the study's negative control and its claim is that where the
-        answer space is structurally constrained the extraction effect vanishes, which needs
-        the SAME prompt scored by log-likelihood rather than by generating and parsing. One
-        method, same engine, same pinned sampling.
+        **Why this exists.** `generate` and `run_cell` are generation-only: `scoring_mode` is
+        fixed and `option_logprobs` is always `None`. H6 needs the SAME prompt scored by
+        log-likelihood over the option letters instead of generated and parsed.
 
-        🚨 **Uses `prompt_logprobs`, NOT the generated-token top-k.** Reading the first
-        generated position's `logprobs=k` would be one pass instead of four and is what I
-        reached for first. It is wrong here: if an option token falls outside the top-k
-        window the lookup returns nothing, and a missing option is indistinguishable from a
-        very unlikely one. That silently drops an option from the comparison. Appending the
-        option to the prompt and reading its own logprob cannot fail that way.
+        🚨 **`gen_prefix` IS PART OF THE CONTEXT, and leaving it out fabricates the result.**
+        Arm 1's prompt ends at the assistant turn and the model itself writes
+        `"The best answer is C"` (`arc_challenge_chat` ships `gen_prefix: "The best answer
+        is"`). Scoring `" A"` straight after the prompt would measure P(first token of the
+        reply is " A"), when the model's first token is "The", so every letter would look
+        unlikely, the argmax would be close to arbitrary, and the gap to arm 1 would be an
+        artifact rather than the extraction cost. So the scored quantity is
+        P(option | prompt + gen_prefix).
 
-        ⚠️ Scores the option as scored, including any leading space. `configs/tasks.yaml`
-        sets `continuations: [" A", " B", " C", " D"]` with
-        `assert_single_token_per_option: true`, so these are normally one token each, but the
-        sum is taken rather than assuming that, because the assertion belongs to the config
-        and not to this method.
+        **Tokenisation is `in_context_difference`, as `configs/tasks.yaml` registers.** The
+        option's tokens are `encode(ctx + option)[len(encode(ctx)):]`, not `encode(option)`,
+        because a SentencePiece tokenizer encodes a standalone `" A"` differently from the
+        same string in context. If the context's tokens are not a prefix of the joint
+        encoding (a merge across the boundary) it RAISES rather than score a span that is not
+        the option.
+
+        🚨 **Token ids, never text, go to the engine.** Text takes vLLM's completion path with
+        `add_special_tokens=True`, which double-BOSes Llama-3.1, the defect G2 found. The
+        frozen `prompt_token_ids` carry the resolved BOS handling, and are asserted equal to
+        the re-encoded prompt so the appended suffix cannot be misaligned.
+
+        Reads `prompt_logprobs` for the option's own positions, indexed by the ACTUAL token id.
+        Not the generated-token top-k, which silently loses an option that falls outside the
+        window; and not `max()` over the position dict, which is the most likely token rather
+        than this one.
         """
-        from vllm import SamplingParams  # noqa: PLC0415 - serving image only
+        from vllm import SamplingParams, TokensPrompt  # noqa: PLC0415 - serving image only
 
-        # max_tokens=1 because vLLM requires at least one; we read the PROMPT logprobs and
-        # discard whatever it generates.
+        tok = self.llm.get_tokenizer()
+
+        def ids_of(text: str) -> list[int]:
+            return tok.encode(text, add_special_tokens=False)
+
+        requests, spans = [], []
+        for text, frozen in zip(prompt_texts, prompt_token_ids, strict=True):
+            if ids_of(text) != list(frozen):
+                raise RuntimeError(
+                    "frozen prompt_token_ids disagree with the re-encoded prompt text, so an "
+                    "appended option would be misaligned; refusing to score"
+                )
+            ctx = ids_of(text + gen_prefix)
+            if ctx[:len(frozen)] != list(frozen):
+                raise RuntimeError(f"gen_prefix {gen_prefix!r} merges across the prompt "
+                                   "boundary; the scored span would not be the option")
+            for opt in options:
+                joint = ids_of(text + gen_prefix + opt)
+                if joint[:len(ctx)] != ctx:
+                    raise RuntimeError(f"option {opt!r} merges with the context; "
+                                       "in_context_difference is undefined here")
+                cont = joint[len(ctx):]
+                if not cont:
+                    raise RuntimeError(f"option {opt!r} tokenises to nothing")
+                requests.append(TokensPrompt(prompt_token_ids=joint))
+                spans.append((len(ctx), len(cont)))
+
+        # max_tokens=1 because vLLM requires at least one; only PROMPT logprobs are read.
         params = SamplingParams(
-            temperature=0.0, top_p=1.0, top_k=-1,
-            repetition_penalty=1.0, presence_penalty=0.0, frequency_penalty=0.0,
-            max_tokens=1, prompt_logprobs=0,
+            temperature=0.0, top_p=1.0, top_k=-1, repetition_penalty=1.0,
+            presence_penalty=0.0, frequency_penalty=0.0, max_tokens=1, prompt_logprobs=0,
         )
+        outputs = self.llm.generate(requests, params, use_tqdm=False)
 
-        tokenizer = self.llm.get_tokenizer()
-        flat = [p + opt for p in prompts for opt in options]
-        base_lens = [len(tokenizer.encode(p)) for p in prompts]
-        outputs = self.llm.generate(flat, params)
-
-        results: list[dict[str, float]] = []
-        for i, _prompt in enumerate(prompts):
-            scores: dict[str, float] = {}
+        results: list[dict[str, dict[str, float]]] = []
+        for i in range(len(prompt_texts)):
+            per: dict[str, dict[str, float]] = {}
             for j, opt in enumerate(options):
-                out = outputs[i * len(options) + j]
-                # `prompt_logprobs` is one entry per prompt token, `None` at position 0 since
-                # the first token has no preceding context to be predicted from.
-                plp = out.prompt_logprobs or []
-                ids = out.prompt_token_ids
+                k = i * len(options) + j
+                start, n = spans[k]
+                ids = requests[k]["prompt_token_ids"]
+                plp = outputs[k].prompt_logprobs or []
                 total = 0.0
-                for pos in range(base_lens[i], len(plp)):
-                    entry = plp[pos]
-                    if not entry:
-                        continue
-                    # 🚨 Index by the ACTUAL token id at this position. An earlier version
-                    # took max() over the dict, which is the MOST LIKELY token rather than
-                    # the one in this continuation. With `prompt_logprobs=0` the dict
-                    # usually holds only the actual token, so max() would have agreed by
-                    # accident and then disagreed silently the moment vLLM returned more.
-                    lp = entry.get(ids[pos])
+                for pos in range(start, start + n):
+                    lp = (plp[pos] or {}).get(ids[pos]) if pos < len(plp) else None
                     if lp is None:
-                        raise RuntimeError(
-                            f"no prompt logprob for token {ids[pos]} at position {pos}; "
-                            f"cannot score option {opt!r} and will not guess"
-                        )
+                        raise RuntimeError(f"no prompt logprob for token {ids[pos]} at "
+                                           f"position {pos}; will not guess")
                     total += lp.logprob
-                scores[opt] = total
-            results.append(scores)
+                per[opt] = {"logprob": total, "n_tokens": n}
+            results.append(per)
         return results
 
     def generate(

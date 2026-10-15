@@ -23,12 +23,27 @@ describe() {
       --region "${QA_REGION}" --query "$2" --output text 2>&1
 }
 
+# ---- every job of ours, by name, oldest first ---------------------------------
+# 🚨 BOUNDED BY CREATION TIME, and that is the whole fix. This used to ask for the newest
+# `--max-results 100` jobs in the account and filter for ours. The account is SHARED, and on
+# 2026-10-14 another team's `OBTGenericContainer-*` jobs filled that window, so 47 of our 48
+# jobs fell outside it and the next append REWROTE THE LEDGER WITH ONE ROW. Same silent
+# truncation as `--max-items 400` (CLAUDE.md SS7): a capped query fails by returning plausible
+# emptiness, not an error. `--name-contains` alone paginates the whole account history and did
+# not return in two minutes; with `--creation-time-after` it returns all of ours in ~20 s.
+STUDY_START="2026-08-20T00:00:00Z"
+our_jobs() {
+  aws sagemaker list-training-jobs --region "${QA_REGION}" \
+    --name-contains johnyj02-QA- --creation-time-after "${STUDY_START}" \
+    --sort-by CreationTime --sort-order Ascending \
+    --query 'TrainingJobSummaries[].TrainingJobName' --output text 2>/dev/null \
+    | tr '\t' '\n' | grep -v '^$'
+}
+
 # ---- totals across every job of ours, for the running ledger line ---------
 totals() {
   local names total=0
-  names=$(aws sagemaker list-training-jobs --region "${QA_REGION}" --max-results 100 \
-    --query "TrainingJobSummaries[?starts_with(TrainingJobName,'johnyj02-QA-')].TrainingJobName" \
-    --output text 2>/dev/null | tr '\t' '\n' | grep -v '^$')
+  names=$(our_jobs)
   local count=0
   for n in ${names}; do
     local secs
@@ -56,12 +71,7 @@ refresh_ledger() {
   # filter silently matches NOTHING. Same trap as the `--max-items 400` SageMaker quota
   # truncation in CLAUDE.md §7: a capped, wrongly-ordered query fails by returning
   # plausible emptiness rather than an error.
-  names=$(aws sagemaker list-training-jobs --region "${QA_REGION}" --max-results 100 \
-    --query "TrainingJobSummaries[?starts_with(TrainingJobName,'johnyj02-QA-')].TrainingJobName" \
-    --output text 2>/dev/null | tr '\t' '\n' | grep -v '^$' | tail -r 2>/dev/null \
-    || aws sagemaker list-training-jobs --region "${QA_REGION}" --max-results 100 \
-    --query "TrainingJobSummaries[?starts_with(TrainingJobName,'johnyj02-QA-')].TrainingJobName" \
-    --output text 2>/dev/null | tr '\t' '\n' | grep -v '^$')
+  names=$(our_jobs)
   for n in ${names}; do
     local st secs cost short
     st=$(describe "${n}" 'TrainingJobStatus')
@@ -90,6 +100,14 @@ block = (
 )
 text = runlog.read_text()
 start, end = text.find("<!-- LEDGER:BEGIN"), text.find("<!-- LEDGER:END -->")
+# 🚨 A ledger may only GROW. Jobs are never deleted, so a regenerated block with fewer rows
+# than the one on disk means the listing was truncated, not that history shrank. That is
+# exactly how 47 rows became 1 on 2026-10-14. Refuse rather than overwrite.
+if start != -1 and end != -1:
+    old_rows = sum(1 for ln in text[start:end].splitlines() if ln.startswith("| ") and ln[2:3].isdigit())
+    if count < old_rows:
+        sys.exit(f"REFUSING to rewrite the ledger: the API returned {count} jobs but the "
+                 f"ledger already holds {old_rows}. The listing was truncated; nothing written.")
 if start != -1 and end != -1:
     text = text[:start] + block + text[end + len("<!-- LEDGER:END -->"):]
     runlog.write_text(text)
