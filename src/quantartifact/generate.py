@@ -696,7 +696,18 @@ class VLLMRunner:
             for j, opt in enumerate(options):
                 k = i * len(options) + j
                 start, n = spans[k]
-                ids = requests[k]["prompt_token_ids"]
+                # 🚨 Index the ENGINE'S ids, and assert they are the ones we sent. `generate()`
+                # does the same check: assert the reported state, never the value passed. If the
+                # engine shifted the prompt by one token, indexing our own list would read a
+                # real logprob for the WRONG position, a well-formed record with an arbitrary
+                # argmax, which is exactly the failure class this method exists to avoid.
+                ids = list(outputs[k].prompt_token_ids or [])
+                if ids != list(requests[k]["prompt_token_ids"]):
+                    raise RuntimeError(
+                        f"engine prompt_token_ids differ from the request for option {opt!r} "
+                        f"({len(ids)} vs {len(requests[k]['prompt_token_ids'])} tokens); "
+                        f"the scored span would be misaligned"
+                    )
                 plp = outputs[k].prompt_logprobs or []
                 total = 0.0
                 for pos in range(start, start + n):

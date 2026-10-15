@@ -53,6 +53,13 @@ def h6_config(tasks: dict) -> dict:
     if cfg.get("scoring_mode") != "loglikelihood" or not cfg.get("continuations"):
         raise SystemExit(f"{TASK} must declare scoring_mode=loglikelihood and continuations")
     arm1 = tasks["arc_challenge_chat"]
+    # `item_ids_shared_with` is declared and was enforced NOWHERE: the two arms covered the
+    # same 500 items only because both `n_items` happened to be 500. One scope edit to either
+    # and the never-cut control would compare different item sets while both still ran.
+    if cfg.get("item_ids_shared_with") == "arc_challenge_chat" and \
+            arm1.get("n_items") != cfg.get("n_items"):
+        raise SystemExit(f"item_ids_shared_with violated: arm 1 n_items={arm1.get('n_items')} "
+                         f"but arm 2 n_items={cfg.get('n_items')}; the arms must share items")
     # Inherited from arm 1, not restated, so the two arms cannot drift apart.
     cfg["gen_prefix"] = arm1.get("gen_prefix") or ""
     cfg["num_fewshot"] = arm1.get("num_fewshot", 0)
@@ -94,7 +101,7 @@ def build_records(payload: dict, prompts: list, scores: list, runner, spec) -> l
             generation_text=predicted, n_prompt_tokens=prompt.n_prompt_tokens,
             n_gen_tokens=None, finish_reason=None, stop_reason=None,
             option_logprobs=option_logprobs,
-            engine="vllm==0.26.0",
+            engine=payload["engine"],
             batch_invariant=os.environ.get("VLLM_BATCH_INVARIANT") == "1",
             max_num_seqs=spec.max_num_seqs, disabled_kernels=spec.disabled_kernels,
             # Read off the running box: these four are the reproducibility envelope.
@@ -112,7 +119,12 @@ def cell_main(payload_path: str, runner_cls=None) -> int:
     from transformers import AutoTokenizer  # noqa: PLC0415 - harness/serving only
 
     from quantartifact.generate import EngineSpec, VLLMRunner  # noqa: PLC0415
-    from quantartifact.records import append_records, cell_path  # noqa: PLC0415
+    from quantartifact.records import (  # noqa: PLC0415
+        append_records,
+        assert_cell_reusable,
+        build_resume_index,
+        cell_path,
+    )
     from quantartifact.tasks.materialize import render_task_prompts  # noqa: PLC0415
 
     payload = json.loads(Path(payload_path).read_text())
@@ -134,16 +146,49 @@ def cell_main(payload_path: str, runner_cls=None) -> int:
         fewshot_as_multiturn=False, limit=payload["n_items"],
     ))
 
-    started = time.monotonic()
-    scores = runner.score_options([p.prompt_text for p in prompts],
-                                  [p.prompt_token_ids for p in prompts],
-                                  cfg["gen_prefix"], list(cfg["continuations"]))
-    records = build_records(payload, prompts, scores, runner, spec)
-
     path = cell_path(Path(payload["generations_root"]), payload["run_id"], cell["cell_id"],
                      TASK, None, "1x", "fewshot_cot")
-    written = append_records(path, records)
-    counts = {"written": written, "total": len(records),
+
+    # 🚨 RESUME GUARD, mirroring run_cell. The first version called append_records directly,
+    # which is an unconditional append, so a resubmit after ONE failed cell would re-run all
+    # nine and write a second copy of every item under an identical JOIN_KEY: n reads 1000
+    # instead of 500 and every interval on H6 is anticonservative by sqrt(2), while the
+    # report says "written 500" both times. The CODE REVIEWER reproduced it on a tmp path.
+    assert_cell_reusable(path, {
+        "max_num_seqs": spec.max_num_seqs, "disabled_kernels": spec.disabled_kernels,
+        "seed": spec.seed, "decoding": "greedy",
+        "batch_invariant": os.environ.get("VLLM_BATCH_INVARIANT") == "1",
+        "engine": payload["engine"], "max_gen_toks": None,
+        "model_revision": cell["revision"], "quant_config_hash": cell["quant_config_hash"],
+        "until": None, "until_applied": None,
+    })
+    # gen_prefix and continuations define the scored quantity but are not record fields, so
+    # assert_cell_reusable cannot see them. A sidecar beside the cell file guards them: same
+    # refuse-rather-than-mix rule, for the two values that would otherwise be invisible.
+    meta_path = path.with_name(path.name + ".h6meta.json")
+    meta = {"gen_prefix": cfg["gen_prefix"], "continuations": list(cfg["continuations"])}
+    if meta_path.exists() and json.loads(meta_path.read_text()) != meta:
+        raise SystemExit(f"REFUSING TO RESUME {path}: stored {meta_path.read_text()} != {meta}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    meta_path.write_text(json.dumps(meta))
+
+    already = build_resume_index(path)
+    pending = [p for p in prompts
+               if (payload["run_id"], cell["cell_id"], TASK, None, p.item_id,
+                   "1x", "fewshot_cot", 0, 0) not in already]
+    print(f"    {len(pending)} to score, {len(prompts) - len(pending)} already stored",
+          flush=True)
+
+    started = time.monotonic()
+    written = 0
+    if pending:
+        scores = runner.score_options([p.prompt_text for p in pending],
+                                      [p.prompt_token_ids for p in pending],
+                                      cfg["gen_prefix"], list(cfg["continuations"]))
+        written = append_records(path, build_records(payload, pending, scores, runner, spec))
+    records = pending
+    counts = {"written": written, "skipped": len(prompts) - len(records),
+              "total": len(prompts),
               "seconds": round(time.monotonic() - started, 1)}
     Path(payload["out_path"]).write_text(json.dumps(counts))
     print(f"__CELL_OK__ {json.dumps(counts)}", flush=True)
@@ -161,14 +206,20 @@ def main() -> int:
     cfg = h6_config(yaml.safe_load((CONFIGS / "tasks.yaml").read_text())["tasks"])
     specs, calibration = load_specs(CONFIGS / "quant.yaml")
     max_num_seqs = frozen_max_num_seqs()
+    # Same helper run_cell uses, so the resume guard compares like with like.
+    from quantartifact.generate import _vllm_version  # noqa: PLC0415
+    engine = f"vllm=={_vllm_version()}"
 
     cells = [c for c in build_cells(models, specs, calibration) if c["precision"] in H6_ARMS]
     n_items = 20 if SMOKE else cfg["n_items"]
     if SMOKE:
-        # One cell PER MODEL, not one cell: the in-context tokenisation differs per tokenizer
-        # (Phi is SentencePiece, Qwen and Llama are BPE), and that is the part most likely to
-        # fail. A Qwen-only rehearsal would clear nothing about the other two.
-        cells = [c for c in cells if c["precision"] == "bf16"]
+        # One model, BOTH load branches: bf16 from the HF base repo and gptq-4bit from job 1's
+        # mounted checkpoint. An earlier version smoked bf16 on all three models, which pulled
+        # ~30 GB from HF inside the 1800 s cap (reference-smoke ran 1371-1431 s with TWO
+        # models) and never touched a quantized checkpoint at all. The per-tokenizer encoding
+        # that motivated three models has no GPU in it and was verified locally on all three.
+        cells = [c for c in cells
+                 if c["cell_id"] in ("qwen2.5-3b|bf16", "qwen2.5-3b|gptq-4bit")]
 
     print(f"run_id       : {RUN_ID}")
     print(f"max_num_seqs : {max_num_seqs}  (frozen by A7)")
@@ -186,6 +237,7 @@ def main() -> int:
         payload_path.write_text(json.dumps({
             "cell": {**cell, "base_repo": models[cell["model_key"]]["repo"]},
             "cfg": cfg, "run_id": RUN_ID, "n_items": n_items, "max_num_seqs": max_num_seqs,
+            "engine": engine,
             "generations_root": str(GENERATIONS_ROOT), "out_path": str(out_path),
         }))
         proc = subprocess.run([sys.executable, __file__, "--cell", str(payload_path)],
