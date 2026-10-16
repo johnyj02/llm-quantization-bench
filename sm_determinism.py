@@ -709,7 +709,7 @@ def main() -> int:
         study_gpus = {(json.loads(c.read_text()).get("hardware") or {}).get("gpu")
                       for c in (CHECKPOINT_DIR / "determinism").glob("*.json")
                       if not c.name.startswith(("raw_", "payload_"))} - {None}
-        if not study_gpus or current_gpu() in study_gpus:
+        if not study_gpus or current_gpu() in study_gpus or current_gpu() == "unknown":
             raise SystemExit(f"SPOTCHECK REFUSED: this box is {current_gpu()!r} and the "
                              f"study's cells were measured on {sorted(study_gpus) or 'NOTHING READABLE'}"
                              f"; a replication needs a different, known GPU")

@@ -33,6 +33,9 @@ rate_for() {
     ml.g6e.2xlarge)  echo 2.80 ;;
     ml.g5.2xlarge)   echo 1.515 ;;
     ml.p4d.24xlarge) echo 25.2513 ;;
+    *ExpiredToken*|*Throttling*|*rror*)
+       echo "API call failed for $1 (${it}); refresh credentials or wait, then retry" >&2
+       return 1 ;;
     *) echo "no rate for $1 (instance type '${it}'); add it from the Pricing API" >&2
        return 1 ;;
   esac
