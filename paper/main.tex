@@ -464,9 +464,9 @@ additional generation and every step sees byte-identical inputs. We call each st
 \textbf{The headline contrast is strict versus permissive.} Both are deterministic,
 auditable, and judge-independent, which is what makes the judge a robustness check
 rather than a load-bearing dependency. That distinction is doing real work here rather
-than being a precaution: the judge's registered human validation was not carried out, so
-we report the judge as an unvalidated extractor and rest no claim on it
-(\S\ref{sec:limitations}). The strict-last variant exists because a harness that takes the first match will
+than being a precaution: we validated the strict and permissive rungs against human
+labels (Appendix~\ref{app:rubric}), but the judge itself was never scored against them, so
+we report it as an unvalidated extractor and rest no claim on it. The strict-last variant exists because a harness that takes the first match will
 score a model that restates its answer differently from one that does not,
 independent of correctness.
 
@@ -734,7 +734,7 @@ items: a difference of differences in accuracy points, bootstrapped over item
 clusters. Positive means leniency helps the quantized arm \emph{more} than
 \texttt{bf16}, negative means less.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \small
 \input{tables/h3_interaction}
@@ -746,7 +746,7 @@ bootstrap interval: ARC-C's estimate is \emph{exactly} zero, so there is nothing
 to resample and the interval is the Wilson zero-event bound
 (\S\ref{sec:h5h6}).}
 \label{tab:h3-interaction}
-\end{table}
+\end{table*}
 
 \paragraph{The interaction is real, and its sign depends on the task.}
 Table~\ref{tab:h3-interaction} gives all \hThreeRows{} registered estimates.
@@ -895,7 +895,7 @@ committed only under \texttt{bf16}, committed only under the quantized setting, 
 neither. The two off-diagonal counts are what matter, because they move in opposite
 directions and a net figure reports only their difference.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \small
 \input{tables/h4_transitions}
@@ -907,7 +907,7 @@ per-model cells exclude the null under an exact McNemar test. \textbf{Bold} mark
 with at least one such cell. $^{*}$GSM8K\textsubscript{hash} is shown as a demonstration
 and excluded from the registered family (\S\ref{sec:h3}).}
 \label{tab:h4-transitions}
-\end{table}
+\end{table*}
 
 \paragraph{The net figure hides most of what happens.}
 \hFourExcludesNull{} of \hFourEffects{} per-cell comparisons exclude the null, so
@@ -1267,7 +1267,7 @@ looking one up out of order, not the definition of record.
 % than reads. R16.2's point that "the frontier is the contribution" is honoured by reporting
 % it in full and unabridged, not by which page it sits on.
 
-\begin{table}[h]
+\begin{table*}[t]
 \centering
 \small
 \input{tables/h8_frontier}
@@ -1277,7 +1277,7 @@ batch size $B$, on \hEightItems{} items with \hEightOrderings{} orderings. This
 bounds what a third party can reproduce at each configuration, which is why we
 report the whole frontier rather than only the value we adopt.}
 \label{tab:h8-frontier}
-\end{table}
+\end{table*}
 
 \section{Heterogeneity contrasts in full}
 \label{app:h3het}
@@ -1294,7 +1294,7 @@ fixed and varies the task; the second holds the task fixed and compares GPTQ
 against AWQ at matched bit width. They are corrected as their own
 Holm--Bonferroni family, separate from the per-arm interaction estimates.
 
-\begin{table}[h]
+\begin{table*}[t]
 \centering
 \small
 \input{tables/h3_heterogeneity}
@@ -1305,7 +1305,7 @@ tasks have different items; contrast~2 is paired because they share items, and
 resampling them independently would discard the correlation and overstate the
 interval.}
 \label{tab:h3-heterogeneity}
-\end{table}
+\end{table*}
 
 \section{Frozen configuration}
 \label{app:config}
@@ -1365,12 +1365,25 @@ architecture and this engine version, not about GPUs in general.
 % This is also what the Responsible NLP Checklist §D will force us to state, so it is better
 % written once, here, and referenced.
 
-No human annotation was carried out for this paper, so there is no rubric to publish.
-The judge rung of \S\ref{sec:ladder} is therefore reported as an unvalidated extractor
-rather than as a validated one, and no claim in this paper rests on it: the headline
-contrast is strict against permissive, both of which are deterministic and auditable.
-\S\ref{sec:limitations} states the consequence, and the released artifact contains the
-generations a future annotation effort would draw from.
+Two annotators labelled 250 generations from the pilot run, stratified across 48 cells of
+model, precision and task, as \emph{correct}, \emph{incorrect} or \emph{no answer}; 120
+items were labelled by both. The rubric fixes a decision procedure in order: find the answer
+the model presents as final, take the last commitment where there are several, compare by
+value rather than formatting, and apply one written rule to each of nine edge cases, among
+them truncation before versus after commitment, a correct number that appears only in the
+reasoning, a hedged pair of answers, and a reference answer that looks wrong. It was fixed,
+with a ten-item practice round completed, before any real label was recorded. The precision
+condition and both automated verdicts were absent from the annotation file rather than
+hidden in it, item order was shuffled independently per annotator with published seeds, and
+no label was pre-filled.
+
+Agreement on the overlap was 0.975 raw (95\% CI 0.929 to 0.991), Cohen's $\kappa$ 0.943
+and Gwet's AC1 0.968. The three disagreements were resolved by looking up the rubric clause
+that decides each item, never by deferring to either annotator, and one resolved to a label
+neither had chosen. Against these labels, strict extraction agrees with the human verdict on
+76.9\% of \texttt{bf16} items and 56.2\% of 4-bit items, with false-negative rates of
+23.1\% and 41.1\%, while permissive extraction agrees on 85.6\% and 89.0\% with false
+positives of at most 0.7\%. The rubric, seeds, labels and adjudication record are released.
 
 \section{Pre-registration}
 \label{app:prereg}

@@ -68,6 +68,21 @@ def frozen_max_num_seqs() -> int:
     return int(serving["max_num_seqs"])
 
 
+
+def engine_version() -> str:
+    """vLLM version as recorded on the generations themselves, e.g. "0.26.0"."""
+    import gzip  # noqa: PLC0415
+
+    for path in sorted((REPO / "artifacts" / "generations" / "main-v1").rglob("*.jsonl.gz")):
+        with gzip.open(path, "rt") as handle:
+            line = handle.readline()
+        if line.strip():
+            engine = json.loads(line)["engine"]
+            if not engine.startswith("vllm=="):
+                raise SystemExit(f"unexpected engine field {engine!r}")
+            return engine.removeprefix("vllm==")
+    raise SystemExit("no main-v1 records to read the engine version from")
+
 def pct(value: float | None, places: int = 2) -> str:
     return "--" if value is None else f"{value * 100:.{places}f}"
 
@@ -284,7 +299,10 @@ def macros(report: dict, reanalysis: list, report10: dict) -> str:
         # printing 64 into a paper that now runs at 32. A derived value that happens to
         # agree with the real one is not a source of truth.
         rf"\newcommand{{\hEightFrozenB}}{{{frozen_max_num_seqs()}\xspace}}",
-        rf"\newcommand{{\hEightEngine}}{{{report['determinism_version']}\xspace}}",
+        # 🚨 The vLLM version the RECORDS report. This used to print
+        # report['determinism_version'], our own probe script's "1.0.0", and the paper then
+        # said "vLLM 1.0.0" in Method and in the frozen-configuration appendix. We ran 0.26.0.
+        rf"\newcommand{{\hEightEngine}}{{{engine_version()}\xspace}}",
         # 10-ordering facts. DELIBERATELY separate macros from the 3-ordering ones: the two
         # measure different populations (see sd_table) and must never be interchanged.
         rf"\newcommand{{\hEightSDOrderings}}{{{len(report10['orderings'])}\xspace}}",
