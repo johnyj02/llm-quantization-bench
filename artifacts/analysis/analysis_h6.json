@@ -1,0 +1,352 @@
+{
+  "accuracy": {
+    "llama-3.1-8b|awq-4bit": {
+      "gen": 0.804,
+      "ll": 0.804,
+      "n": 500
+    },
+    "llama-3.1-8b|bf16": {
+      "gen": 0.838,
+      "ll": 0.842,
+      "n": 500
+    },
+    "llama-3.1-8b|gptq-4bit": {
+      "gen": 0.8,
+      "ll": 0.8,
+      "n": 500
+    },
+    "phi-3.5-mini|awq-4bit": {
+      "gen": 0.78,
+      "ll": 0.802,
+      "n": 500
+    },
+    "phi-3.5-mini|bf16": {
+      "gen": 0.832,
+      "ll": 0.836,
+      "n": 500
+    },
+    "phi-3.5-mini|gptq-4bit": {
+      "gen": 0.794,
+      "ll": 0.816,
+      "n": 500
+    },
+    "qwen2.5-3b|awq-4bit": {
+      "gen": 0.702,
+      "ll": 0.744,
+      "n": 500
+    },
+    "qwen2.5-3b|bf16": {
+      "gen": 0.676,
+      "ll": 0.802,
+      "n": 500
+    },
+    "qwen2.5-3b|gptq-4bit": {
+      "gen": 0.744,
+      "ll": 0.738,
+      "n": 500
+    }
+  },
+  "effects": [
+    {
+      "ci_high": -10.0,
+      "ci_low": -16.6,
+      "claimable": null,
+      "context": {
+        "gen_rung": "permissive",
+        "seed": 20261016
+      },
+      "estimate": -13.2,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "paired cluster bootstrap over items, 10000 percentile draws",
+      "n": 500,
+      "name": "H6_mode_x_precision[qwen2.5-3b|gptq-4bit]",
+      "noise_class": "compounding",
+      "null_value": 0.0,
+      "p_value": 0.0001,
+      "test": "paired bootstrap two-sided (proportion of draws past the null)",
+      "unit": "pp"
+    },
+    {
+      "ci_high": -5.4,
+      "ci_low": -11.6,
+      "claimable": null,
+      "context": {
+        "gen_rung": "permissive",
+        "seed": 20261016
+      },
+      "estimate": -8.4,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "paired cluster bootstrap over items, 10000 percentile draws",
+      "n": 500,
+      "name": "H6_mode_x_precision[qwen2.5-3b|awq-4bit]",
+      "noise_class": "compounding",
+      "null_value": 0.0,
+      "p_value": 0.0001,
+      "test": "paired bootstrap two-sided (proportion of draws past the null)",
+      "unit": "pp"
+    },
+    {
+      "ci_high": 3.4,
+      "ci_low": 0.2,
+      "claimable": null,
+      "context": {
+        "gen_rung": "permissive",
+        "seed": 20261016
+      },
+      "estimate": 1.8,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "paired cluster bootstrap over items, 10000 percentile draws",
+      "n": 500,
+      "name": "H6_mode_x_precision[phi-3.5-mini|gptq-4bit]",
+      "noise_class": "compounding",
+      "null_value": 0.0,
+      "p_value": 0.0336,
+      "test": "paired bootstrap two-sided (proportion of draws past the null)",
+      "unit": "pp"
+    },
+    {
+      "ci_high": 3.4,
+      "ci_low": 0.4,
+      "claimable": null,
+      "context": {
+        "gen_rung": "permissive",
+        "seed": 20261016
+      },
+      "estimate": 1.8,
+      "excludes_null": true,
+      "floor": null,
+      "interval_method": "paired cluster bootstrap over items, 10000 percentile draws",
+      "n": 500,
+      "name": "H6_mode_x_precision[phi-3.5-mini|awq-4bit]",
+      "noise_class": "compounding",
+      "null_value": 0.0,
+      "p_value": 0.0196,
+      "test": "paired bootstrap two-sided (proportion of draws past the null)",
+      "unit": "pp"
+    },
+    {
+      "ci_high": 0.4,
+      "ci_low": -1.2,
+      "claimable": null,
+      "context": {
+        "gen_rung": "permissive",
+        "seed": 20261016
+      },
+      "estimate": -0.4,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "paired cluster bootstrap over items, 10000 percentile draws",
+      "n": 500,
+      "name": "H6_mode_x_precision[llama-3.1-8b|gptq-4bit]",
+      "noise_class": "compounding",
+      "null_value": 0.0,
+      "p_value": 0.4522,
+      "test": "paired bootstrap two-sided (proportion of draws past the null)",
+      "unit": "pp"
+    },
+    {
+      "ci_high": 0.6,
+      "ci_low": -1.6,
+      "claimable": null,
+      "context": {
+        "gen_rung": "permissive",
+        "seed": 20261016
+      },
+      "estimate": -0.4,
+      "excludes_null": false,
+      "floor": null,
+      "interval_method": "paired cluster bootstrap over items, 10000 percentile draws",
+      "n": 500,
+      "name": "H6_mode_x_precision[llama-3.1-8b|awq-4bit]",
+      "noise_class": "compounding",
+      "null_value": 0.0,
+      "p_value": 0.5976,
+      "test": "paired bootstrap two-sided (proportion of draws past the null)",
+      "unit": "pp"
+    }
+  ],
+  "extraction_cost": {
+    "llama-3.1-8b|awq-4bit": 0.0,
+    "llama-3.1-8b|bf16": 0.40000000000000036,
+    "llama-3.1-8b|gptq-4bit": 0.0,
+    "phi-3.5-mini|awq-4bit": 2.200000000000002,
+    "phi-3.5-mini|bf16": 0.40000000000000036,
+    "phi-3.5-mini|gptq-4bit": 2.199999999999991,
+    "qwen2.5-3b|awq-4bit": 4.200000000000004,
+    "qwen2.5-3b|bf16": 12.6,
+    "qwen2.5-3b|gptq-4bit": -0.6000000000000005
+  },
+  "holm": [
+    {
+      "adjusted_alpha": 0.008333333333333333,
+      "effect": {
+        "ci_high": -10.0,
+        "ci_low": -16.6,
+        "claimable": null,
+        "context": {
+          "gen_rung": "permissive",
+          "seed": 20261016
+        },
+        "estimate": -13.2,
+        "excludes_null": true,
+        "floor": null,
+        "interval_method": "paired cluster bootstrap over items, 10000 percentile draws",
+        "n": 500,
+        "name": "H6_mode_x_precision[qwen2.5-3b|gptq-4bit]",
+        "noise_class": "compounding",
+        "null_value": 0.0,
+        "p_value": 0.0001,
+        "test": "paired bootstrap two-sided (proportion of draws past the null)",
+        "unit": "pp"
+      },
+      "family": "H6",
+      "m": 6,
+      "name": "H6_mode_x_precision[qwen2.5-3b|gptq-4bit]",
+      "p_value": 0.0001,
+      "rejected": true
+    },
+    {
+      "adjusted_alpha": 0.01,
+      "effect": {
+        "ci_high": -5.4,
+        "ci_low": -11.6,
+        "claimable": null,
+        "context": {
+          "gen_rung": "permissive",
+          "seed": 20261016
+        },
+        "estimate": -8.4,
+        "excludes_null": true,
+        "floor": null,
+        "interval_method": "paired cluster bootstrap over items, 10000 percentile draws",
+        "n": 500,
+        "name": "H6_mode_x_precision[qwen2.5-3b|awq-4bit]",
+        "noise_class": "compounding",
+        "null_value": 0.0,
+        "p_value": 0.0001,
+        "test": "paired bootstrap two-sided (proportion of draws past the null)",
+        "unit": "pp"
+      },
+      "family": "H6",
+      "m": 6,
+      "name": "H6_mode_x_precision[qwen2.5-3b|awq-4bit]",
+      "p_value": 0.0001,
+      "rejected": true
+    },
+    {
+      "adjusted_alpha": 0.016666666666666666,
+      "effect": {
+        "ci_high": 3.4,
+        "ci_low": 0.2,
+        "claimable": null,
+        "context": {
+          "gen_rung": "permissive",
+          "seed": 20261016
+        },
+        "estimate": 1.8,
+        "excludes_null": true,
+        "floor": null,
+        "interval_method": "paired cluster bootstrap over items, 10000 percentile draws",
+        "n": 500,
+        "name": "H6_mode_x_precision[phi-3.5-mini|gptq-4bit]",
+        "noise_class": "compounding",
+        "null_value": 0.0,
+        "p_value": 0.0336,
+        "test": "paired bootstrap two-sided (proportion of draws past the null)",
+        "unit": "pp"
+      },
+      "family": "H6",
+      "m": 6,
+      "name": "H6_mode_x_precision[phi-3.5-mini|gptq-4bit]",
+      "p_value": 0.0336,
+      "rejected": false
+    },
+    {
+      "adjusted_alpha": 0.0125,
+      "effect": {
+        "ci_high": 3.4,
+        "ci_low": 0.4,
+        "claimable": null,
+        "context": {
+          "gen_rung": "permissive",
+          "seed": 20261016
+        },
+        "estimate": 1.8,
+        "excludes_null": true,
+        "floor": null,
+        "interval_method": "paired cluster bootstrap over items, 10000 percentile draws",
+        "n": 500,
+        "name": "H6_mode_x_precision[phi-3.5-mini|awq-4bit]",
+        "noise_class": "compounding",
+        "null_value": 0.0,
+        "p_value": 0.0196,
+        "test": "paired bootstrap two-sided (proportion of draws past the null)",
+        "unit": "pp"
+      },
+      "family": "H6",
+      "m": 6,
+      "name": "H6_mode_x_precision[phi-3.5-mini|awq-4bit]",
+      "p_value": 0.0196,
+      "rejected": false
+    },
+    {
+      "adjusted_alpha": 0.025,
+      "effect": {
+        "ci_high": 0.4,
+        "ci_low": -1.2,
+        "claimable": null,
+        "context": {
+          "gen_rung": "permissive",
+          "seed": 20261016
+        },
+        "estimate": -0.4,
+        "excludes_null": false,
+        "floor": null,
+        "interval_method": "paired cluster bootstrap over items, 10000 percentile draws",
+        "n": 500,
+        "name": "H6_mode_x_precision[llama-3.1-8b|gptq-4bit]",
+        "noise_class": "compounding",
+        "null_value": 0.0,
+        "p_value": 0.4522,
+        "test": "paired bootstrap two-sided (proportion of draws past the null)",
+        "unit": "pp"
+      },
+      "family": "H6",
+      "m": 6,
+      "name": "H6_mode_x_precision[llama-3.1-8b|gptq-4bit]",
+      "p_value": 0.4522,
+      "rejected": false
+    },
+    {
+      "adjusted_alpha": 0.05,
+      "effect": {
+        "ci_high": 0.6,
+        "ci_low": -1.6,
+        "claimable": null,
+        "context": {
+          "gen_rung": "permissive",
+          "seed": 20261016
+        },
+        "estimate": -0.4,
+        "excludes_null": false,
+        "floor": null,
+        "interval_method": "paired cluster bootstrap over items, 10000 percentile draws",
+        "n": 500,
+        "name": "H6_mode_x_precision[llama-3.1-8b|awq-4bit]",
+        "noise_class": "compounding",
+        "null_value": 0.0,
+        "p_value": 0.5976,
+        "test": "paired bootstrap two-sided (proportion of draws past the null)",
+        "unit": "pp"
+      },
+      "family": "H6",
+      "m": 6,
+      "name": "H6_mode_x_precision[llama-3.1-8b|awq-4bit]",
+      "p_value": 0.5976,
+      "rejected": false
+    }
+  ]
+}
