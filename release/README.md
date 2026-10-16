@@ -65,8 +65,11 @@ Each `raw_*.json` holds the probe passes for one cell: `passes[k]` has `ordering
 (`at32`), repeats, the ordering count (`ord10x` for the ten-ordering runs), a decoding
 fingerprint (`dec…`), and `fallback` when the Marlin and Machete kernels were disabled.
 A cell file without the `raw_` prefix is that cell's analysis. `determinism/index.json`
-maps every raw file to the report and cell that use it, matched by a hash of its outputs;
-files no report uses were measured under an earlier configuration and are superseded.
+maps every raw file to the report cells that use it. Each report cell is identified by its
+analysis file (same per-pass timings and output hashes, exactly one match required), and the
+hashes of the raw file's passes are then checked against the report. The output hash alone
+cannot identify a cell, because bf16 produces the same text at every batch size. Raw files no
+report uses were measured under an earlier configuration and are superseded.
 
 ## The probe
 

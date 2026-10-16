@@ -141,7 +141,7 @@ def deny_scan() -> None:
                         hits.append(f"{f.relative_to(STAGE)}:{n}: {m.group().decode()}")
                         break
     if hits:
-        raise SystemExit("IDENTIFYING STRINGS FOUND, no archive written:\n  " + "\n  ".join(hits))
+        raise SystemExit("IDENTIFYING OR UNFINISHED TEXT FOUND, no archive written:\n  " + "\n  ".join(hits))
     print("  identifying-string scan: clean")
 
 
