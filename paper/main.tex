@@ -28,6 +28,7 @@
 \newcommand{\todo}[1]{\textcolor{red}{[\textbf{TODO:} #1]}}
 
 \usepackage{xspace}
+\usepackage{seqsplit}  % 40-character commit SHAs in the frozen-config appendix
 \xspaceaddexceptions{\%}  % "69.8\%" not "69.8 \%" after a generated macro
 % H8's statistics, GENERATED from the job reports by scripts/make_h8_tables.py.
 % Never inline a number that lives here (R17.6.2).
@@ -98,7 +99,7 @@ one score minus another, so any part of the evaluation that penalises the two mo
 unequally ends up inside the reported gap. We evaluate three instruction-tuned models at
 five precisions, holding engine, decoding and prompts fixed, and vary properties of the
 evaluation apparatus that no protocol we are aware of reports. Two results are established
-by intervention or by pre-registered contrast and survive multiple-comparison correction.
+by intervention or by a pre-registered contrast that survives multiple-comparison correction.
 First, item submission order changes 4-bit accuracy by up to \hEightWorstSDTen{} points of
 standard deviation across \hEightSDOrderings{} orderings and leaves \texttt{bf16}
 \emph{exactly} unchanged, with the engine's batch-invariant mode enabled: that mode's
@@ -546,8 +547,9 @@ than it.
 % the channels behind H3. R17.5's order put H1 second; it no longer earns that place,
 % because after Holm it is a null.
 
-The first two subsections are the headline results. Each is established by intervention or
-by a pre-registered contrast and survives Holm--Bonferroni correction. The four that follow
+The first two subsections are the headline results. They are established by intervention
+(\S\ref{sec:h8}) or by a pre-registered contrast that survives Holm--Bonferroni
+(\S\ref{sec:h3}). The four that follow
 are supporting results: an observation whose cause we bound but do not identify
 (\S\ref{sec:crossjob}), a bounded null (\S\ref{sec:h1}), and two results on the channels
 behind the second headline (\S\ref{sec:h4}, \S\ref{sec:h5h6}).
@@ -1292,6 +1294,10 @@ looking one up out of order, not the definition of record.
 % than reads. R16.2's point that "the frontier is the contribution" is honoured by reporting
 % it in full and unabridged, not by which page it sits on.
 
+Table~\ref{tab:h8-frontier} reports order-induced divergence at every served batch
+size we measured. Two-column floats are placed at the top of a page, so it appears on
+the page after this heading.
+
 \begin{table*}[t]
 \centering
 \small
@@ -1348,9 +1354,9 @@ than summarised. Everything below is also machine-readable in the released artif
 Tags move; commits do not.
 
 \begin{description}\itemsep0pt
-  \item[Qwen2.5-3B-Instruct] \texttt{aa8e72537993ba99e69dfaafa59ed015b17504d1}
-  \item[Phi-3.5-mini-instruct] \texttt{2fe192450127e6a83f7441aef6e3ca586c338b77}
-  \item[Llama-3.1-8B-Instruct] \texttt{0e9e39f249a16976918f6564b8830bc894c89659}
+  \item[Qwen2.5-3B-Instruct] {\small\texttt{\seqsplit{aa8e72537993ba99e69dfaafa59ed015b17504d1}}}
+  \item[Phi-3.5-mini-instruct] {\small\texttt{\seqsplit{2fe192450127e6a83f7441aef6e3ca586c338b77}}}
+  \item[Llama-3.1-8B-Instruct] {\small\texttt{\seqsplit{0e9e39f249a16976918f6564b8830bc894c89659}}}
 \end{description}
 
 \paragraph{Serving.} vLLM \hEightEngine{} with batch-invariant kernels enabled;
