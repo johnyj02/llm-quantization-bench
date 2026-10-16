@@ -372,6 +372,16 @@ def main() -> int:
              "is unstable and grows with n, so it cannot carry a population claim.",
     )
     parser.add_argument(
+        "--spotcheck",
+        action="store_true",
+        help="replicate §4.1 on a second GPU: bf16 + gptq-4bit at 10 orderings, plus the "
+             "paired Marlin on/off cell. Use with --instance-type.",
+    )
+    parser.add_argument(
+        "--instance-type",
+        help="override sm_job.yaml's instance_type (the spot-check's second GPU)",
+    )
+    parser.add_argument(
         "--replicate",
         action="store_true",
         help="JOB 1b (R18.3): re-quantize ONE arm at a bit-identical recipe into a "
@@ -402,6 +412,8 @@ def main() -> int:
         overrides["replicate"] = 1
     if args.orderings:
         overrides["orderings"] = 1
+    if args.spotcheck:
+        overrides["spotcheck"] = 1
     config = build_config(args.stage, overrides)
     spec = STAGES[args.stage]
     if args.reanalyze:
@@ -417,6 +429,23 @@ def main() -> int:
         config["max_run"] = min(config["max_run"], 43200)
         config["job_name"] = config["job_name"] + "-orderings"
 
+    if args.spotcheck:
+        if args.stage != "determinism":
+            raise SystemExit("--spotcheck applies to --stage determinism only")
+        if not args.instance_type or args.instance_type == config["instance_type"]:
+            raise SystemExit("--spotcheck needs --instance-type naming a GPU other than "
+                             f"{config['instance_type']}; replicating on the same one is not "
+                             "a second configuration")
+        # 2 arms x 11 passes + 2 cells x 4 passes, 500 items, Marlin-off at ~3.7x. ~4 h on
+        # an L40S; a slower GPU takes longer. 12 h caps a hang.
+        config["max_run"] = min(config["max_run"], 43200)
+        config["job_name"] = config["job_name"] + "-spotcheck"
+        config["instance_type"] = args.instance_type
+    elif args.instance_type:
+        # Other stages resume on cell files whose resume key has no GPU field, so a part-done
+        # cell resumed on another GPU would mix two GPUs in one file and resume cleanly.
+        raise SystemExit("--instance-type is for --spotcheck only")
+
     if args.replicate:
         if args.stage != "quantize":
             raise SystemExit("--replicate applies to --stage quantize only")
@@ -431,7 +460,9 @@ def main() -> int:
     if args.smoke:
         # Short leash and a distinct name, so a smoke run can never be
         # mistaken for the real thing in the job list or in S3.
-        config["max_run"] = min(config["max_run"], 1800)
+        # The spot-check smoke runs 4 engine loads and the Marlin-off cell on a slower GPU,
+        # which the standard 1800 s would likely kill. A cap costs nothing unless it fires.
+        config["max_run"] = min(config["max_run"], 5400 if args.spotcheck else 1800)
         config["job_name"] = config["job_name"] + "-smoke"
         if config.get("use_spot_instances"):
             config["max_wait"] = config["max_run"]
@@ -459,8 +490,8 @@ def main() -> int:
     print(f"stage        : {args.stage} — {spec['description']}")
     print(f"job name     : {config['job_name']}"
           f"  (+ '-r<N>' if already used — names must be unique per account)")
-    print(f"instance     : {config['instance_type']} x{config['instance_count']}  "
-          f"(1 x L40S 48GB, SM89)")
+    print(f"instance     : {config['instance_type']} x{config['instance_count']}"
+          + ("  (1 x L40S 48GB, SM89)" if config["instance_type"] == "ml.g6e.2xlarge" else ""))
     print(f"region       : {config['region']}   profile: {config['profile']}")
     print(f"role         : {config['role'].split('/')[-1]}")
     print(f"max_run      : {config['max_run']}s   volume: {config['volume_size']}GB   "

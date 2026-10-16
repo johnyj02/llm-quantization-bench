@@ -71,6 +71,7 @@ batch-invariance overhead does not need a separate job.
 
 from __future__ import annotations
 
+import functools
 import json
 import os
 import subprocess
@@ -135,6 +136,14 @@ REANALYZE = os.environ.get("SM_HP_REANALYZE") == "1" or "--reanalyze" in sys.arg
 # and its spreads are therefore attenuated. The two must not be pooled.
 SD_MODE = os.environ.get("SM_HP_ORDERINGS") == "1" or "--orderings" in sys.argv
 
+# Second-configuration spot-check (external feedback, 2026-10-16): does §4.1 replicate on a
+# GPU other than the L40S? Two designs from the paper, each at its original size: Table 1's
+# (bf16 + gptq-4bit, 10 orderings, frozen B) and the mechanism table's (gptq-4bit at
+# SWEEP_FLOOR, 3 orderings, Marlin on and off, paired). Same image, engine, weights, probe.
+SPOTCHECK = os.environ.get("SM_HP_SPOTCHECK") == "1" or "--spotcheck" in sys.argv
+if SPOTCHECK and SD_MODE:
+    raise SystemExit("--spotcheck and --orderings are separate measurements; pick one")
+
 # 🚨 SMOKE RESULTS GO SOMEWHERE ELSE ENTIRELY, and this is a correctness issue,
 # not hygiene. A probe cell is keyed by (arm, max_num_seqs) — `bf16_at_8` — with no
 # reference to the probe SIZE. So with a shared directory the resume check would
@@ -142,7 +151,13 @@ SD_MODE = os.environ.get("SM_HP_ORDERINGS") == "1" or "--orderings" in sys.argv
 # and a disagreement RATE computed over 20 items would be reported as if it came
 # from 500. That is a wrong number that looks entirely plausible, which is the
 # worst kind. Separated by directory so the two can never meet.
-PROBE_DIR = CHECKPOINT_DIR / ("determinism-smoke" if SMOKE else "determinism")
+#
+# The spot-check gets its own directory too. Its cells share tags with the L40S cells (the
+# GPU is not in the tag), so in a shared directory every one would read "already measured"
+# and the job would report L40S numbers as another GPU's. The GPU guard in `measure_cell`
+# refuses that anyway; the directory keeps the two GPUs' cells apart on disk.
+PROBE_DIR = CHECKPOINT_DIR / ("determinism" + ("-spotcheck" if SPOTCHECK else "")
+                              + ("-smoke" if SMOKE else ""))
 
 # ONE model for the audit, and that is a deliberate scope decision, not a
 # shortcut. H8's mechanism is in vLLM's *kernel dispatch* source, so it is
@@ -482,8 +497,15 @@ def measure_cell(
         result_path.unlink()
         print(f"[smoke] discarded previous rehearsal result for {tag}")
     if result_path.exists():
+        cached = json.loads(result_path.read_text())
+        # 🚨 The GPU is not in the tag, so a cell measured on another GPU has this cell's
+        # name. Reusing it would report one GPU's divergence as another's. Refuse, never mix.
+        stored = (cached.get("hardware") or {}).get("gpu")
+        if stored and stored != current_gpu():
+            raise SystemExit(f"REFUSING TO REUSE {result_path}: measured on {stored!r}, "
+                             f"this box is {current_gpu()!r}")
         print(f"[skip ] {tag}  already measured")
-        return json.loads(result_path.read_text())
+        return cached
 
     passes = [{"ordering_seed": 0} for _ in range(repetition_passes)]
     passes += [{"ordering_seed": seed} for seed in orderings if seed != 0]
@@ -583,6 +605,14 @@ def measure_cell(
 ORDER_SWEEP_LEVELS: tuple[int, ...] = (8, 32, 64)
 
 
+@functools.cache
+def current_gpu() -> str:
+    """This box's GPU name, from the same reader that stamps every record."""
+    from quantartifact.generate import describe_hardware  # noqa: PLC0415
+
+    return describe_hardware()["gpu"]
+
+
 def reanalyze() -> int:
     """Recompute every cell's analysis from its stored raw passes. No generation."""
     models = yaml.safe_load((CONFIGS / "models.yaml").read_text())["models"]
@@ -615,7 +645,7 @@ def reanalyze() -> int:
         analysis = order_sensitivity(outputs)
         analysis["by_level"] = divergence_by_level(outputs, gold.get(model_key, {}))
         analysis.update({"arm": arm, "model_key": model_key, "max_num_seqs": level,
-                         "cell": stem})
+                         "cell": stem, "hardware": raw.get("hardware")})
         out.append(analysis)
         acc = (analysis["by_level"].get("accuracy_by_ordering") or {}).get("strict")
         spread = (analysis["by_level"].get("accuracy_spread") or {}).get("strict")
@@ -671,7 +701,27 @@ def main() -> int:
         orderings = ORDERING_SEEDS_EXTENDED
         print(f"ORDERINGS MODE (R17.3): {len(arms)} arms x {len(orderings)} orderings "
               f"at max_num_seqs={levels[0]} only (FROZEN value, read from models.yaml)")
-    if SMOKE and SD_MODE:
+    if SPOTCHECK:
+        # 🚨 OBSERVED, not declared. The submit-time check compares two instance-type
+        # strings; this compares the GPU the study's own cells were measured on with the one
+        # this box reports. A spot-check on the study's GPU would otherwise report a second
+        # L40S measurement as a replication on another GPU, and exit 0.
+        study_gpus = {(json.loads(c.read_text()).get("hardware") or {}).get("gpu")
+                      for c in (CHECKPOINT_DIR / "determinism").glob("*.json")
+                      if not c.name.startswith(("raw_", "payload_"))} - {None}
+        if not study_gpus or current_gpu() in study_gpus:
+            raise SystemExit(f"SPOTCHECK REFUSED: this box is {current_gpu()!r} and the "
+                             f"study's cells were measured on {sorted(study_gpus) or 'NOTHING READABLE'}"
+                             f"; a replication needs a different, known GPU")
+        arms = ["bf16", "gptq-4bit"]
+        levels = [frozen_max_num_seqs()]
+        orderings = ORDERING_SEEDS_EXTENDED
+        print(f"SPOTCHECK on {current_gpu()}: {arms} x {len(orderings)} orderings at "
+              f"max_num_seqs={levels[0]}, then gptq-4bit Marlin on/off at {SWEEP_FLOOR}")
+    if SMOKE and SPOTCHECK:
+        # Same shape at 20 items, so the rehearsal runs every path the real job will.
+        pass
+    elif SMOKE and SD_MODE:
         # ⚠️ ORDER MATTERS AND THIS BLOCK EXISTS BECAUSE OF IT. Written as a plain
         # `if SMOKE:` after the SD_MODE block, the smoke would have overridden arms and
         # levels while LEAVING `orderings` extended -- rehearsing 3 arms x 3 levels x 11
@@ -756,6 +806,16 @@ def main() -> int:
                 cells.append(analysis)
         print()
 
+    if SPOTCHECK:
+        # The Marlin-ON half of the mechanism pair, at the level the attribution uses.
+        # The default 3 orderings, as on the L40S, so the pair matches that table's design.
+        analysis = measure_cell("gptq-4bit", SWEEP_FLOOR, items, specs, model, resolved)
+        if analysis is None:
+            unmeasured.append(f"gptq-4bit@{SWEEP_FLOOR}")
+        else:
+            cells.append(analysis)
+        print()
+
     # ------------------------------------------------------------------
     # R15.7 — the Marlin probe must itself be an ORDERING test, and PAIRED.
     # A repeat-based fallback would print "stable" for the same reason the old sweep
@@ -769,7 +829,11 @@ def main() -> int:
     marlin: list[dict] = []
     marlin_pinned: list[str] = []
     marlin_missing: list[str] = []
-    if order_sensitive and not SMOKE:
+    if SPOTCHECK:
+        # Always run on a new GPU, smoke included: which fallback kernel vLLM picks with
+        # Marlin disabled depends on the architecture, so this path is new code here.
+        order_sensitive = ["gptq-4bit"]
+    if order_sensitive and (SPOTCHECK or not SMOKE):
         print(f"=== Marlin attribution probe (PAIRED ordering test): "
               f"{order_sensitive} ===")
         print(f"    VLLM_DISABLED_KERNELS={DISABLED_KERNELS_FALLBACK}")
@@ -804,7 +868,7 @@ def main() -> int:
     # R14.1 — autotune contrast on gptq-4bit, the arm H8's claim is about.
     # ------------------------------------------------------------------
     autotune_contrast: list[dict] = []
-    if not SMOKE and "gptq-4bit" in resolved:
+    if not SMOKE and not SPOTCHECK and "gptq-4bit" in resolved:
         print("=== autotune contrast: gptq-4bit, flashinfer autotune ON (R14.1) ===")
         analysis = measure_cell(
             "gptq-4bit", SWEEP_FLOOR, items, specs, model, resolved, autotune=True,
@@ -820,7 +884,7 @@ def main() -> int:
     # ------------------------------------------------------------------
     phi: list[dict] = []
     phi_key = os.environ.get("QA_CONFIRM_MODEL", "phi-3.5-mini")
-    if not SMOKE and phi_key in models:
+    if not SMOKE and not SPOTCHECK and phi_key in models:
         phi_cfg = models[phi_key]
         phi_arms = ["bf16", "gptq-4bit"]
         print(f"=== model generality: {phi_key} {phi_arms} (R12.3.3) ===")
@@ -855,6 +919,8 @@ def main() -> int:
         "audit_model": AUDIT_MODEL,
         "orderings": list(orderings),
         "sd_mode": SD_MODE,
+        "spotcheck": SPOTCHECK,
+        "gpu": current_gpu(),
         "order_sweep_levels": levels,
         "probe_composition": PROBE_COMPOSITION,
         "n_items": len(items),

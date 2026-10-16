@@ -14,6 +14,7 @@ trap in them worth pinning down:
 from __future__ import annotations
 
 import inspect
+import json
 from pathlib import Path
 
 import pytest
@@ -533,3 +534,24 @@ class TestOrderingsModeReadsTheFrozenValue:
         pilot = (Path(__file__).resolve().parents[1] / "sm_pilot.py").read_text()
         assert "max_num_seqs_resolved_by_audit" in pilot
         assert "REFUSING TO RUN" in pilot
+
+
+class TestSpotcheckGpuGuard:
+    """The GPU is not in the cell tag, so a cell measured on the L40S has the same name as
+    the spot-check's cell on another GPU. Reusing it would report L40S numbers as the
+    second GPU's replication, and the job would exit `Completed`."""
+
+    def _cell(self, tmp_path, monkeypatch, stored_gpu, box_gpu):
+        monkeypatch.setattr(sm_determinism, "PROBE_DIR", tmp_path)
+        monkeypatch.setattr(sm_determinism, "cell_tag", lambda *a, **k: "T")
+        monkeypatch.setattr(sm_determinism, "current_gpu", lambda: box_gpu)
+        (tmp_path / "T.json").write_text(json.dumps({"hardware": {"gpu": stored_gpu}, "ok": 1}))
+        return sm_determinism.measure_cell("bf16", 32, [], {}, {"revision": "r"},
+                                           {"bf16": ("m", None)})
+
+    def test_refuses_a_cell_from_another_gpu(self, tmp_path, monkeypatch):
+        with pytest.raises(SystemExit, match="REFUSING TO REUSE"):
+            self._cell(tmp_path, monkeypatch, "NVIDIA L40S", "NVIDIA A10G")
+
+    def test_reuses_a_cell_from_the_same_gpu(self, tmp_path, monkeypatch):
+        assert self._cell(tmp_path, monkeypatch, "NVIDIA A10G", "NVIDIA A10G")["ok"] == 1
