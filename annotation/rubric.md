@@ -1,6 +1,6 @@
 # Annotation rubric — is the model's answer correct?
 
-**Task `B5`. Status: DRAFT, awaiting the second annotator's sign-off on a 10-item dry run.**
+**Task `B5`. Status: FROZEN. Both annotators completed the 10-item dry run and accepted this rubric (sign-off table at the end, 09/01 and 09/07).** *(Corrected 2026-10-16: this line still read "DRAFT" after both sign-offs were recorded.)*
 
 **Annotators:** Joseph Sankoorikal Johny (A1) and Syed Ahmed Danish (A2).
 
