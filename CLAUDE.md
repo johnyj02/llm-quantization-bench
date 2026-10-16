@@ -602,6 +602,8 @@ fell back to `vllm==0.18.0`. **`ml.g6e.2xlarge` is fine.** The `verify` stage me
 | gcc / Triton | Debian 14.2.0 / triton 3.6.0, JIT compiled and ran |
 | GPU | L40S, **46068 MiB** (not the nominal 48 GB), SM 8.9 |
 
+**Update 2026-10-16:** `ml.g5.2xlarge` (A10G, SM 8.6) now also reports driver 595.91.07 and ran the second-GPU spot-check with this image, so MedLLMSafety's g5 failure is out of date. Its quota in us-east-1 is 50 and is not shared with the g6e slot.
+
 **The engine version stays frozen at 0.26.0. No planner escalation needed.** Full write-up in
 `notes/compute.md` §9; the four measured facts are now in `configs/models.yaml:hardware`.
 

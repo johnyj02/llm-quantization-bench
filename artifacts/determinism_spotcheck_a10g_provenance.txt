@@ -1,0 +1,19 @@
+# Provenance for the A10G spot-check claims in paper §4.1 and the hardware appendix.
+# Read 2026-10-16 from the SageMaker API and the job's CloudWatch log; not hand-typed.
+job: johnyj02-QA-v0-1-20261016-33b4267e-determinism-spotcheck
+instance: ml.g5.2xlarge
+image: 654654594225.dkr.ecr.us-east-1.amazonaws.com/johnyj02-qa:v0.1-20260826
+--- log lines ---
+SPOTCHECK on NVIDIA A10G: ['bf16', 'gptq-4bit'] x 10 orderings at max_num_seqs=32, then gptq-4bit Marlin on/off at 8
+[run  ] qwen2.5-3b__bf16__at32__r2__ord10x__dec04f0e4afcef8
+Initializing a V1 LLM engine (v0.26.0)
+[run  ] qwen2.5-3b__gptq-4bit__at32__r2__ord10x__dec04f0e4afcef8
+Initializing a V1 LLM engine (v0.26.0)
+Using MarlinLinearKernel for CompressedTensorsWNA16
+[run  ] qwen2.5-3b__gptq-4bit__at8__r2__deca47de7ee3aba
+Initializing a V1 LLM engine (v0.26.0)
+Using MarlinLinearKernel for CompressedTensorsWNA16
+[run  ] qwen2.5-3b__gptq-4bit__at8__r2__dece92929981462__fallback
+Initializing a V1 LLM engine (v0.26.0)
+Using TritonW4A16LinearKernel for CompressedTensorsWNA16
+L40S Table 1 job johnyj02-QA-v0-1-20260901-33b4267e-determinism-orderings used image 654654594225.dkr.ecr.us-east-1.amazonaws.com/johnyj02-qa:v0.1-20260826 (same tag; read from DescribeTrainingJob)
