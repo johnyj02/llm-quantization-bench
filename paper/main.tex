@@ -621,8 +621,8 @@ nothing else, drives order-induced divergence to zero on \hEightPinned{} arms
 These are the quantized matrix-multiply kernels vLLM selects by default, and
 they are not covered by its batch-invariant mode. Our GPTQ and AWQ checkpoints are both
 in the \texttt{compressed-tensors} format, and vLLM loads that format through a 4-bit
-kernel chooser that has no batch-invariance check, in 0.26.0 and in the latest release we
-inspected (0.32.0), so it selects Marlin whether or not the mode is on. The source shows
+kernel chooser that has no batch-invariance check, in 0.26.0 and in the source of 0.32.0,
+the newest release in October 2026, so it selects Marlin whether or not the mode is on. The source shows
 four such gaps: that chooser, the AutoGPTQ loader, the sampler, and kernel autotuning. The
 only guard we found, which avoids Marlin in this mode, is in the loader for AutoAWQ-format
 checkpoints, a path ours never take. We report this as a gap in the feature's coverage
