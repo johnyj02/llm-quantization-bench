@@ -152,7 +152,9 @@ both against 250 human labels from two annotators (raw agreement 0.975, Gwet's A
 sample was enriched 14.4-fold for items where the rungs disagree, so its rates describe the
 sample, not the population: strict extraction marked wrong an answer the annotators judged
 correct on 23.1\% of \texttt{bf16} items and 41.1\% of 4-bit items, while permissive
-extraction marked correct an answer they judged wrong on at most 0.7\%.
+extraction marked correct an answer they judged wrong on at most 0.7\%. The 4-bit rate is
+inflated further by composition: 50 of the 59 disagreement items are 4-bit, against 9 for
+\texttt{bf16}.
 Auditing our own pipeline found that a rule we had added ahead of the harness's returned worse
 answers on 2{,}068 of 105{,}950 generations, which our unit tests never caught. Repairing it
 changed the conclusion of two interaction estimates and the sign of one; all numbers here are
