@@ -603,8 +603,6 @@ by up to \hEightWorstSDTen{} points of standard deviation.
 
 \begin{table}[t]
 \centering
-\small
-\input{../paper/tables/h8_sd10}
 \caption{Accuracy across \hEightSDOrderings{} orderings of the same
 \hEightItems{} items, in accuracy points, measured at the served batch size
 $B=\hEightSDLevel$ (\S\ref{sec:determinism}). The standard deviation is the
@@ -612,6 +610,8 @@ inferential quantity; the range is descriptive only, being unstable and monotone
 the number of orderings sampled. \texttt{bf16} is identical under every ordering at
 both rungs.}
 \label{tab:h8-sd}
+\small
+\input{../paper/tables/h8_sd10}
 \end{table}
 
 \paragraph{Why we report a standard deviation and not a spread.}
@@ -662,14 +662,14 @@ although it remains specific to one engine version.
 
 \begin{table}[t]
 \centering
-\small
-\input{../paper/tables/h8_mechanism}
 \caption{Paired intervention at $B=8$: identical inputs, identical engine, with
 and without the Marlin and Machete kernels. Text divergence and accuracy SD in
 percentage points. bitsandbytes NF4 is unaffected at exactly $1.00\times$
 because it never used these kernels, so its ordering sensitivity has a second and distinct
 cause.}
 \label{tab:h8-mechanism}
+\small
+\input{../paper/tables/h8_mechanism}
 \end{table}
 
 Two controls rule out the obvious alternatives. Enabling kernel autotuning
@@ -738,8 +738,6 @@ clusters. Positive means leniency helps the quantized arm \emph{more} than
 
 \begin{table*}[t]
 \centering
-\small
-\input{../paper/tables/h3_interaction}
 \caption{Precision $\times$ scoring interaction in accuracy points against
 \texttt{bf16}, under strict versus permissive extraction, on \hThreeRecords{}
 generations.
@@ -748,6 +746,8 @@ bootstrap interval: ARC-C's estimate is \emph{exactly} zero, so there is nothing
 to resample and the interval is the Wilson zero-event bound
 (\S\ref{sec:h5h6}).}
 \label{tab:h3-interaction}
+\small
+\input{../paper/tables/h3_interaction}
 \end{table*}
 
 \paragraph{The interaction is real, and its sign depends on the task.}
@@ -936,8 +936,6 @@ directions and a net figure reports only their difference.
 
 \begin{table*}[t]
 \centering
-\small
-\input{../paper/tables/h4_transitions}
 \caption{Compliance transitions against \texttt{bf16} on the same items, pooled over
 the three models, at \hFourRung{} extraction. \emph{chg.} is the number of items that
 changed commitment state in either direction; \emph{net} is the resulting change in
@@ -946,6 +944,8 @@ per-model cells exclude the null under an exact McNemar test. \textbf{Bold} mark
 with at least one such cell. $^{*}$GSM8K\textsubscript{hash} is shown as a demonstration
 and excluded from the registered family (\S\ref{sec:h3}).}
 \label{tab:h4-transitions}
+\small
+\input{../paper/tables/h4_transitions}
 \end{table*}
 
 \paragraph{The net figure hides most of what happens.}
@@ -1264,40 +1264,30 @@ in the released log, totalling roughly 35 GPU-hours on a single accelerator.
 Every term here is also defined where it first appears in the text. This section is for
 looking one up out of order, not the definition of record.
 
-\begin{description}\itemsep2pt
-  \item[arm] One precision setting of one model, for example Llama-3.1-8B at
-    GPTQ-4bit. We compare five.
-  \item[\texttt{bf16}] Brain floating point, 16 bits. The unquantized baseline every
-    quantized setting is compared against.
-  \item[GPTQ, AWQ] Two post-training quantization methods. Both produce a weight file
-    ahead of time, which the serving engine then loads.
-  \item[bitsandbytes NF4] A third method, 4-bit NormalFloat. Unlike GPTQ and AWQ it is
-    applied \emph{in flight} when the model loads, rather than read from a prepared file,
-    and it has no dedicated GPU kernels in our serving engine. Both facts matter: they are
-    why the kernel remedy of \S\ref{sec:h8} does not apply to it.
-  \item[kernel] The specialised GPU routine that performs one operation, here the
-    quantized matrix multiplication. Different kernels compute the same mathematical
-    result by different arithmetic routes, which is why the choice is observable.
-  \item[Marlin, Machete] The two quantized matrix-multiply kernels our engine selects by
-    default for 4-bit GPTQ and AWQ. Disabling them is the intervention in \S\ref{sec:h8}.
-  \item[batch invariance] The property that a result does not depend on which other
-    requests were processed alongside it. Our engine offers a mode intended to guarantee
-    this; \S\ref{sec:h8} reports where that mode does not reach.
-  \item[strict, permissive] The two answer-extraction rules whose disagreement this paper
-    measures. \emph{Strict} is the evaluation harness's canonical regular expression, used
-    verbatim. \emph{Permissive} is the harness's own flexible extractor, which accepts
-    looser forms. Both are the harness's, not ours.
-  \item[rung] One step of the extraction ladder in \S\ref{sec:ladder}. Five rungs run
-    over the same stored text, so comparing them costs no additional generation.
-  \item[interaction] Here, the difference between how much permissive extraction helps a
-    quantized setting and how much it helps \texttt{bf16} on the same items. Zero means
-    the extraction rule is a nuisance; non-zero means it changes the reported gap.
-  \item[the gap, the reported difference] The number a paper reports as quantization
-    degradation: the unquantized score minus the quantized score.
-  \item[within a process, across processes] Whether two compared measurements were
-    produced by the same running instance of the serving engine, or by two separate runs.
-    \S\ref{sec:crossjob} shows this distinction is load-bearing.
-\end{description}
+\noindent\textbf{arm}: One precision setting of one model, for example Llama-3.1-8B at GPTQ-4bit. We compare five.\par
+\smallskip
+\noindent\textbf{\texttt{bf16}}: Brain floating point, 16 bits. The unquantized baseline every quantized setting is compared against.\par
+\smallskip
+\noindent\textbf{GPTQ, AWQ}: Two post-training quantization methods. Both produce a weight file ahead of time, which the serving engine then loads.\par
+\smallskip
+\noindent\textbf{bitsandbytes NF4}: A third method, 4-bit NormalFloat. Unlike GPTQ and AWQ it is applied \emph{in flight} when the model loads, rather than read from a prepared file, and it has no dedicated GPU kernels in our serving engine. Both facts matter: they are why the kernel remedy of \S\ref{sec:h8} does not apply to it.\par
+\smallskip
+\noindent\textbf{kernel}: The specialised GPU routine that performs one operation, here the quantized matrix multiplication. Different kernels compute the same mathematical result by different arithmetic routes, which is why the choice is observable.\par
+\smallskip
+\noindent\textbf{Marlin, Machete}: The two quantized matrix-multiply kernels our engine selects by default for 4-bit GPTQ and AWQ. Disabling them is the intervention in \S\ref{sec:h8}.\par
+\smallskip
+\noindent\textbf{batch invariance}: The property that a result does not depend on which other requests were processed alongside it. Our engine offers a mode intended to guarantee this; \S\ref{sec:h8} reports where that mode does not reach.\par
+\smallskip
+\noindent\textbf{strict, permissive}: The two answer-extraction rules whose disagreement this paper measures. \emph{Strict} is the evaluation harness's canonical regular expression, used verbatim. \emph{Permissive} is the harness's own flexible extractor, which accepts looser forms. Both are the harness's, not ours.\par
+\smallskip
+\noindent\textbf{rung}: One step of the extraction ladder in \S\ref{sec:ladder}. Five rungs run over the same stored text, so comparing them costs no additional generation.\par
+\smallskip
+\noindent\textbf{interaction}: Here, the difference between how much permissive extraction helps a quantized setting and how much it helps \texttt{bf16} on the same items. Zero means the extraction rule is a nuisance; non-zero means it changes the reported gap.\par
+\smallskip
+\noindent\textbf{the gap, the reported difference}: The number a paper reports as quantization degradation: the unquantized score minus the quantized score.\par
+\smallskip
+\noindent\textbf{within a process, across processes}: Whether two compared measurements were produced by the same running instance of the serving engine, or by two separate runs. \S\ref{sec:crossjob} shows this distinction is load-bearing.\par
+
 
 \section{The order-divergence frontier in full}
 \label{app:h8frontier}
@@ -1310,19 +1300,18 @@ looking one up out of order, not the definition of record.
 % it in full and unabridged, not by which page it sits on.
 
 Table~\ref{tab:h8-frontier} reports order-induced divergence at every served batch
-size we measured. Two-column floats are placed at the top of a page, so it appears on
-the page after this heading.
+size we measured.
 
 \begin{table*}[t]
 \centering
-\small
-\input{../paper/tables/h8_frontier}
 \caption{Order-induced divergence at three measurement levels (generated
 text, and correctness under strict and permissive extraction) by served
 batch size $B$, on \hEightItems{} items with \hEightOrderings{} orderings. This
 bounds what a third party can reproduce at each configuration, which is why we
 report the whole frontier rather than only the value we adopt.}
 \label{tab:h8-frontier}
+\small
+\input{../paper/tables/h8_frontier}
 \end{table*}
 
 \section{Heterogeneity contrasts in full}
@@ -1342,8 +1331,6 @@ Holm--Bonferroni family, separate from the per-arm interaction estimates.
 
 \begin{table*}[t]
 \centering
-\small
-\input{../paper/tables/h3_heterogeneity}
 \caption{Heterogeneity of the precision $\times$ scoring interaction. Estimates
 are differences between two interaction estimates, in accuracy points, with a
 percentile cluster bootstrap over items. Contrast~1 is unpaired because the two
@@ -1351,6 +1338,8 @@ tasks have different items; contrast~2 is paired because they share items, and
 resampling them independently would discard the correlation and overstate the
 interval.}
 \label{tab:h3-heterogeneity}
+\small
+\input{../paper/tables/h3_heterogeneity}
 \end{table*}
 
 \section{Frozen configuration}
@@ -1368,11 +1357,12 @@ than summarised. Everything below is also machine-readable in the released artif
 \paragraph{Models, pinned by commit rather than by tag.}
 Tags move; commits do not.
 
-\begin{description}\itemsep0pt
-  \item[Qwen2.5-3B-Instruct] {\small\texttt{\seqsplit{aa8e72537993ba99e69dfaafa59ed015b17504d1}}}
-  \item[Phi-3.5-mini-instruct] {\small\texttt{\seqsplit{2fe192450127e6a83f7441aef6e3ca586c338b77}}}
-  \item[Llama-3.1-8B-Instruct] {\small\texttt{\seqsplit{0e9e39f249a16976918f6564b8830bc894c89659}}}
-\end{description}
+\noindent\textbf{Qwen2.5-3B-Instruct}: {\small\texttt{\seqsplit{aa8e72537993ba99e69dfaafa59ed015b17504d1}}}\par
+\smallskip
+\noindent\textbf{Phi-3.5-mini-instruct}: {\small\texttt{\seqsplit{2fe192450127e6a83f7441aef6e3ca586c338b77}}}\par
+\smallskip
+\noindent\textbf{Llama-3.1-8B-Instruct}: {\small\texttt{\seqsplit{0e9e39f249a16976918f6564b8830bc894c89659}}}\par
+
 
 \paragraph{Serving.} vLLM \hEightEngine{} with batch-invariant kernels enabled;
 \texttt{dtype} \texttt{bfloat16}; \texttt{max\_model\_len} 8192;
