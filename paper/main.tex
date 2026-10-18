@@ -630,11 +630,9 @@ rather than a defect in either kernel.
 
 \textbf{What this establishes, and what it does not.} The intervention locates the
 mechanism in a specific pair of kernels and shows the effect is not merely correlated with
-them, because removing them removes it. It does not explain the arithmetic from our own
-measurements. A pending change to vLLM attributes it to Marlin choosing its tiling and
-reduction split from the number of tokens, so that the order of summation changes with the
-batch size \citep{vllm2026pr60479}; we have not verified that account ourselves. We claim
-the localisation, which is what an intervention buys, and not the explanation.
+them, because removing them removes it. It does not explain the arithmetic: we do not
+identify which reduction differs, or in what order. We claim the localisation, which is what
+an intervention buys, and not the explanation.
 
 \paragraph{The effect replicates on a second GPU architecture.}
 We repeated both designs on an NVIDIA \hEightSpotGPU{} (Ampere, SM 8.6) with the same
