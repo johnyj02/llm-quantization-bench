@@ -1370,7 +1370,8 @@ caching disabled; asynchronous scheduling disabled; FlashInfer sampling disabled
 kernel autotuning disabled.
 
 \paragraph{Decoding.} Greedy throughout: \texttt{temperature} 0, \texttt{top\_p} 1,
-\texttt{top\_k} disabled, all repetition and presence penalties 0, \texttt{seed} 0. Each
+\texttt{top\_k} disabled, repetition penalty 1 (none), presence and frequency penalties 0,
+\texttt{seed} 0. Each
 model's own \texttt{generation\_config.json} is deliberately \emph{not} read, because two
 of our three models ship non-neutral sampling defaults there, which would make the
 decoding configuration differ by model in a study whose design holds the apparatus fixed.
