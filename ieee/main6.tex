@@ -1,5 +1,5 @@
 % SIX-PAGE IEEE version (MLNLP 2026), condensed from ieee/main.tex on 2026-10-18.
-% ieee/main.tex is the full version and is unchanged; submit it as supplementary material.
+% ieee/main.tex is the full version and is unchanged; it is the extended version cited in the text.
 % Tables, figure and bibliography are SHARED with ../paper, so every number here comes from
 % the same generated macros as both full versions. Do not type a result in by hand.
 \documentclass[conference]{IEEEtran}
@@ -11,6 +11,7 @@
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{xspace}
+\usepackage{seqsplit}  % commit SHAs
 \xspaceaddexceptions{\%}
 \usepackage{url}
 \usepackage[hidelinks]{hyperref}
@@ -147,7 +148,11 @@ harness's canonical regular expression; \emph{strict-last}, the same expression 
 match; \emph{permissive}, the harness's flexible extractor; \emph{symbolic} equivalence; and a
 trained judge \citep{chen2025xverify} that we did not validate and on which no claim rests. The
 headline contrast is strict against permissive, both deterministic and auditable. We validated
-both against 250 human labels from two annotators (raw agreement 0.975, Gwet's AC1 0.968).
+both against 250 human labels from two annotators (raw agreement 0.975, Gwet's AC1 0.968). The
+sample was enriched 14.4-fold for items where the rungs disagree, so its rates describe the
+sample, not the population: strict extraction marked wrong an answer the annotators judged
+correct on 23.1\% of \texttt{bf16} items and 41.1\% of 4-bit items, while permissive
+extraction marked correct an answer they judged wrong on at most 0.7\%.
 Auditing our own pipeline found that a rule we had added ahead of the harness's returned worse
 answers on 2{,}068 of 105{,}950 generations, which our unit tests never caught. Repairing it
 changed the conclusion of two interaction estimates and the sign of one; all numbers here are
@@ -165,8 +170,24 @@ batch-invariant mode on \citep{he2025nondeterminism}, tensor parallelism of one,
 caching off, and a maximum of \hEightFrozenB{} co-resident sequences. That value was measured
 rather than assumed: it is the largest at which every arm is bitwise reproducible across
 repeated identical runs, and any arm less reproducible than \texttt{bf16} sets a noise floor
-below which we claim no effect. The full configuration,
-rubric and pre-registration are in the supplementary material.
+below which we claim no effect.
+
+\emph{Frozen configuration.} Models, pinned by commit: Qwen2.5-3B-Instruct
+{\small\texttt{\seqsplit{aa8e72537993ba99e69dfaafa59ed015b17504d1}}}, Phi-3.5-mini-instruct
+{\small\texttt{\seqsplit{2fe192450127e6a83f7441aef6e3ca586c338b77}}} and Llama-3.1-8B-Instruct
+{\small\texttt{\seqsplit{0e9e39f249a16976918f6564b8830bc894c89659}}}. Serving: vLLM
+\hEightEngine{}, \texttt{dtype} \texttt{bfloat16}, \texttt{max\_model\_len} 8192,
+\texttt{max\_num\_seqs} \hEightFrozenB{}, tensor parallelism 1, with prefix caching,
+asynchronous scheduling, FlashInfer sampling and kernel autotuning disabled. Decoding: greedy,
+\texttt{temperature} 0, \texttt{top\_p} 1, \texttt{top\_k} disabled, repetition penalty 1
+(none), presence and frequency penalties 0, \texttt{seed} 0, and no model's own
+\texttt{generation\_config.json} read, because two of the three ship non-neutral sampling
+defaults. Quantization: \texttt{llmcompressor} 0.12.0.1 for both GPTQ and AWQ, on
+\texttt{ultrachat\_200k} (\texttt{train\_sft}) with shuffle seed 20260823. Hardware: one
+NVIDIA L40S (SM 8.9, 46{,}068\,MiB usable), CUDA 13.0, driver 595.91.07, \texttt{torch}
+2.11.0+cu130; the replication used one NVIDIA \hEightSpotGPU{} (SM 8.6) with the same image.
+The extended version, the annotation rubric, the pre-registration and every generation are
+released at \url{ARTIFACT-URL-PENDING}.
 
 \section{Results}
 \label{sec:results}
@@ -213,6 +234,17 @@ and Machete kernels. Text divergence in percent, accuracy SD in points.}
 \input{../paper/tables/h8_mechanism}
 \end{table}
 
+\begin{table*}[t]
+\centering
+\caption{Order-induced divergence, in percent of items, at three measurement levels (generated
+text, and correctness under strict and permissive extraction) by served batch size $B$, on
+\hEightItems{} items with \hEightOrderings{} orderings (Qwen2.5-3B, L40S). Which batch size
+is safe differs by arm.}
+\label{tab:h8-frontier}
+\small
+\input{../paper/tables/h8_frontier}
+\end{table*}
+
 \emph{The batch-invariant mode does not cover Marlin or Machete.} Disabling those two kernels
 through \texttt{VLLM\_DISABLED\_KERNELS}, and changing nothing else, drives divergence to zero
 for GPTQ and AWQ, on text and on accuracy (Table~\ref{tab:h8-mechanism}). Both of our
@@ -225,6 +257,12 @@ checkpoints, a path ours never take. NF4 never
 used these kernels and is unchanged by the intervention, so its ordering sensitivity has a
 second, separate cause. The intervention locates the mechanism; it does not explain the
 arithmetic, and we do not identify which reduction differs.
+
+\emph{No batch size is safe for every arm.} Table~\ref{tab:h8-frontier} gives divergence at
+every batch size we measured. \texttt{bf16} is zero everywhere. GPTQ and AWQ diverge at every
+batch size, on up to \hEightWorstText\% of generated texts and up to \hEightWorstCorr\% of
+correctness verdicts, while NF4's divergence falls sharply as the batch grows. A setting that
+is safe for one arm is therefore not safe for another.
 
 \emph{The effect replicates on a second GPU architecture.} On an NVIDIA \hEightSpotGPU{}
 (Ampere, SM 8.6) with the same image, engine, weights and probe, \texttt{bf16} text differs on
@@ -337,7 +375,8 @@ removes the ordering variation for GPTQ and AWQ at about $3.7\times$ evaluation 
 and does nothing for NF4. The extraction rule is a choice about what counts as correct, and its
 effect varies by method and task, so it cannot be standardised away and has to be reported.
 
-\emph{Recommend the test, not the flag.} A kernel flag is specific to one engine version. The
+\emph{Recommend the test, not the flag.} A kernel flag is specific to one engine version, and
+Table~\ref{tab:h8-frontier} shows that no single batch size is safe for every arm. The
 durable advice is a test: run the same items in several orderings and check that the outputs
 agree bitwise, for whichever kernels your backend selected. We release that probe. A protocol
 should also report the item submission order, whether compared precisions were generated in
