@@ -119,7 +119,11 @@ vLLM's batch-invariant mode builds on. We show that its guarantee does not exten
 sensitivity is a model property or an evaluation artifact; we vary the scorer rather than the
 prompt. Whether quantization lengthens chain-of-thought is disputed
 \citep{lian2026inflates,lotfi2026longer,liu2025quantization}, and no study on either side
-sweeps the generation cap. \citet{kurt2026which} report strict-versus-flexible GSM8K gaps of
+sweeps the generation cap. \citet{lee2025tradeoffs} report that quantization disrupts
+instruction-following, which is the strongest objection to our framing: a gap we attribute to
+measurement could instead be a real instruction-following loss caused by quantization. The compliance split of
+\S\ref{sec:method} addresses it directly, by separating an answer the model did not know from
+one it knew but did not state in the expected form. \citet{kurt2026which} report strict-versus-flexible GSM8K gaps of
 41 to 64 points across \texttt{llama.cpp} quantizations without interpreting them.
 
 \section{Method}
@@ -228,6 +232,14 @@ arithmetic, and we do not identify which reduction differs.
 on \hEightSpotText\% (\hEightTenText\% on the L40S), with a strict accuracy SD of
 \hEightSpotSD{} (\hEightTenSD{} on the L40S), and disabling Marlin and Machete takes it from
 \hEightSpotMarlinOn\% to \hEightSpotMarlinOff\%.
+
+\emph{Scope of these numbers.} Table~\ref{tab:h8-sd} comes from a single confirmatory run
+of \hEightSDOrderings{} orderings at the adopted batch size, whose ordering count, seeds and
+batch size were registered before it ran. Table~\ref{tab:h8-mechanism} and the same-order
+repeats come from a separate run over three orderings at three batch sizes, and the replication
+from a third run on the second GPU. An earlier exploratory run used three orderings and a
+terminator set that truncated most BBH items; we report the later runs and do not pool them
+with it.
 
 \subsection{The scoring rule changes the measured quantization effect, unevenly}
 \label{sec:h3}

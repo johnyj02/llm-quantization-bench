@@ -713,11 +713,13 @@ argument for calibrating extraction rather than loosening it
 % bit-width effect. R16.5 permits that only against our OWN bit-width deltas on the SAME
 % items, never against published figures, and we have not computed it.
 \paragraph{Scope of these numbers.}
-All figures in this section come from a single confirmatory run of
+Table~\ref{tab:h8-sd} comes from a single confirmatory run of
 \hEightSDOrderings{} orderings at the batch size we adopt, with the terminator set the
-\texttt{chat} template requires (\S\ref{sec:method}). An earlier exploratory run used
+\texttt{chat} template requires (\S\ref{sec:method}). Table~\ref{tab:h8-mechanism} and the
+same-order repeats come from a separate run over three orderings at three batch sizes, and
+the replication from a third run on the second GPU. An earlier exploratory run used
 three orderings and a terminator set that truncated most BigBench-Hard items, and we
-report the later run rather than pooling the two, because they measure different
+report the later runs rather than pooling them with it, because they measure different
 configurations. The pre-registration fixed the ordering count, the seeds and the batch
 size before this run executed (Appendix~\ref{app:prereg}).
 
