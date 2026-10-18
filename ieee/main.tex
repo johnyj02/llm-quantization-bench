@@ -635,18 +635,22 @@ Disabling those two kernels through \texttt{VLLM\_DISABLED\_KERNELS}, changing
 nothing else, drives order-induced divergence to zero on \hEightPinned{} arms
 (Table~\ref{tab:h8-mechanism}), on generated text \emph{and} on accuracy.
 These are the quantized matrix-multiply kernels vLLM selects by default, and
-they are not covered by its batch-invariant mode: the AWQ kernel path carries a
-batch-invariance guard, the GPTQ path carries none, and the sampler and kernel
-autotuning paths are likewise unguarded. We report this as a defect in the
-feature rather than in either kernel; AWQ has the guard and is nonetheless
-affected, so the guard as implemented is insufficient.
+they are not covered by its batch-invariant mode. Our GPTQ and AWQ checkpoints are both
+in the \texttt{compressed-tensors} format, and vLLM loads that format through a 4-bit
+kernel chooser that has no batch-invariance check, in 0.26.0 and in the latest release we
+inspected (0.32.0), so it selects Marlin whether or not the mode is on. The source shows
+four such gaps: that chooser, the AutoGPTQ loader, the sampler, and kernel autotuning. The
+only guard we found, which avoids Marlin in this mode, is in the loader for AutoAWQ-format
+checkpoints, a path ours never take. We report this as a gap in the feature's coverage
+rather than a defect in either kernel.
 
 \textbf{What this establishes, and what it does not.} The intervention locates the
 mechanism in a specific pair of kernels and shows the effect is not merely correlated with
-them, because removing them removes it. It does not explain the arithmetic: we do not
-identify which reduction differs, in what order, or why AWQ's batch-invariance guard fails
-to hold. We claim the localisation, which is what an intervention buys, and not the
-explanation.
+them, because removing them removes it. It does not explain the arithmetic from our own
+measurements. A pending change to vLLM attributes it to Marlin choosing its tiling and
+reduction split from the number of tokens, so that the order of summation changes with the
+batch size \citep{vllm2026pr60479}; we have not verified that account ourselves. We claim
+the localisation, which is what an intervention buys, and not the explanation.
 
 \paragraph{The effect replicates on a second GPU architecture.}
 We repeated both designs on an NVIDIA \hEightSpotGPU{} (Ampere, SM 8.6) with the same
