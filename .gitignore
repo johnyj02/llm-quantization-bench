@@ -49,3 +49,16 @@ paper/*.fls
 
 # Built supplementary archive (scripts/build_release.py); sources are committed.
 artifacts/release/
+
+# Local documentation and planning files
+/CLAUDE.md
+/ieee/
+/paper/
+/ask-planner
+/ask-reviewer
+/EXECUTOR-PLAN.md
+/EXECUTOR-TASKS.md
+/README-LOCAL.md
+/annotation/archive-2026-10-14/
+/.claude/
+/notes/*
