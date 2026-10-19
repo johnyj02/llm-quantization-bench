@@ -6,6 +6,11 @@ generation the paper's numbers are computed from, the order-invariance probe, an
 annotation record. Every record keeps the full generated text and the fields that cannot be
 reconstructed later, so any answer extractor can be re-run on it without a GPU.
 
+In this repository, the extracted data is in
+[`quantized-eval-ordering-supplement/`](quantized-eval-ordering-supplement/).
+The layout below describes the contents of that directory and the archive.
+The probe script is also available alongside this README.
+
 ```
 corpus/<run_id>/<model>__<precision>/<task>[__<subtask>]__<prompt>__<budget>.jsonl
 determinism/l40s/        probe passes and per-cell analyses, NVIDIA L40S (SM 8.9)

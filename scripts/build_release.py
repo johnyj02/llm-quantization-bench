@@ -183,7 +183,7 @@ def main() -> int:
     determinism = stage_determinism()
     stage_annotation()
     for name in ("README.md", "order_invariance_probe.py"):
-        shutil.copy2(REPO / "release" / name, STAGE / name)
+        shutil.copy2(OUT / name, STAGE / name)
     deny_scan()
     tar_path = write_tar(counts, determinism)
     print(f"  tar: {tar_path.stat().st_size / 1e6:,.0f} MB uncompressed")

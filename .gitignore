@@ -31,6 +31,7 @@ paper/*.fls
 
 # Keep the compressed archive local; publish its extracted contents.
 /artifacts/release/*.tar.xz
+/artifacts/release/*.tar.xz.sha256
 
 # Local documentation and planning files
 /CLAUDE.md
@@ -44,3 +45,4 @@ paper/*.fls
 /annotation/archive-2026-10-14/
 /.claude/
 /notes/*
+!/notes/RUNLOG.md
