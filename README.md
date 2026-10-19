@@ -1,5 +1,17 @@
 # LLM Quantization Bench
 
+## Artifacts
+
+- **Code:** [model generation, quantization, scoring, and analysis](src/quantartifact/) and [experiment and reporting scripts](scripts/).
+- **All generations:** [stored generation files](artifacts/generations/) and the [extracted release corpus](artifacts/release/quantized-eval-ordering-supplement/corpus/), including the 105,950 main-run records.
+- **Pre-registration:** [registered study design and analysis plan](analysis/preregistration.md).
+- **Annotation rubric:** [human annotation rules](annotation/rubric.md).
+- **Labels:** [annotator A1](annotation/labels_A1.jsonl), [annotator A2](annotation/labels_A2.jsonl), and [adjudicated labels](annotation/adjudicated.json).
+- **Order-invariance probe:** [standalone probe script](artifacts/release/order_invariance_probe.py).
+- **Run log:** [record of experiment runs, costs, and outcomes](notes/RUNLOG.md).
+
+## Project overview
+
 LLM Quantization Bench studies how lower-precision model weights affect language model evaluation. It asks how much of a reported accuracy change reflects model behavior, and how much depends on the way answers are generated, extracted, and scored.
 
 The project examines three contributors to measured performance:
