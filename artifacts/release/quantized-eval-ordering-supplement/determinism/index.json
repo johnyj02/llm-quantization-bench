@@ -1,0 +1,182 @@
+{
+  "l40s/raw_phi-3.5-mini__bf16__at8__r2.json": [
+    "superseded"
+  ],
+  "l40s/raw_phi-3.5-mini__bf16__at8__r2__dec147bb715974c.json": [
+    "determinism.json:model_generality:phi-3.5-mini/bf16@8"
+  ],
+  "l40s/raw_phi-3.5-mini__bf16__at8__r2__dec97d4f0aa3e21.json": [
+    "determinism_ord10.json:model_generality:phi-3.5-mini/bf16@8"
+  ],
+  "l40s/raw_phi-3.5-mini__gptq-4bit__at8__r2.json": [
+    "superseded"
+  ],
+  "l40s/raw_phi-3.5-mini__gptq-4bit__at8__r2__dec147bb715974c.json": [
+    "determinism.json:model_generality:phi-3.5-mini/gptq-4bit@8"
+  ],
+  "l40s/raw_phi-3.5-mini__gptq-4bit__at8__r2__dec97d4f0aa3e21.json": [
+    "determinism_ord10.json:model_generality:phi-3.5-mini/gptq-4bit@8"
+  ],
+  "l40s/raw_qwen2.5-3b__awq-4bit__at32__r2.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__awq-4bit__at32__r2__dec147bb715974c.json": [
+    "determinism.json:sweep:qwen2.5-3b/awq-4bit@32"
+  ],
+  "l40s/raw_qwen2.5-3b__awq-4bit__at32__r2__ord10x__decfc384e6eaf11.json": [
+    "determinism_ord10.json:sweep:qwen2.5-3b/awq-4bit@32"
+  ],
+  "l40s/raw_qwen2.5-3b__awq-4bit__at64__r2.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__awq-4bit__at64__r2__dec147bb715974c.json": [
+    "determinism.json:sweep:qwen2.5-3b/awq-4bit@64"
+  ],
+  "l40s/raw_qwen2.5-3b__awq-4bit__at64__r2__ord10x.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__awq-4bit__at8__r2.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__awq-4bit__at8__r2__dec147bb715974c.json": [
+    "determinism.json:sweep:qwen2.5-3b/awq-4bit@8"
+  ],
+  "l40s/raw_qwen2.5-3b__awq-4bit__at8__r2__dec9bd3763b470c__fallback.json": [
+    "determinism.json:marlin_attribution:qwen2.5-3b/awq-4bit@8"
+  ],
+  "l40s/raw_qwen2.5-3b__awq-4bit__at8__r2__decea82171d9059__fallback.json": [
+    "determinism_ord10.json:marlin_attribution:qwen2.5-3b/awq-4bit@8"
+  ],
+  "l40s/raw_qwen2.5-3b__awq-4bit__at8__r2__fallback.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__bf16__at32__r2.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__bf16__at32__r2__dec147bb715974c.json": [
+    "determinism.json:sweep:qwen2.5-3b/bf16@32"
+  ],
+  "l40s/raw_qwen2.5-3b__bf16__at32__r2__ord10x__decfc384e6eaf11.json": [
+    "determinism_ord10.json:sweep:qwen2.5-3b/bf16@32"
+  ],
+  "l40s/raw_qwen2.5-3b__bf16__at64__r2.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__bf16__at64__r2__dec147bb715974c.json": [
+    "determinism.json:sweep:qwen2.5-3b/bf16@64"
+  ],
+  "l40s/raw_qwen2.5-3b__bf16__at64__r2__ord10x.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__bf16__at8__r2.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__bf16__at8__r2__dec147bb715974c.json": [
+    "determinism.json:sweep:qwen2.5-3b/bf16@8"
+  ],
+  "l40s/raw_qwen2.5-3b__bnb-nf4__at32__r2.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__bnb-nf4__at32__r2__dec147bb715974c.json": [
+    "determinism.json:sweep:qwen2.5-3b/bnb-nf4@32"
+  ],
+  "l40s/raw_qwen2.5-3b__bnb-nf4__at32__r2__ord10x__decfc384e6eaf11.json": [
+    "determinism_ord10.json:sweep:qwen2.5-3b/bnb-nf4@32"
+  ],
+  "l40s/raw_qwen2.5-3b__bnb-nf4__at64__r2.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__bnb-nf4__at64__r2__dec147bb715974c.json": [
+    "determinism.json:sweep:qwen2.5-3b/bnb-nf4@64"
+  ],
+  "l40s/raw_qwen2.5-3b__bnb-nf4__at64__r2__ord10x.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__bnb-nf4__at8__r2.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__bnb-nf4__at8__r2__dec147bb715974c.json": [
+    "determinism.json:sweep:qwen2.5-3b/bnb-nf4@8"
+  ],
+  "l40s/raw_qwen2.5-3b__bnb-nf4__at8__r2__dec9bd3763b470c__fallback.json": [
+    "determinism.json:marlin_attribution:qwen2.5-3b/bnb-nf4@8"
+  ],
+  "l40s/raw_qwen2.5-3b__bnb-nf4__at8__r2__decea82171d9059__fallback.json": [
+    "determinism_ord10.json:marlin_attribution:qwen2.5-3b/bnb-nf4@8"
+  ],
+  "l40s/raw_qwen2.5-3b__bnb-nf4__at8__r2__fallback.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-4bit__at32__r2.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-4bit__at32__r2__dec147bb715974c.json": [
+    "determinism.json:sweep:qwen2.5-3b/gptq-4bit@32"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-4bit__at32__r2__ord10x__decfc384e6eaf11.json": [
+    "determinism_ord10.json:sweep:qwen2.5-3b/gptq-4bit@32"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-4bit__at64__r2.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-4bit__at64__r2__dec147bb715974c.json": [
+    "determinism.json:sweep:qwen2.5-3b/gptq-4bit@64"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-4bit__at64__r2__ord10x.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-4bit__at8__r2.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-4bit__at8__r2__autotune.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-4bit__at8__r2__autotune__dec147bb715974c.json": [
+    "determinism.json:autotune_contrast:qwen2.5-3b/gptq-4bit@8"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-4bit__at8__r2__autotune__dec97d4f0aa3e21.json": [
+    "determinism_ord10.json:autotune_contrast:qwen2.5-3b/gptq-4bit@8"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-4bit__at8__r2__dec147bb715974c.json": [
+    "determinism.json:sweep:qwen2.5-3b/gptq-4bit@8"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-4bit__at8__r2__dec9bd3763b470c__fallback.json": [
+    "determinism.json:marlin_attribution:qwen2.5-3b/gptq-4bit@8"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-4bit__at8__r2__decea82171d9059__fallback.json": [
+    "determinism_ord10.json:marlin_attribution:qwen2.5-3b/gptq-4bit@8"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-4bit__at8__r2__fallback.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-8bit__at32__r2.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-8bit__at32__r2__dec147bb715974c.json": [
+    "determinism.json:sweep:qwen2.5-3b/gptq-8bit@32"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-8bit__at64__r2.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-8bit__at64__r2__dec147bb715974c.json": [
+    "determinism.json:sweep:qwen2.5-3b/gptq-8bit@64"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-8bit__at8__r2.json": [
+    "superseded"
+  ],
+  "l40s/raw_qwen2.5-3b__gptq-8bit__at8__r2__dec147bb715974c.json": [
+    "determinism.json:sweep:qwen2.5-3b/gptq-8bit@8"
+  ],
+  "a10g/raw_qwen2.5-3b__bf16__at32__r2__ord10x__dec04f0e4afcef8.json": [
+    "determinism_spotcheck_a10g.json:sweep:qwen2.5-3b/bf16@32"
+  ],
+  "a10g/raw_qwen2.5-3b__gptq-4bit__at32__r2__ord10x__dec04f0e4afcef8.json": [
+    "determinism_spotcheck_a10g.json:sweep:qwen2.5-3b/gptq-4bit@32"
+  ],
+  "a10g/raw_qwen2.5-3b__gptq-4bit__at8__r2__deca47de7ee3aba.json": [
+    "determinism_spotcheck_a10g.json:sweep:qwen2.5-3b/gptq-4bit@8"
+  ],
+  "a10g/raw_qwen2.5-3b__gptq-4bit__at8__r2__dece92929981462__fallback.json": [
+    "determinism_spotcheck_a10g.json:marlin_attribution:qwen2.5-3b/gptq-4bit@8"
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "n_passes": 11,
+  "orderings": [
+    0,
+    20260827,
+    20260828,
+    20260829,
+    20260830,
+    20260831,
+    20260901,
+    20260902,
+    20260903,
+    20260904
+  ],
+  "repetition_passes": 2,
+  "repetition_floor": 0.0,
+  "repetition_stable": true,
+  "repetition_n_disagreeing": 0,
+  "order_divergence": 0.702,
+  "order_invariant": false,
+  "order_n_disagreeing": 351,
+  "n_items": 500,
+  "order_max_distinct": 10,
+  "repeat_stable_but_order_sensitive": true,
+  "by_level": {
+    "accuracy_by_ordering": {
+      "strict": [
+        0.29,
+        0.28,
+        0.3,
+        0.286,
+        0.286,
+        0.294,
+        0.274,
+        0.294,
+        0.288,
+        0.298
+      ],
+      "strict_last": [
+        0.29,
+        0.28,
+        0.3,
+        0.286,
+        0.286,
+        0.294,
+        0.274,
+        0.294,
+        0.288,
+        0.298
+      ],
+      "permissive": [
+        0.494,
+        0.492,
+        0.504,
+        0.474,
+        0.488,
+        0.48,
+        0.48,
+        0.486,
+        0.49,
+        0.512
+      ]
+    },
+    "accuracy_spread": {
+      "strict": 0.026,
+      "strict_last": 0.026,
+      "permissive": 0.038
+    },
+    "n_orderings": 10,
+    "n_items_text": 500,
+    "n_items_scored": 500,
+    "n_items_unscored_no_gold": 0,
+    "text_divergence": 0.702,
+    "answer_divergence": {
+      "strict": 0.23,
+      "strict_last": 0.23,
+      "permissive": 0.408
+    },
+    "correctness_divergence": {
+      "strict": 0.106,
+      "strict_last": 0.106,
+      "permissive": 0.18
+    },
+    "escalation_metric_strict_correctness": 0.106
+  },
+  "arm": "awq-4bit",
+  "model_key": "qwen2.5-3b",
+  "max_num_seqs": 64,
+  "disabled_kernels": null,
+  "autotune": false,
+  "minutes": 7.3,
+  "seconds_per_pass": [
+    37.1,
+    36.6,
+    35.3,
+    35.7,
+    35.2,
+    35.9,
+    34.8,
+    35.5,
+    35.8,
+    36.5,
+    35.2
+  ],
+  "fingerprints": [
+    "90ee1c07476e0e80",
+    "90ee1c07476e0e80",
+    "0df3179ab3c014b2",
+    "38fb419ff450d643",
+    "dbd5422a46358905",
+    "547ebe1246afb90e",
+    "92e69beae6176496",
+    "da89994ddfd8efbc",
+    "b3ea53c558ff436b",
+    "340876a6c4bdba85",
+    "814e4beb5f6619d5"
+  ],
+  "hardware": {
+    "gpu": "NVIDIA L40S",
+    "cuda": "13.0",
+    "driver": "595.91.07"
+  },
+  "batch_invariance": {
+    "torch_bmm": "bmm_batch_invariant",
+    "_batch_invariant_MODE": true,
+    "allow_bf16_reduced_precision_reduction": false,
+    "allow_fp16_reduced_precision_reduction": false,
+    "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+  },
+  "engine_state": {
+    "max_num_seqs": 64,
+    "async_scheduling": false,
+    "enable_prefix_caching": false,
+    "num_gpu_blocks": 67948,
+    "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+    "dtype": "torch.bfloat16",
+    "quantization": "compressed-tensors"
+  }
+}

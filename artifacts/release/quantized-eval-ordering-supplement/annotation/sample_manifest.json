@@ -1,0 +1,26 @@
+{
+  "run_id": "pilot-v2",
+  "n_items": 250,
+  "n_overlap_double_annotated": 120,
+  "seeds": {
+    "A1": 20260907,
+    "A2": 20260908
+  },
+  "oversample_fraction_requested": 0.6,
+  "oversample_fraction_realised": 0.236,
+  "n_disagreeing_in_pool": 59,
+  "natural_disagreement_rate": 0.01639,
+  "enrichment_factor": 14.4,
+  "strata_covered": 48,
+  "per_annotator_counts": {
+    "A1": 185,
+    "A2": 185
+  },
+  "arms_in_sample": {
+    "gptq-4bit": 53,
+    "bnb-nf4": 45,
+    "bf16": 104,
+    "awq-4bit": 48
+  },
+  "blinding": "condition, parser verdict and judge verdict are ABSENT from annotator files, not hidden; no pre-annotation of any kind"
+}

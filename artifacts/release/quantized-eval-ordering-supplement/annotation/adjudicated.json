@@ -1,0 +1,25 @@
+{
+  "_how": "§10: disagreements resolved by applying annotation/rubric.md as a RULE LOOKUP, jointly, with the governing clause recorded per item. Never by deferring to the senior author (Belz et al., Insights 2023, list biased aggregation as a documented reproducibility failure). Rulings drafted from the rubric text, then checked by both annotators.",
+  "_status": "CONFIRMED by both annotators on 2026-10-16",
+  "ann-0004": {
+    "label": "INCORRECT",
+    "clause": "step 2 + step 3",
+    "why": "Model self-corrected to 'the right answer is indeed True'. Step 2 takes the LAST commitment, which is True; gold is False. A1 had it right.",
+    "A1": "INCORRECT",
+    "A2": "CORRECT"
+  },
+  "ann-0030": {
+    "label": "INCORRECT",
+    "clause": "4.3",
+    "why": "Model answered 'either (B) ... or (C) ...'. Clause 4.3 makes a hedge INCORRECT even when one option is right, because a hedge is not a commitment to a value. NEITHER annotator chose this label, which is the point of rule lookup over tie-breaking.",
+    "A1": "NO_ANSWER",
+    "A2": "CORRECT"
+  },
+  "ann-0080": {
+    "label": "INCORRECT",
+    "clause": "step 3",
+    "why": "Model committed 'So the answer is 11'; gold is 14. A2 had it right.",
+    "A1": "CORRECT",
+    "A2": "INCORRECT"
+  }
+}

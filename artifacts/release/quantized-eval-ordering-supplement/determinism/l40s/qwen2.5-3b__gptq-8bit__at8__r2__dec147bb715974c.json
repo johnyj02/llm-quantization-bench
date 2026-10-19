@@ -1,0 +1,109 @@
+{
+  "n_passes": 4,
+  "orderings": [
+    0,
+    20260827,
+    20260828
+  ],
+  "repetition_passes": 2,
+  "repetition_floor": 0.0,
+  "repetition_stable": true,
+  "repetition_n_disagreeing": 0,
+  "order_divergence": 0.506,
+  "order_invariant": false,
+  "order_n_disagreeing": 253,
+  "n_items": 500,
+  "order_max_distinct": 3,
+  "repeat_stable_but_order_sensitive": true,
+  "by_level": {
+    "accuracy_by_ordering": {
+      "strict": [
+        0.258,
+        0.26,
+        0.26
+      ],
+      "strict_last": [
+        0.258,
+        0.26,
+        0.26
+      ],
+      "permissive": [
+        0.488,
+        0.49,
+        0.49
+      ]
+    },
+    "accuracy_spread": {
+      "strict": 0.002,
+      "strict_last": 0.002,
+      "permissive": 0.002
+    },
+    "n_orderings": 3,
+    "n_items_text": 500,
+    "n_items_scored": 500,
+    "n_items_unscored_no_gold": 0,
+    "text_divergence": 0.506,
+    "answer_divergence": {
+      "strict": 0.124,
+      "strict_last": 0.124,
+      "permissive": 0.192
+    },
+    "correctness_divergence": {
+      "strict": 0.05,
+      "strict_last": 0.05,
+      "permissive": 0.068
+    },
+    "escalation_metric_strict_correctness": 0.05
+  },
+  "arm": "gptq-8bit",
+  "model_key": "qwen2.5-3b",
+  "max_num_seqs": 8,
+  "disabled_kernels": null,
+  "autotune": false,
+  "minutes": 9.4,
+  "seconds_per_pass": [
+    131.8,
+    131.7,
+    129.2,
+    126.3
+  ],
+  "fingerprints": [
+    "3753b6d2867ad66e",
+    "3753b6d2867ad66e",
+    "0e94ea3898b32fe2",
+    "163d01b53ba0dbe2"
+  ],
+  "hardware": {
+    "gpu": "NVIDIA L40S",
+    "cuda": "13.0",
+    "driver": "595.91.07"
+  },
+  "batch_invariance": {
+    "torch_bmm": "bmm_batch_invariant",
+    "_batch_invariant_MODE": true,
+    "allow_bf16_reduced_precision_reduction": false,
+    "allow_fp16_reduced_precision_reduction": false,
+    "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+  },
+  "engine_state": {
+    "max_num_seqs": 8,
+    "async_scheduling": false,
+    "enable_prefix_caching": false,
+    "num_gpu_blocks": 65373,
+    "cudagraph_mode": "FULL_AND_PIECEWISE",
+    "cudagraph_capture_sizes": [
+      1,
+      2,
+      4,
+      8,
+      16
+    ],
+    "max_cudagraph_capture_size": "16",
+    "compile_ranges_endpoints": [
+      8192
+    ],
+    "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+    "dtype": "torch.bfloat16",
+    "quantization": "compressed-tensors"
+  }
+}

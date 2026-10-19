@@ -1,0 +1,80 @@
+{
+  "accuracy": {
+    "chat|llama-3.1-8b|awq-4bit": {
+      "permissive": 0.578,
+      "strict": 0.416
+    },
+    "chat|llama-3.1-8b|bf16": {
+      "permissive": 0.635,
+      "strict": 0.52
+    },
+    "chat|llama-3.1-8b|gptq-4bit": {
+      "permissive": 0.64,
+      "strict": 0.492
+    },
+    "chat|phi-3.5-mini|awq-4bit": {
+      "permissive": 0.449,
+      "strict": 0.385
+    },
+    "chat|phi-3.5-mini|bf16": {
+      "permissive": 0.525,
+      "strict": 0.478
+    },
+    "chat|phi-3.5-mini|gptq-4bit": {
+      "permissive": 0.41,
+      "strict": 0.413
+    },
+    "chat|qwen2.5-3b|awq-4bit": {
+      "permissive": 0.456,
+      "strict": 0.205
+    },
+    "chat|qwen2.5-3b|bf16": {
+      "permissive": 0.443,
+      "strict": 0.184
+    },
+    "chat|qwen2.5-3b|gptq-4bit": {
+      "permissive": 0.431,
+      "strict": 0.214
+    },
+    "raw|llama-3.1-8b|awq-4bit": {
+      "permissive": 0.633,
+      "strict": 0.611
+    },
+    "raw|llama-3.1-8b|bf16": {
+      "permissive": 0.692,
+      "strict": 0.685
+    },
+    "raw|llama-3.1-8b|gptq-4bit": {
+      "permissive": 0.635,
+      "strict": 0.621
+    },
+    "raw|phi-3.5-mini|awq-4bit": {
+      "permissive": 0.464,
+      "strict": 0.434
+    },
+    "raw|phi-3.5-mini|bf16": {
+      "permissive": 0.584,
+      "strict": 0.576
+    },
+    "raw|phi-3.5-mini|gptq-4bit": {
+      "permissive": 0.493,
+      "strict": 0.502
+    },
+    "raw|qwen2.5-3b|awq-4bit": {
+      "permissive": 0.464,
+      "strict": 0.372
+    },
+    "raw|qwen2.5-3b|bf16": {
+      "permissive": 0.568,
+      "strict": 0.427
+    },
+    "raw|qwen2.5-3b|gptq-4bit": {
+      "permissive": 0.444,
+      "strict": 0.323
+    }
+  },
+  "n_comparisons": 6,
+  "n_invariant": 6,
+  "run_id": "template-v1",
+  "tolerance_pp": 5.0
+}

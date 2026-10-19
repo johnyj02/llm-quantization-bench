@@ -1,0 +1,157 @@
+{
+  "n_passes": 11,
+  "orderings": [
+    0,
+    20260827,
+    20260828,
+    20260829,
+    20260830,
+    20260831,
+    20260901,
+    20260902,
+    20260903,
+    20260904
+  ],
+  "repetition_passes": 2,
+  "repetition_floor": 0.0,
+  "repetition_stable": true,
+  "repetition_n_disagreeing": 0,
+  "order_divergence": 0.712,
+  "order_invariant": false,
+  "order_n_disagreeing": 356,
+  "n_items": 500,
+  "order_max_distinct": 10,
+  "repeat_stable_but_order_sensitive": true,
+  "by_level": {
+    "accuracy_by_ordering": {
+      "strict": [
+        0.32,
+        0.34,
+        0.322,
+        0.316,
+        0.328,
+        0.328,
+        0.33,
+        0.324,
+        0.324,
+        0.344
+      ],
+      "strict_last": [
+        0.32,
+        0.34,
+        0.322,
+        0.316,
+        0.328,
+        0.328,
+        0.33,
+        0.324,
+        0.324,
+        0.344
+      ],
+      "permissive": [
+        0.506,
+        0.508,
+        0.5,
+        0.492,
+        0.5,
+        0.498,
+        0.49,
+        0.484,
+        0.496,
+        0.504
+      ]
+    },
+    "accuracy_spread": {
+      "strict": 0.028,
+      "strict_last": 0.028,
+      "permissive": 0.024
+    },
+    "n_orderings": 10,
+    "n_items_text": 500,
+    "n_items_scored": 500,
+    "n_items_unscored_no_gold": 0,
+    "text_divergence": 0.712,
+    "answer_divergence": {
+      "strict": 0.33,
+      "strict_last": 0.33,
+      "permissive": 0.424
+    },
+    "correctness_divergence": {
+      "strict": 0.14,
+      "strict_last": 0.14,
+      "permissive": 0.166
+    },
+    "escalation_metric_strict_correctness": 0.14
+  },
+  "arm": "gptq-4bit",
+  "model_key": "qwen2.5-3b",
+  "max_num_seqs": 32,
+  "disabled_kernels": null,
+  "autotune": false,
+  "minutes": 8.3,
+  "seconds_per_pass": [
+    41.0,
+    41.1,
+    42.3,
+    41.1,
+    42.4,
+    41.2,
+    41.8,
+    42.4,
+    41.1,
+    42.1,
+    39.6
+  ],
+  "fingerprints": [
+    "9154f3d5331938d5",
+    "9154f3d5331938d5",
+    "480f4489b96a05e8",
+    "4ec92c8699b7564c",
+    "dcb3ab608185f5b7",
+    "e34028d61206f1de",
+    "a0012e76263f13d0",
+    "50d1d31e0aea7455",
+    "109dfac9a6e64149",
+    "f654f88d75f944c9",
+    "e209a6bf79f966bd"
+  ],
+  "hardware": {
+    "gpu": "NVIDIA L40S",
+    "cuda": "13.0",
+    "driver": "595.91.07"
+  },
+  "batch_invariance": {
+    "torch_bmm": "bmm_batch_invariant",
+    "_batch_invariant_MODE": true,
+    "allow_bf16_reduced_precision_reduction": false,
+    "allow_fp16_reduced_precision_reduction": false,
+    "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+  },
+  "engine_state": {
+    "max_num_seqs": 32,
+    "async_scheduling": false,
+    "enable_prefix_caching": false,
+    "num_gpu_blocks": 67777,
+    "cudagraph_mode": "FULL_AND_PIECEWISE",
+    "cudagraph_capture_sizes": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      24,
+      32,
+      40,
+      48,
+      56,
+      64
+    ],
+    "max_cudagraph_capture_size": "64",
+    "compile_ranges_endpoints": [
+      8192
+    ],
+    "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+    "dtype": "torch.bfloat16",
+    "quantization": "compressed-tensors"
+  }
+}
